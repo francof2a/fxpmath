@@ -5,6 +5,7 @@ class Fxp():
     def __init__(self, val=None, signed=None, n_word=None, n_frac=None, 
                 max_error=1.0e-6, n_word_max=64):
         self.dtype = 'fxp' # fxp-<sign><n_word>/<n_frac>-{complex}. i.e.: fxp-s16/15, fxp-u8/1, fxp-s32/24-complex
+        self.vdtype = None # value(s) dtype to return as default
         self.val = None
         self.real = None
         self.imag = None
@@ -114,11 +115,16 @@ class Fxp():
             self.real = self.astype(complex).real
             self.imag = self.astype(complex).imag
 
+        # dtype
         self.dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
                                                              nword=self.n_word, 
                                                              nfrac=self.n_frac, 
                                                              comp='-complex' if val.dtype == complex else '')
-        return self.val
+
+        # dtype_return (default)
+        self.vdtype = val.dtype
+
+        return self
 
     def _overflow_action(self, new_val, val_min, val_max):
         if np.any(new_val > val_max):
@@ -153,28 +159,32 @@ class Fxp():
             raise ValueError('<{}> rounding method not valid!')
         return rval
     
-    def astype(self, dtype):
+    def astype(self, dtype=None):
+        if dtype is None:
+            dtype = self.vdtype
+
         if dtype == float:
             val = self.val / 2.0**self.n_frac
         elif dtype == int:
-            val = int(self.val // 2.0**self.n_frac)
+            val = (self.val // 2.0**self.n_frac).astype(int)
         elif dtype == complex:
             val = (self.val.real + 1j * self.val.imag) / 2.0**self.n_frac
+        else:
+            val = None
         return val
 
-    def __repr__(self):
-        if self.dtype.endswith('complex'):
-            s = str(self.astype(complex))
+    def __call__(self, val=None):
+        if val is None:
+            rval = self.astype()
         else:
-            s = str(self.astype(float))
-        return s
+            rval = self.set_val(val)
+        return rval
+
+    def __repr__(self):
+        return str(self.astype())
 
     def __str__(self):
-        if self.dtype.endswith('complex'):
-            s = str(self.astype(complex))
-        else:
-            s = str(self.astype(float))
-        return s
+        return str(self.astype())
 
     def __add__(self, x):
         if isinstance(x, (int, float, list, np.ndarray)):

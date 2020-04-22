@@ -129,8 +129,10 @@ dmypy.json
 .pyre/
 
 # some folders
-outputs/
-results/
+outputs/*
+!outputs.md 
+
+results/*
 
 # vscode
 .vscode/*
