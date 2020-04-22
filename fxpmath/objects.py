@@ -247,12 +247,24 @@ class Fxp():
         return s
 
     def bin(self):
-        return np.binary_repr(self.val, width=self.n_word)
+        if isinstance(self.val, (list, np.ndarray)):
+            rval = [np.binary_repr(val, width=self.n_word) for val in self.val]
+        else:
+            rval = np.binary_repr(self.val, width=self.n_word)
+        return rval
 
     def hex(self):
-        return np.base_repr(self.val, base=16)
+        if isinstance(self.val, (list, np.ndarray)):
+            rval = [hex(int(val, 2)) for val in self.bin()]
+        else:
+            rval = hex(int(self.bin(), 2))
+        return rval
     
     def base_repr(self, base):
-        return np.base_repr(self.val, base=base)
+        if isinstance(self.val, (list, np.ndarray)):
+            rval = [np.base_repr(val, base=base) for val in self.val]
+        else:
+            rval = np.base_repr(self.val, base=base)
+        return rval
 
 
