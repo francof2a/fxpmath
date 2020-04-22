@@ -246,4 +246,13 @@ class Fxp():
         s += self.get_status(format=str)
         return s
 
+    def bin(self):
+        return np.binary_repr(self.val, width=self.n_word)
+
+    def hex(self):
+        return np.base_repr(self.val, base=16)
+    
+    def base_repr(self, base):
+        return np.base_repr(self.val, base=base)
+
 
