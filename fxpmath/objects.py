@@ -5,21 +5,28 @@ class Fxp():
     def __init__(self, val=None, signed=None, n_word=None, n_frac=None, 
                 max_error=1.0e-6, n_word_max=64):
         self.dtype = 'fxp' # fxp-<sign><n_word>/<n_frac>-{complex}. i.e.: fxp-s16/15, fxp-u8/1, fxp-s32/24-complex
+        # value
         self.vdtype = None # value(s) dtype to return as default
         self.val = None
         self.real = None
         self.imag = None
+        # format
         self.signed = signed
         self.n_word = n_word
         self.n_frac = n_frac
+        # format properties
+        self.upper = None
+        self.lower = None
+        self.resolution = None
+        #status
         self.status = {
             'overflow': False,
             'underflow': False}
+        # behavior
+        self.overflow = 'saturate'
+        self.rounding = 'trunc'
 
-        self.props = {
-            'overflow': 'saturate',
-            'rounding': 'trunc'}
-
+        #
         if self.signed is None:
             self.signed = True
         
@@ -27,10 +34,34 @@ class Fxp():
             self.set_best_sizes(val, n_word, n_frac, 
                                 max_error=max_error, n_word_max=n_word_max)
         else:
-            self.n_word = n_word
-            self.n_frac = n_frac
+            self.change_word_format(self.signed, n_word, n_frac)      
 
         self.set_val(val)
+
+    def change_word_format(self, signed=None, n_word=None, n_frac=None):
+        if signed is not None:
+            self.signed = signed
+        if n_word is not None:
+            self.n_word = n_word
+        if n_frac is not None:
+            self.n_frac = n_frac
+        self.n_int = self.n_word - self.n_frac - (1 if self.signed else 0)
+
+        if self.signed:
+            upper_val = (1 << (self.n_word-1)) - 1
+            lower_val = -upper_val - 1
+        else:
+            upper_val =  (1 << self.n_word) - 1
+            lower_val = 0
+
+        if self.vdtype == complex:
+            self.upper = (upper_val + 1j * upper_val) / 2.0**self.n_frac
+            self.lower = (lower_val + 1j * lower_val) / 2.0**self.n_frac
+            self.resolution = (1 + 1j * 1) / 2.0**self.n_frac
+        else:
+            self.upper = upper_val / 2.0**self.n_frac
+            self.lower = lower_val / 2.0**self.n_frac
+            self.resolution = 1 / 2.0**self.n_frac
     
     def set_best_sizes(self, val=None, n_word=None, n_frac=None, max_error=1.0e-6, n_word_max=64):
 
@@ -55,13 +86,13 @@ class Fxp():
                 max_int_val = np.max(int_vals)
                 frac_vals = np.subtract(np.abs(val), int_vals)
             elif isinstance(val, (int, float)):
-                max_int_val = abs(int(val))
+                max_int_val = max([abs(int(val)), 1])
                 frac_vals = [np.abs(val - int(val))]
             else:
                 raise TypeError('Type not supported for val parameter!')
 
             if n_word is None and n_frac is None:
-                n_int = np.ceil(np.log2(max_int_val)).astype(int) + 1 
+                n_int = np.ceil(np.log2(max_int_val)).astype(int) 
                 max_n_frac = n_word_max - n_int - sign
 
                 n_frac_calcs = []
@@ -87,6 +118,7 @@ class Fxp():
                 self.n_frac = np.max(n_word-n_int-sign, 0).astype(int)
         
         self.n_word = min(self.n_word, n_word_max)
+        self.change_word_format()
 
     def set_val(self, val):
         if val is None:
@@ -102,13 +134,13 @@ class Fxp():
             val_min = 0
 
         if val.dtype != complex:
-            new_val = self._round(val * 2.0**self.n_frac, method=self.props['rounding']).astype(int)
+            new_val = self._round(val * 2.0**self.n_frac, method=self.rounding).astype(int)
             self.val = self._overflow_action(new_val, val_min, val_max)
             self.real = None
             self.imag = None
         else:
-            new_val_real = self._round(val.real * 2.0**self.n_frac, method=self.props['rounding']).astype(int)
-            new_val_imag = self._round(val.imag * 2.0**self.n_frac, method=self.props['rounding']).astype(int)
+            new_val_real = self._round(val.real * 2.0**self.n_frac, method=self.rounding).astype(int)
+            new_val_imag = self._round(val.imag * 2.0**self.n_frac, method=self.rounding).astype(int)
             new_val_real = self._overflow_action(new_val_real, val_min, val_max)
             new_val_imag = self._overflow_action(new_val_imag, val_min, val_max)
             self.val = new_val_real + 1j * new_val_imag
@@ -132,9 +164,9 @@ class Fxp():
         if np.any(new_val < val_min):
             self.status['underflow'] = True
         
-        if self.props['overflow'] == 'saturate':
+        if self.overflow == 'saturate':
             val = np.clip(new_val, val_min, val_max).astype(int)
-        elif self.props['overflow'] == 'wrap':
+        elif self.overflow == 'wrap':
             if new_val.ndim == 0:
                 if not ((new_val <= val_max) & (new_val >= val_min)):
                     val = twos_complement(new_val, self.n_word)
@@ -221,7 +253,7 @@ class Fxp():
 
     def equal(self, x):
         if isinstance(x, Fxp):
-            x = x.astype(float)
+            x = x()
         self.set_val(x)
         return self
 
@@ -243,28 +275,47 @@ class Fxp():
         s += '\tSigned\t\t=\t{}\n'.format(self.signed)
         s += '\tWord bits\t=\t{}\n'.format(self.n_word)
         s += '\tFract bits\t=\t{}\n'.format(self.n_frac)
+        s += '\tInt bits\t=\t{}\n'.format(self.n_int)
         s += self.get_status(format=str)
         return s
 
     def bin(self):
         if isinstance(self.val, (list, np.ndarray)):
-            rval = [np.binary_repr(val, width=self.n_word) for val in self.val]
+            if self.vdtype == complex:
+                rval = [ np.binary_repr(int(val.real), width=self.n_word) + '+' + np.binary_repr(int(val.imag), width=self.n_word) + 'j' for val in self.val]
+            else:
+                rval = [np.binary_repr(val, width=self.n_word) for val in self.val]
         else:
-            rval = np.binary_repr(self.val, width=self.n_word)
+            if self.vdtype == complex:
+                rval = np.binary_repr(int(self.val.real), width=self.n_word) + '+' + np.binary_repr(int(self.val.imag), width=self.n_word) + 'j'
+            else:
+                rval = np.binary_repr(self.val, width=self.n_word)
         return rval
 
     def hex(self):
         if isinstance(self.val, (list, np.ndarray)):
-            rval = [hex(int(val, 2)) for val in self.bin()]
+            if self.vdtype == complex:
+                rval = [ hex(int(val.split('+')[0], 2)) + '+' +  hex(int(val.split('+')[1][:-1], 2)) + 'j' for val in self.bin()]
+            else:
+                rval = [hex(int(val, 2)) for val in self.bin()]
         else:
-            rval = hex(int(self.bin(), 2))
+            if self.vdtype == complex:
+                rval = hex(int(self.bin().split('+')[0], 2)) + '+' +  hex(int(self.bin().split('+')[1][:-1], 2)) + 'j'
+            else:
+                rval = hex(int(self.bin(), 2))
         return rval
     
     def base_repr(self, base):
         if isinstance(self.val, (list, np.ndarray)):
-            rval = [np.base_repr(val, base=base) for val in self.val]
+            if self.vdtype == complex:
+                rval = [np.base_repr(int(val.real), base=base) + ('+' if val.imag >= 0 else '') + np.base_repr(int(val.imag), base=base) + 'j' for val in self.val]
+            else:
+                rval = [np.base_repr(val, base=base) for val in self.val]
         else:
-            rval = np.base_repr(self.val, base=base)
+            if self.vdtype == complex:
+                rval = np.base_repr(int(self.val.real), base=base) + ('+' if self.val.imag >= 0 else '') + np.base_repr(int(self.val.imag), base=base) + 'j'
+            else:
+                rval = np.base_repr(self.val, base=base)
         return rval
 
 

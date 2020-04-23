@@ -1,4 +1,5 @@
 #%%
+import os
 import sys
 import numpy as np
 
@@ -157,20 +158,20 @@ print(x.info())
 #%%
 print('\n--- WRAP OVERFLOW ---')
 x = Fxp(signed=True, n_word=6, n_frac=2)
-x.props['overflow'] = 'wrap'
+x.overflow = 'wrap'
 x.set_val(8)
 print(x)
 x.set_val(np.arange(-10,10,1))
 print(x)
-x.props['overflow'] = 'saturate'
+x.overflow = 'saturate'
 x.set_val(np.arange(-10,10,1))
 print(x)
 
 x = Fxp(signed=False, n_word=6, n_frac=2)
-x.props['overflow'] = 'wrap'
+x.overflow = 'wrap'
 x.set_val(np.arange(-2,18,1))
 print(x)
-x.props['overflow'] = 'saturate'
+x.overflow = 'saturate'
 x.set_val(np.arange(-2,18,1))
 print(x)
 
@@ -178,7 +179,7 @@ print(x)
 print('\n--- ROUNDING ---')
 print('\n* around *')
 x = Fxp(signed=True, n_word=8, n_frac=2)
-x.props['rounding'] = 'around'
+x.rounding = 'around'
 values = np.arange(30.0, 32.5, 0.125)
 x.set_val(values)
 print(values)
@@ -186,7 +187,7 @@ print(x)
 
 print('\n* floor *')
 x = Fxp(signed=True, n_word=8, n_frac=2)
-x.props['rounding'] = 'floor'
+x.rounding = 'floor'
 values = np.arange(30.0, 32.5, 0.125)
 x.set_val(values)
 print(values)
@@ -194,7 +195,7 @@ print(x)
 
 print('\n* ceil *')
 x = Fxp(signed=True, n_word=8, n_frac=2)
-x.props['rounding'] = 'ceil'
+x.rounding = 'ceil'
 values = np.arange(30.0, 32.5, 0.125)
 x.set_val(values)
 print(values)
@@ -202,7 +203,7 @@ print(x)
 
 print('\n* fix *')
 x = Fxp(signed=True, n_word=8, n_frac=2)
-x.props['rounding'] = 'fix'
+x.rounding = 'fix'
 values = np.arange(30.0, 32.5, 0.125)
 x.set_val(values)
 print(values)
@@ -210,7 +211,7 @@ print(x)
 
 print('\n* trunc *')
 x = Fxp(signed=True, n_word=8, n_frac=2)
-x.props['rounding'] = 'trunc'
+x.rounding = 'trunc'
 values = np.arange(30.0, 32.5, 0.125)
 x.set_val(values)
 print(values)
