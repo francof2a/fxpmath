@@ -30,6 +30,12 @@ We have created a variable of 6 bits, where 1 bit has been reserved for sign, 2 
 
 But the most common way to create a **fxp** variable beside the its value is defining explicitly if it is signed, the number of bits for whole word and for the fractional part.
 
+**Note**: `dtype` of Fxp object is a propietary *type* of each element stored in it. The format is:
+
+**`fxp-<sign><n_word>/<n_frac>-{complex}`**
+
+i.e.: `fxp-s16/15`, `fxp-u8/1`, `fxp-s32/24-complex`
+
 ```python
 x = Fxp(-7.25, signed=True, n_word=16, n_frac=8)
 ```
@@ -159,6 +165,7 @@ x - 0.125   # substract a constant
 3 * x       # multiply by a constant
 x / 1.5     # division by a constant
 x // 1.5    # floor division by a constant
+x % 2       # modulo
 ```
 
 This math operations returns a **new Fxp** object with automatic precision enough to represent the result. So, in all these cases we can assign the result to a (Fxp) variable, or to the same (overwritting the old Fxp object).
@@ -215,7 +222,7 @@ y( 0.5 * np.sin(2 * np.pi * f * n() / fs) )     # a sin wave with 5.0 Hz of freq
 
 Fxp has embedded some behaviors to process the value to store.
 
-### overflow/underflow
+### overflow / underflow
 
 A Fxp has upper and lower limits to representate a fixed point value, those limits are define by fractional format (bit sizes). When we want to store a value that is outside those limits, Fxp has an **overflow** y process the value depending the behavior configured for this situation. The options are:
 
@@ -262,4 +269,57 @@ x.rounding = 'ceil'
 x.rounding = 'fix'
 ```
 
+If we want to know what is the **precision** of our Fxp, we can do:
+
+```python
+print(x.precision)              # print the precision of x
+
+# or, in a generic way:
+print(Fxp(n_frac=7).precision)  # print the precision of a fxp with 7 bits for fractional part.
+```
+
 ---
+
+## copy
+
+We can copy a Fxp just like:
+
+```python
+y = x.copy()        # copy also the value stored
+# or
+y = x.deepcopy()
+
+# if you want to preserve a value previously stored in `y` and only copy the properties from `x`:
+y = y.like(x)
+```
+
+This prevent to redefine once and once again a Fxp object with same properties. If we want to modify the value en same line, we can do:
+
+```python
+y = x.copy()(-1.25)     # where -1.25 y the new value for `y` after copying `x`. It isn't necessary the `y` exists previously.
+# or
+y = Fxp(-1.25).like(x)
+
+# be careful with:
+y = y(-1.25).like(x)    # value -1.25 could be modify by overflow or rounding before considerating `x` properties.
+y = y.like(x)(-1.25)    # better!
+```
+
+It is a good idea create Fxp objects like **template**:
+
+```python
+# Fxp like templates
+ADDERS = Fxp(None, True, 40, 16)
+MULTIPLIERS = Fxp(None, True, 16, 8)
+CONSTANTS = Fxp(None, True, 16, 4)
+
+# init
+x1 = Fxp(-3.2).like(MULTIPLIERS)
+x2 = Fxp(25.5).like(MULTIPLIERS)
+c  = Fxp(0.55).like(CONSTANTS)
+y  = Fxp().like(ADDERS)
+
+# do the calc!
+y.equal(x1 + c*x2)
+
+```

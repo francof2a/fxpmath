@@ -30,6 +30,27 @@ def test_instances():
     assert x.n_int == 2
     assert x.n_word == 3
 
+    x = Fxp(-3.5, True, 8, 4)
+    assert x() == -3.5
+    assert x.signed == True
+    assert x.n_frac == 4
+    assert x.n_int == 3
+    assert x.n_word == 8
+
+    x = Fxp(7.5, False, 8, 4)
+    assert x() == 7.5
+    assert x.signed == False
+    assert x.n_frac == 4
+    assert x.n_int == 4
+    assert x.n_word == 8
+
+    x = Fxp(7.5, True, n_frac=4, n_int=6)
+    assert x() == 7.5
+    assert x.signed == True
+    assert x.n_frac == 4
+    assert x.n_int == 6
+    assert x.n_word == 11 
+
 def test_signed():
     # signed
     x_fxp = Fxp(0.0, True, 8, 7)

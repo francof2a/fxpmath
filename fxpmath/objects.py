@@ -1,8 +1,9 @@
 import numpy as np 
+import copy
 from .utils import twos_complement
 
 class Fxp():
-    def __init__(self, val=None, signed=None, n_word=None, n_frac=None, 
+    def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, 
                 max_error=1.0e-6, n_word_max=64):
         self.dtype = 'fxp' # fxp-<sign><n_word>/<n_frac>-{complex}. i.e.: fxp-s16/15, fxp-u8/1, fxp-s32/24-complex
         # value
@@ -25,26 +26,48 @@ class Fxp():
         # behavior
         self.overflow = 'saturate'
         self.rounding = 'trunc'
+        # size
+        self._init_size(val, signed, n_word, n_frac, n_int, max_error=max_error, n_word_max=n_word_max) 
+        # store the value
+        self.set_val(val)
 
-        #
+    # methods about size
+    def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=1.0e-6, n_word_max=64):
+        # sign by default
         if self.signed is None:
             self.signed = True
         
+        # n_int defined:
+        if n_word is None and n_frac is not None and n_int is not None:
+            n_word = n_int + n_frac + (1 if self.signed else 0)
+        elif n_frac is None and n_word is not None and n_int is not None:
+            n_frac = n_word - n_int - (1 if self.signed else 0)
+
+        # check if I must find the best size for val
         if n_word is None or n_frac is None or val is None:
-            self.set_best_sizes(val, n_word, n_frac, 
-                                max_error=max_error, n_word_max=n_word_max)
+            self.set_best_sizes(val, n_word, n_frac, max_error=max_error, n_word_max=n_word_max)
         else:
-            self.resize(self.signed, n_word, n_frac)      
+            self.resize(self.signed, n_word, n_frac, n_int)
 
-        self.set_val(val)
 
-    def resize(self, signed=None, n_word=None, n_frac=None):
+    def resize(self, signed=None, n_word=None, n_frac=None, n_int=None):
+        # n_int defined:
+        if n_word is None and n_frac is not None and n_int is not None:
+            n_word = n_int + n_frac + (1 if self.signed else 0)
+        elif n_frac is None and n_word is not None and n_int is not None:
+            n_frac = n_word - n_int - (1 if self.signed else 0)
+
+        # sign
         if signed is not None:
             self.signed = signed
+        # word
         if n_word is not None:
             self.n_word = n_word
+        # frac
         if n_frac is not None:
             self.n_frac = n_frac
+    
+        # n_int    
         self.n_int = self.n_word - self.n_frac - (1 if self.signed else 0)
 
         if self.signed:
@@ -123,6 +146,8 @@ class Fxp():
         self.n_word = min(self.n_word, n_word_max)
         self.resize()
 
+    # methods about value
+
     def set_val(self, val):
         if val is None:
             val = 0
@@ -180,6 +205,14 @@ class Fxp():
             dtype = self.vdtype
         return self.astype(dtype)
 
+    def equal(self, x):
+        if isinstance(x, Fxp):
+            x = x()
+        self.set_val(x)
+        return self
+
+    # behaviors
+
     def _overflow_action(self, new_val, val_min, val_max):
         if np.any(new_val > val_max):
             self.status['overflow'] = True
@@ -213,6 +246,8 @@ class Fxp():
             raise ValueError('<{}> rounding method not valid!')
         return rval
 
+    # overloadings
+
     def __call__(self, val=None):
         if val is None:
             rval = self.get_val()
@@ -220,11 +255,21 @@ class Fxp():
             rval = self.set_val(val)
         return rval
 
+    # representation
     def __repr__(self):
         return str(self.get_val())
 
     def __str__(self):
         return str(self.get_val())
+
+    # math operations
+    def __neg__(self):
+        y = Fxp(-self.get_val(), signed=self.signed, n_word=self.n_word, n_frac=self.n_frac)
+        return y
+
+    def __pos__(self):
+        y = Fxp(+self.get_val(), signed=self.signed, n_word=self.n_word, n_frac=self.n_frac)
+        return y             
 
     def __add__(self, x):
         if isinstance(x, (int, float, list, np.ndarray)):
@@ -271,8 +316,19 @@ class Fxp():
             x = Fxp(x)
 
         y = Fxp(self.astype(float) // x.astype(float), signed=self.signed or x.signed)
-        return y       
+        return y
 
+    def __mod__(self, x):
+        if isinstance(x, (int, float)):
+            x = Fxp(x)
+        
+        n_frac = max(self.n_frac, x.n_frac)
+        n_int = min(self.n_int, x.n_int)
+
+        y = Fxp(self.astype(float) % x.astype(float), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
+        return y        
+
+    # indexation
     def __getitem__(self, index):
         return self.get_val()[index]
 
@@ -281,12 +337,7 @@ class Fxp():
         new_vals[index] = value
         self.set_val(new_vals)
 
-    def equal(self, x):
-        if isinstance(x, Fxp):
-            x = x()
-        self.set_val(x)
-        return self
-
+    # get info about me
     def get_status(self, format=dict):
         s = None
         if format == dict:
@@ -309,6 +360,8 @@ class Fxp():
         s += self.get_status(format=str)
         print(s)
 
+
+    # base representations
     def bin(self):
         if isinstance(self.val, (list, np.ndarray)):
             if self.vdtype == complex:
@@ -347,5 +400,15 @@ class Fxp():
             else:
                 rval = np.base_repr(self.val, base=base)
         return rval
+
+    # copy
+    def copy(self):
+        return copy.copy(self)
+
+    def deepcopy(self):
+        return copy.deepcopy(self)
+
+    def like(self, x):
+        return  x.copy().set_val(self.get_val()) 
 
 
