@@ -108,17 +108,17 @@ class Fxp():
                 sign = 0
 
             if isinstance(val, (list, np.ndarray)):
-                int_vals = np.abs(val).astype(int)
-                max_int_val = np.max(int_vals)
-                frac_vals = np.subtract(np.abs(val), int_vals)
+                int_vals = val.astype(int)
+                max_int_val = np.max(np.abs(int_vals + 0.5))
+                frac_vals = np.abs(np.subtract(val, int_vals))
             elif isinstance(val, (int, float)):
-                max_int_val = max([abs(int(val)), 1])
+                max_int_val = abs(val + 0.5)
                 frac_vals = [np.abs(val - int(val))]
             else:
                 raise TypeError('Type not supported for val parameter!')
 
             if n_word is None and n_frac is None:
-                n_int = np.ceil(np.log2(max_int_val)).astype(int) 
+                n_int = max( np.ceil(np.log2(max_int_val)).astype(int), 0) 
                 max_n_frac = n_word_max - n_int - sign
 
                 n_frac_calcs = []

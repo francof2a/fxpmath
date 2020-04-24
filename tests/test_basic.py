@@ -59,7 +59,7 @@ def test_signed():
     assert x_fxp() == 0.5
 
     x_fxp(-0.5)
-    assert x_fxp() == -0.5
+    assert x_fxp() == -0.5 
 
     # unsigned
     x_fxp = Fxp(0.0, False, 8, 7)

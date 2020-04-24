@@ -309,17 +309,20 @@ It is a good idea create Fxp objects like **template**:
 
 ```python
 # Fxp like templates
-ADDERS = Fxp(None, True, 40, 16)
-MULTIPLIERS = Fxp(None, True, 16, 8)
-CONSTANTS = Fxp(None, True, 16, 4)
+DATA        = Fxp(None, True, 24, 15)
+ADDERS      = Fxp(None, True, 40, 16)
+MULTIPLIERS = Fxp(None, True, 24, 8)
+CONSTANTS   = Fxp(None, True, 8, 4)
 
 # init
-x1 = Fxp(-3.2).like(MULTIPLIERS)
-x2 = Fxp(25.5).like(MULTIPLIERS)
-c  = Fxp(0.55).like(CONSTANTS)
+x1 = Fxp(-3.2).like(DATA)
+x2 = Fxp(25.5).like(DATA)
+c  = Fxp(2.65).like(CONSTANTS)
+m  = Fxp().like(MULTIPLIERS)
 y  = Fxp().like(ADDERS)
 
 # do the calc!
-y.equal(x1 + c*x2)
+m.equal(c*x2)
+y.equal(x1 + m)
 
 ```
