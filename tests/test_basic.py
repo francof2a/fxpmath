@@ -23,6 +23,13 @@ def test_instances():
     assert x.n_int == 0
     assert x.n_word == 2
 
+    x = Fxp(-3)
+    assert x() == -3
+    assert x.signed == True
+    assert x.n_frac == 0
+    assert x.n_int == 2
+    assert x.n_word == 3
+
 def test_signed():
     # signed
     x_fxp = Fxp(0.0, True, 8, 7)

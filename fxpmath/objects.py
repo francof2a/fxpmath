@@ -17,7 +17,7 @@ class Fxp():
         # format properties
         self.upper = None
         self.lower = None
-        self.resolution = None
+        self.precision = None
         #status
         self.status = {
             'overflow': False,
@@ -57,14 +57,14 @@ class Fxp():
         if self.vdtype == complex:
             self.upper = (upper_val + 1j * upper_val) / 2.0**self.n_frac
             self.lower = (lower_val + 1j * lower_val) / 2.0**self.n_frac
-            self.resolution = (1 + 1j * 1) / 2.0**self.n_frac
+            self.precision = (1 + 1j * 1) / 2.0**self.n_frac
         else:
             self.upper = upper_val / 2.0**self.n_frac
             self.lower = lower_val / 2.0**self.n_frac
-            self.resolution = 1 / 2.0**self.n_frac
+            self.precision = 1 / 2.0**self.n_frac
 
         # re store the value
-        self.set_val(self.astype())
+        self.set_val(self.get_val())
     
     def set_best_sizes(self, val=None, n_word=None, n_frac=None, max_error=1.0e-6, n_word_max=64):
 
@@ -102,7 +102,7 @@ class Fxp():
                 for r in frac_vals:
                     e = 1.0
                     n_frac = 0
-                    while e > max_error and n_frac <= max_n_frac:
+                    while e > max_error and n_frac <= max_n_frac and r > 0.0:
                         n_frac += 1
                         r_i = r - 0.5**n_frac
                         e = np.abs(r_i)
@@ -161,6 +161,25 @@ class Fxp():
 
         return self
 
+    def astype(self, dtype=None):
+        if dtype is None:
+            dtype = self.vdtype
+
+        if dtype == float:
+            val = self.val / 2.0**self.n_frac
+        elif dtype == int:
+            val = (self.val // 2.0**self.n_frac).astype(int)
+        elif dtype == complex:
+            val = (self.val.real + 1j * self.val.imag) / 2.0**self.n_frac
+        else:
+            val = None
+        return val
+
+    def get_val(self, dtype=None):
+        if dtype is None:
+            dtype = self.vdtype
+        return self.astype(dtype)
+
     def _overflow_action(self, new_val, val_min, val_max):
         if np.any(new_val > val_max):
             self.status['overflow'] = True
@@ -193,37 +212,23 @@ class Fxp():
         else:
             raise ValueError('<{}> rounding method not valid!')
         return rval
-    
-    def astype(self, dtype=None):
-        if dtype is None:
-            dtype = self.vdtype
-
-        if dtype == float:
-            val = self.val / 2.0**self.n_frac
-        elif dtype == int:
-            val = (self.val // 2.0**self.n_frac).astype(int)
-        elif dtype == complex:
-            val = (self.val.real + 1j * self.val.imag) / 2.0**self.n_frac
-        else:
-            val = None
-        return val
 
     def __call__(self, val=None):
         if val is None:
-            rval = self.astype()
+            rval = self.get_val()
         else:
             rval = self.set_val(val)
         return rval
 
     def __repr__(self):
-        return str(self.astype())
+        return str(self.get_val())
 
     def __str__(self):
-        return str(self.astype())
+        return str(self.get_val())
 
     def __add__(self, x):
         if isinstance(x, (int, float, list, np.ndarray)):
-            x = Fxp(x, signed=self.signed, n_word=self.n_word, n_frac=self.n_frac)
+            x = Fxp(x)
         
         n_word = max(self.n_word, x.n_word) + 1
         n_frac = max(self.n_frac, x.n_frac)
@@ -233,7 +238,7 @@ class Fxp():
 
     def __sub__(self, x):
         if isinstance(x, (int, float, list, np.ndarray)):
-            x = Fxp(x, signed=self.signed, n_word=self.n_word, n_frac=self.n_frac)
+            x = Fxp(x)
         
         n_word = max(self.n_word, x.n_word) + 1
         n_frac = max(self.n_frac, x.n_frac)
@@ -243,7 +248,7 @@ class Fxp():
 
     def __mul__(self, x):
         if isinstance(x, (int, float)):
-            x = Fxp(x, signed=self.signed, n_word=self.n_word, n_frac=self.n_frac)
+            x = Fxp(x)
         
         n_word = self.n_word + x.n_word
         n_frac = max(self.n_frac, x.n_frac)
@@ -254,8 +259,22 @@ class Fxp():
     def __rmul__(self, x):
         return self * x
 
+    def __truediv__(self, x):
+        if isinstance(x, (int, float)):
+            x = Fxp(x)
+
+        y = Fxp(self.astype(float) / x.astype(float), signed=self.signed or x.signed)
+        return y
+
+    def __floordiv__(self, x):
+        if isinstance(x, (int, float)):
+            x = Fxp(x)
+
+        y = Fxp(self.astype(float) // x.astype(float), signed=self.signed or x.signed)
+        return y       
+
     def __getitem__(self, index):
-        return self.astype()[index]
+        return self.get_val()[index]
 
     def __setitem__(self, index, value):
         new_vals = self.astype(type(value))
