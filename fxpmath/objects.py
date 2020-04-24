@@ -34,11 +34,11 @@ class Fxp():
             self.set_best_sizes(val, n_word, n_frac, 
                                 max_error=max_error, n_word_max=n_word_max)
         else:
-            self.change_word_format(self.signed, n_word, n_frac)      
+            self.resize(self.signed, n_word, n_frac)      
 
         self.set_val(val)
 
-    def change_word_format(self, signed=None, n_word=None, n_frac=None):
+    def resize(self, signed=None, n_word=None, n_frac=None):
         if signed is not None:
             self.signed = signed
         if n_word is not None:
@@ -62,6 +62,9 @@ class Fxp():
             self.upper = upper_val / 2.0**self.n_frac
             self.lower = lower_val / 2.0**self.n_frac
             self.resolution = 1 / 2.0**self.n_frac
+
+        # re store the value
+        self.set_val(self.astype())
     
     def set_best_sizes(self, val=None, n_word=None, n_frac=None, max_error=1.0e-6, n_word_max=64):
 
@@ -118,7 +121,7 @@ class Fxp():
                 self.n_frac = np.max(n_word-n_int-sign, 0).astype(int)
         
         self.n_word = min(self.n_word, n_word_max)
-        self.change_word_format()
+        self.resize()
 
     def set_val(self, val):
         if val is None:
@@ -251,6 +254,14 @@ class Fxp():
     def __rmul__(self, x):
         return self * x
 
+    def __getitem__(self, index):
+        return self.astype()[index]
+
+    def __setitem__(self, index, value):
+        new_vals = self.astype(type(value))
+        new_vals[index] = value
+        self.set_val(new_vals)
+
     def equal(self, x):
         if isinstance(x, Fxp):
             x = x()
@@ -277,7 +288,7 @@ class Fxp():
         s += '\tFract bits\t=\t{}\n'.format(self.n_frac)
         s += '\tInt bits\t=\t{}\n'.format(self.n_int)
         s += self.get_status(format=str)
-        return s
+        print(s)
 
     def bin(self):
         if isinstance(self.val, (list, np.ndarray)):
