@@ -4,8 +4,16 @@ A python library for fractional fixed-point arithmetic.
 
 ## install
 
+To install from *pip* just do the next:
+
 ```bash
 pip install fxpmath
+```
+
+Or you can clone the repository doing in your console:
+
+```bash
+git clone https://github.com/francof2a/fxpmath.git
 ```
 
 ## quick start
@@ -21,12 +29,12 @@ x = Fxp(-7.25)      # create fxp variable with value 7.25
 x.info()
 ```
 
->        dtype           =       fxp-s6/2
->        Value           =       -7.25
->        Signed          =       True
->        Word bits       =       6
->        Fract bits      =       2
->        Int bits        =       3
+> dtype           =       fxp-s6/2  
+> Value           =       -7.25  
+> Signed          =       True  
+> Word bits       =       6  
+> Fract bits      =       2  
+> Int bits        =       3  
 
 We have created a variable of 6 bits, where 1 bit has been reserved for sign, 2 bits for fractional part, and 3 remains for integer part. Here, bit sizes had been calculated to just satisfy the value you want to save.
 
@@ -74,10 +82,11 @@ x.base_repr(2)  # binary with sign symbol (not complement)
 x.base_repr(16) # hex with sign symbol (not complement)
 ```
 
-> ''1111100011000000''
-> '0xf8c0'
-> '-11101000000'
-> '-740'
+> '1111100011000000'  
+> '0xf8c0'  
+> '-11101000000'  
+> '-740'  
+
 
 In different types:
 
@@ -87,9 +96,9 @@ x.astype(float)
 x.astype(complex)
 ```
 
-> -8
-> -7.25
-> (-7.25+0j)
+> -8  
+> -7.25  
+> (-7.25+0j)  
 
 ... yes **fxpmath** supports *complex* numbers!
 
