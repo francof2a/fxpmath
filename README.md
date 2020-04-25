@@ -4,7 +4,9 @@ A python library for fractional fixed-point arithmetic.
 
 ## install
 
-coming soon!
+```bash
+pip install fxpmath
+```
 
 ## quick start
 
