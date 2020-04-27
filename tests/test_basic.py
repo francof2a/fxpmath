@@ -105,3 +105,18 @@ def test_base_representations():
     assert x.hex() == '0xe8+0xcj'
     assert x.base_repr(2) == '-11000+1100j'
     assert x.base_repr(16) == '-18+Cj' 
+
+def test_like():
+    ref = Fxp(0.0, True, 16, 4)
+    x = Fxp(4.5, like=ref)
+    assert x is not ref
+    assert x() == 4.5
+    assert x.n_word == ref.n_word
+    assert x.n_frac == ref.n_frac
+    assert x.signed == ref.signed
+
+def test_kwargs():
+    x = Fxp(-2.125, True, 16, 4, overflow='wrap')
+    assert x.overflow == 'wrap'
+    y = Fxp(3.2, True, 16, 8, rounding='fix')
+    assert y.rounding == 'fix'

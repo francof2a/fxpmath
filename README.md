@@ -10,6 +10,12 @@ To install from *pip* just do the next:
 pip install fxpmath
 ```
 
+To install with *conda* just do the next:
+
+```bash
+conda install -c francof2a fxpmath
+```
+
 Or you can clone the repository doing in your console:
 
 ```bash
@@ -243,6 +249,10 @@ A Fxp has upper and lower limits to representate a fixed point value, those limi
 We can change this behavior doing:
 
 ```python
+# at instantiation
+x = Fxp(3.25, True, 16, 8, overflow='saturate')
+
+# afer ...
 x.overflow = 'saturate'
 # or
 x.overflow = 'wrap'
@@ -272,6 +282,10 @@ But, if we want to change the value of our Fxp to -7.3, the precision is not eno
 We can change this behavior doing:
 
 ```python
+# at instantiation
+x = Fxp(3.25, True, 16, 8, rounding='floor')
+
+# after ...
 x.rounding = 'trunc'
 # or ...
 x.rounding = 'around'
@@ -310,6 +324,8 @@ This prevent to redefine once and once again a Fxp object with same properties. 
 y = x.copy()(-1.25)     # where -1.25 y the new value for `y` after copying `x`. It isn't necessary the `y` exists previously.
 # or
 y = Fxp(-1.25).like(x)
+# or
+y = Fxp(-1.25, like=x)
 
 # be careful with:
 y = y(-1.25).like(x)    # value -1.25 could be modify by overflow or rounding before considerating `x` properties.

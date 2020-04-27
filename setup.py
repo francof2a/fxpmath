@@ -12,8 +12,11 @@ setup(
     url='https://github.com/francof2a/fxpmath',
     download_url = 'https://github.com/francof2a/fxpmath.git',
     license='MIT',
-    keywords=['fixed point', 'fractional', 'math', 'python', 'fxpmath', 'fxp'],
+    keywords=['fixed point', 'fractional', 'math', 'python', 'fxpmath', 'fxp', 'arithmetic', 'FPGA', 'DSP'],
     install_requires=['numpy'],
+
+    long_description = \
+        'A python library for fractional fixed-point arithmetic.',
 
     classifiers=[
         'Development Status :: 4 - Beta',

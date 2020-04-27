@@ -26,6 +26,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+conda-build/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -145,3 +146,9 @@ results/*
 
 # Local History for Visual Studio Code
 .history/
+
+# misc
+todo
+scripts/
+
+

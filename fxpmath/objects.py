@@ -1,10 +1,47 @@
+"""
+fxpmath
+
+---
+
+A python library for fractional fixed-point arithmetic.
+
+---
+
+This software is provided under MIT License:
+
+MIT License
+
+Copyright (c) 2020 Franco, francof2a
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+#%% 
 import numpy as np 
 import copy
 from .utils import twos_complement
 
+#%%
 class Fxp():
-    def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, 
-                max_error=1.0e-6, n_word_max=64):
+    def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, **kwargs):
+
+        # Init all properties in None
         self.dtype = 'fxp' # fxp-<sign><n_word>/<n_frac>-{complex}. i.e.: fxp-s16/15, fxp-u8/1, fxp-s32/24-complex
         # value
         self.vdtype = None # value(s) dtype to return as default
@@ -12,30 +49,52 @@ class Fxp():
         self.real = None
         self.imag = None
         # format
-        self.signed = signed
-        self.n_word = n_word
-        self.n_frac = n_frac
+        self.signed = None
+        self.n_word = None
+        self.n_frac = None
         # format properties
         self.upper = None
         self.lower = None
         self.precision = None
         #status
+        self.status = None
+        # behavior
+        self.overflow = None
+        self.rounding = None
+        # size
+        max_error = None
+        n_word_max = None
+
+        # check if init must be a `like` other Fxp
+        init_like = kwargs.pop('like', None) 
+        if init_like is not None:
+            if isinstance(init_like, Fxp):
+                self.__dict__ = copy.deepcopy(init_like.__dict__)
+
+        #status (overwrite)
         self.status = {
             'overflow': False,
             'underflow': False}
         # behavior
-        self.overflow = 'saturate'
-        self.rounding = 'trunc'
+        if self.overflow is None: self.overflow = kwargs.pop('overflow', 'saturate')
+        if self.rounding is None: self.rounding = kwargs.pop('rounding', 'trunc')
         # size
-        self._init_size(val, signed, n_word, n_frac, n_int, max_error=max_error, n_word_max=n_word_max) 
+        if init_like is None:
+            if max_error is None: max_error = kwargs.pop('max_error', 1.0e-6)
+            if n_word_max is None: n_word_max = kwargs.pop('n_word_max', 64)
+            self._init_size(val, signed, n_word, n_frac, n_int, max_error=max_error, n_word_max=n_word_max)
+
         # store the value
         self.set_val(val)
+
 
     # methods about size
     def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=1.0e-6, n_word_max=64):
         # sign by default
-        if self.signed is None:
+        if signed is None:
             self.signed = True
+        else:
+            self.signed = signed
         
         # n_int defined:
         if n_word is None and n_frac is not None and n_int is not None:
@@ -225,6 +284,8 @@ class Fxp():
             if new_val.ndim == 0:
                 if not ((new_val <= val_max) & (new_val >= val_min)):
                     val = twos_complement(new_val, self.n_word)
+                else:
+                    val = new_val
             else:
                 val = np.array([v if ((v <= val_max) & (v >= val_min)) else twos_complement(v, self.n_word) for v in new_val])
         return val
