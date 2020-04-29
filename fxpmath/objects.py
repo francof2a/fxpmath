@@ -35,7 +35,7 @@ SOFTWARE.
 #%% 
 import numpy as np 
 import copy
-from .utils import twos_complement
+from . import utils
 
 #%%
 class Fxp():
@@ -166,6 +166,9 @@ class Fxp():
             else:
                 sign = 0
 
+            # if val is a str(s), convert to number(s)
+            val = utils.str2num(val, self.signed, self.n_word, self.n_frac)
+
             if isinstance(val, (list, np.ndarray)):
                 int_vals = val.astype(int)
                 max_int_val = np.max(np.abs(int_vals + 0.5))
@@ -211,6 +214,9 @@ class Fxp():
         if val is None:
             val = 0
 
+        # if val is a str(s), convert to number(s)
+        val = utils.str2num(val, self.signed, self.n_word, self.n_frac)
+        # convert to (numpy) ndarray
         val = np.array(val)
 
         if self.signed:
@@ -283,11 +289,11 @@ class Fxp():
         elif self.overflow == 'wrap':
             if new_val.ndim == 0:
                 if not ((new_val <= val_max) & (new_val >= val_min)):
-                    val = twos_complement(new_val, self.n_word)
+                    val = utils.twos_complement(new_val, self.n_word)
                 else:
                     val = new_val
             else:
-                val = np.array([v if ((v <= val_max) & (v >= val_min)) else twos_complement(v, self.n_word) for v in new_val])
+                val = np.array([v if ((v <= val_max) & (v >= val_min)) else utils.twos_complement(v, self.n_word) for v in new_val])
         return val
 
     def _round(self, val, method='floor'):
@@ -423,17 +429,22 @@ class Fxp():
 
 
     # base representations
-    def bin(self):
+    def bin(self, frac_dot=False):
+        if frac_dot:
+            n_frac_dot = self.n_frac
+        else:
+            n_frac_dot = None
+        
         if isinstance(self.val, (list, np.ndarray)):
             if self.vdtype == complex:
-                rval = [ np.binary_repr(int(val.real), width=self.n_word) + '+' + np.binary_repr(int(val.imag), width=self.n_word) + 'j' for val in self.val]
+                rval = [ utils.binary_repr(int(val.real), n_word=self.n_word, n_frac=n_frac_dot) + '+' + utils.binary_repr(int(val.imag), n_word=self.n_word, n_frac=n_frac_dot) + 'j' for val in self.val]
             else:
-                rval = [np.binary_repr(val, width=self.n_word) for val in self.val]
+                rval = [utils.binary_repr(val, n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
         else:
             if self.vdtype == complex:
-                rval = np.binary_repr(int(self.val.real), width=self.n_word) + '+' + np.binary_repr(int(self.val.imag), width=self.n_word) + 'j'
+                rval = utils.binary_repr(int(self.val.real), n_word=self.n_word, n_frac=n_frac_dot) + '+' + utils.binary_repr(int(self.val.imag), n_word=self.n_word, n_frac=n_frac_dot) + 'j'
             else:
-                rval = np.binary_repr(self.val, width=self.n_word)
+                rval = utils.binary_repr(self.val, n_word=self.n_word, n_frac=n_frac_dot)
         return rval
 
     def hex(self):
@@ -449,17 +460,22 @@ class Fxp():
                 rval = hex(int(self.bin(), 2))
         return rval
     
-    def base_repr(self, base):
+    def base_repr(self, base, frac_dot=False):
+        if frac_dot:
+            n_frac_dot = self.n_frac
+        else:
+            n_frac_dot = None
+
         if isinstance(self.val, (list, np.ndarray)):
             if self.vdtype == complex:
-                rval = [np.base_repr(int(val.real), base=base) + ('+' if val.imag >= 0 else '') + np.base_repr(int(val.imag), base=base) + 'j' for val in self.val]
+                rval = [utils.base_repr(int(val.real), base=base, n_frac=n_frac_dot) + ('+' if val.imag >= 0 else '') + utils.base_repr(int(val.imag), base=base, n_frac=n_frac_dot) + 'j' for val in self.val]
             else:
-                rval = [np.base_repr(val, base=base) for val in self.val]
+                rval = [utils.base_repr(val, base=base, n_frac=n_frac_dot) for val in self.val]
         else:
             if self.vdtype == complex:
-                rval = np.base_repr(int(self.val.real), base=base) + ('+' if self.val.imag >= 0 else '') + np.base_repr(int(self.val.imag), base=base) + 'j'
+                rval = utils.base_repr(int(self.val.real), base=base, n_frac=n_frac_dot) + ('+' if self.val.imag >= 0 else '') + utils.base_repr(int(self.val.imag), base=base, n_frac=n_frac_dot) + 'j'
             else:
-                rval = np.base_repr(self.val, base=base)
+                rval = utils.base_repr(self.val, base=base, n_frac=n_frac_dot)
         return rval
 
     # copy

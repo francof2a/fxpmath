@@ -83,8 +83,10 @@ def test_base_representations():
     # decimal negative
     x(-7.25)
     assert x.bin() == '10001100'
+    assert x.bin(frac_dot=True) == '1000.1100'
     assert x.hex() == '0x8c'
     assert x.base_repr(2) == '-1110100'
+    assert x.base_repr(2, frac_dot=True) == '-111.0100'
     assert x.base_repr(16) == '-74'
 
     # complex
@@ -120,3 +122,17 @@ def test_kwargs():
     assert x.overflow == 'wrap'
     y = Fxp(3.2, True, 16, 8, rounding='fix')
     assert y.rounding == 'fix'
+
+def test_strvals():
+    x = Fxp('0b0110')
+    assert x() == 6
+    x = Fxp('0b110', True, 4, 0)
+    assert x() == -2
+    x = Fxp('0b110', False, 4, 0)
+    assert x() == 6
+    x = Fxp('0b0110.01', True, 8)
+    assert x() == 6.25
+
+    x = Fxp(0.0, True, 8, 4)
+    x('0x8c')
+    assert x() == -7.25
