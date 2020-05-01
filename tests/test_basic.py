@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import fxpmath as fxp
 from fxpmath.objects import Fxp
 
+import numpy as np
 
 def test_temp():
     x = Fxp(0.5, True, 8, 7)
@@ -49,7 +50,17 @@ def test_instances():
     assert x.signed == True
     assert x.n_frac == 4
     assert x.n_int == 6
-    assert x.n_word == 11 
+    assert x.n_word == 11
+
+    x = Fxp(3, False)
+    assert x() == 3
+    assert x.signed == False
+    assert x.n_frac == 0
+    assert x.n_int == 2
+    assert x.n_word == 2
+
+    x = Fxp([-1, 0, 1, 2, 3], True, n_word=16, n_frac=4)
+    assert x().all() == np.array([-1, 0, 1, 2, 3]).all()
 
 def test_signed():
     # signed
@@ -69,6 +80,30 @@ def test_signed():
 
     x_fxp(-0.5)
     assert x_fxp() == 0.0
+
+def test_misc_values():
+    # huges
+    x = Fxp(2**31 - 1)
+    assert x() == 2**31 - 1
+    x = Fxp(-2**31)
+    assert x() == -2**31
+
+    x = Fxp(2**63 - 1)
+    assert x() == 2**63 - 1
+    x = Fxp(-2**63)
+    assert x() == -2**63
+
+    x = Fxp(2**32 - 1, signed=False)
+    assert x() == 2**32 - 1
+    x = Fxp(-2**32, signed=False)
+    assert x() == 0
+
+    x = Fxp(2**64 - 1, signed=False)
+    assert x() == 2**64 - 1
+    x = Fxp(-2**63, signed=False)
+    assert x() == 0
+
+
 
 def test_base_representations():
     x = Fxp(0.0, True, 8, 4)

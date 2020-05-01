@@ -197,7 +197,7 @@ class Fxp():
                 self.n_frac = max(n_frac_calcs)
                 self.n_word = int(n_frac + n_int + sign)
             elif n_word is None:
-                n_int = np.ceil(np.log2(max_int_val)).astype(int) + 1
+                n_int = max( np.ceil(np.log2(max_int_val)).astype(int), 0)
                 self.n_frac = n_frac
                 self.n_word = int(n_frac + n_int + sign)
             elif n_frac is None:
@@ -222,20 +222,23 @@ class Fxp():
         if self.signed:
             val_max = (1 << (self.n_word-1)) - 1
             val_min = -val_max - 1
+            val_dtype = 'int64'
         else:
             val_max =  (1 << self.n_word) - 1
             val_min = 0
+            val_dtype = 'uint64'
 
         if val.dtype != complex:
-            new_val = self._round(val * 2.0**self.n_frac, method=self.rounding).astype(int)
-            self.val = self._overflow_action(new_val, val_min, val_max)
+            new_val = self._round(val * 2**self.n_frac , method=self.rounding)
+            new_val = self._overflow_action(new_val, val_min, val_max)
+            self.val = new_val.astype(val_dtype)
             self.real = None
             self.imag = None
         else:
-            new_val_real = self._round(val.real * 2.0**self.n_frac, method=self.rounding).astype(int)
-            new_val_imag = self._round(val.imag * 2.0**self.n_frac, method=self.rounding).astype(int)
-            new_val_real = self._overflow_action(new_val_real, val_min, val_max)
-            new_val_imag = self._overflow_action(new_val_imag, val_min, val_max)
+            new_val_real = self._round(val.real * 2**self.n_frac, method=self.rounding)
+            new_val_imag = self._round(val.imag * 2**self.n_frac, method=self.rounding)
+            new_val_real = self._overflow_action(new_val_real, val_min, val_max).astype(val_dtype)
+            new_val_imag = self._overflow_action(new_val_imag, val_min, val_max).astype(val_dtype)
             self.val = new_val_real + 1j * new_val_imag
             self.real = self.astype(complex).real
             self.imag = self.astype(complex).imag
@@ -257,8 +260,8 @@ class Fxp():
 
         if dtype == float:
             val = self.val / 2.0**self.n_frac
-        elif dtype == int:
-            val = (self.val // 2.0**self.n_frac).astype(int)
+        elif dtype == int or dtype == 'uint':
+            val = self.val.astype(dtype) // 2**self.n_frac
         elif dtype == complex:
             val = (self.val.real + 1j * self.val.imag) / 2.0**self.n_frac
         else:
@@ -279,13 +282,17 @@ class Fxp():
     # behaviors
 
     def _overflow_action(self, new_val, val_min, val_max):
-        if np.any(new_val > val_max):
+        if np.any(new_val.any() > val_max):
             self.status['overflow'] = True
-        if np.any(new_val < val_min):
+        if np.any(new_val.any() < val_min):
             self.status['underflow'] = True
         
         if self.overflow == 'saturate':
-            val = np.clip(new_val, val_min, val_max).astype(int)
+            #val = np.clip(new_val, val_min, val_max) # it returns float that cause an error for 64 bits huge integers
+            if new_val.ndim > 0:
+                val = np.array([max(val_min, min(val_max, v)) for v in new_val])
+            else:
+                val = np.array(max(val_min, min(val_max, new_val)))
         elif self.overflow == 'wrap':
             if new_val.ndim == 0:
                 if not ((new_val <= val_max) & (new_val >= val_min)):
@@ -297,7 +304,9 @@ class Fxp():
         return val
 
     def _round(self, val, method='floor'):
-        if method == 'around':
+        if val.dtype == int  or val.dtype == 'uint':
+            rval = val
+        elif method == 'around':
             rval = np.around(val)
         elif method == 'floor':
             rval = np.floor(val)
@@ -435,7 +444,7 @@ class Fxp():
         else:
             n_frac_dot = None
         
-        if isinstance(self.val, (list, np.ndarray)):
+        if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
                 rval = [ utils.binary_repr(int(val.real), n_word=self.n_word, n_frac=n_frac_dot) + '+' + utils.binary_repr(int(val.imag), n_word=self.n_word, n_frac=n_frac_dot) + 'j' for val in self.val]
             else:
@@ -448,7 +457,7 @@ class Fxp():
         return rval
 
     def hex(self):
-        if isinstance(self.val, (list, np.ndarray)):
+        if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
                 rval = [ hex(int(val.split('+')[0], 2)) + '+' +  hex(int(val.split('+')[1][:-1], 2)) + 'j' for val in self.bin()]
             else:
@@ -466,7 +475,7 @@ class Fxp():
         else:
             n_frac_dot = None
 
-        if isinstance(self.val, (list, np.ndarray)):
+        if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
                 rval = [utils.base_repr(int(val.real), base=base, n_frac=n_frac_dot) + ('+' if val.imag >= 0 else '') + utils.base_repr(int(val.imag), base=base, n_frac=n_frac_dot) + 'j' for val in self.val]
             else:
