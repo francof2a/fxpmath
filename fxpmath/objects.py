@@ -372,7 +372,7 @@ class Fxp():
             x = Fxp(x)
         
         n_word = self.n_word + x.n_word
-        n_frac = max(self.n_frac, x.n_frac)
+        n_frac = self.n_frac + x.n_frac
 
         y = Fxp(self.astype(float) * x.astype(float), signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
         return y
