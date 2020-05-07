@@ -61,6 +61,7 @@ class Fxp():
         # behavior
         self.overflow = None
         self.rounding = None
+        self.shifting = None
         # size
         max_error = None
         n_word_max = None
@@ -78,6 +79,7 @@ class Fxp():
         # behavior
         if self.overflow is None: self.overflow = kwargs.pop('overflow', 'saturate')
         if self.rounding is None: self.rounding = kwargs.pop('rounding', 'trunc')
+        if self.shifting is None: self.shifting = kwargs.pop('shifting', 'expand')
         # size
         if init_like is None:
             if max_error is None: max_error = kwargs.pop('max_error', 1.0e-6)
@@ -103,7 +105,7 @@ class Fxp():
             n_frac = n_word - n_int - (1 if self.signed else 0)
 
         # check if I must find the best size for val
-        if n_word is None or n_frac is None or val is None:
+        if n_word is None or n_frac is None:
             self.set_best_sizes(val, n_word, n_frac, max_error=max_error, n_word_max=n_word_max)
         else:
             self.resize(self.signed, n_word, n_frac, n_int)
@@ -174,7 +176,7 @@ class Fxp():
                 max_int_val = np.max(np.abs(int_vals + 0.5))
                 frac_vals = np.abs(np.subtract(val, int_vals))
             elif isinstance(val, (int, float)):
-                max_int_val = abs(val + 0.5)
+                max_int_val = abs(val) + 0.5
                 frac_vals = [np.abs(val - int(val))]
             else:
                 raise TypeError('Type not supported for val parameter!')
@@ -210,7 +212,7 @@ class Fxp():
 
     # methods about value
 
-    def set_val(self, val):
+    def set_val(self, val, raw=False, vdtype=None):
         if val is None:
             val = 0
 
@@ -228,15 +230,22 @@ class Fxp():
             val_min = 0
             val_dtype = 'uint64'
 
+        # conversion factor
+        if raw:
+            conv_factor = 1
+        else:
+            conv_factor = int(2**self.n_frac)
+
+        # round, saturate and store
         if val.dtype != complex:
-            new_val = self._round(val * 2**self.n_frac , method=self.rounding)
+            new_val = self._round(val * conv_factor , method=self.rounding)
             new_val = self._overflow_action(new_val, val_min, val_max)
             self.val = new_val.astype(val_dtype)
-            self.real = None
-            self.imag = None
+            self.real = self.get_val()
+            self.imag = 0
         else:
-            new_val_real = self._round(val.real * 2**self.n_frac, method=self.rounding)
-            new_val_imag = self._round(val.imag * 2**self.n_frac, method=self.rounding)
+            new_val_real = self._round(val.real * conv_factor, method=self.rounding)
+            new_val_imag = self._round(val.imag * conv_factor, method=self.rounding)
             new_val_real = self._overflow_action(new_val_real, val_min, val_max).astype(val_dtype)
             new_val_imag = self._overflow_action(new_val_imag, val_min, val_max).astype(val_dtype)
             self.val = new_val_real + 1j * new_val_imag
@@ -249,8 +258,12 @@ class Fxp():
                                                              nfrac=self.n_frac, 
                                                              comp='-complex' if val.dtype == complex else '')
 
-        # dtype_return (default)
-        self.vdtype = val.dtype
+        # vdtype
+        if raw:
+            if vdtype is not None:
+                self.vdtype = vdtype
+        else:
+            self.vdtype = val.dtype
 
         return self
 
@@ -402,7 +415,23 @@ class Fxp():
         n_int = min(self.n_int, x.n_int)
 
         y = Fxp(self.astype(float) % x.astype(float), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
-        return y        
+        return y
+
+    # bit level operators
+    def __rshift__(self, n):
+        y = self.deepcopy()
+        y.val = y.val >> n
+        return y
+
+    def __lshift__(self, n):
+        if self.shifting == 'expand':
+            n_word = max(self.n_word, np.ceil(np.log2(np.abs(self.val)+0.5)).astype(int) + self.signed + n)
+        else:
+            n_word = self.n_word
+
+        y = Fxp(None, signed=self.signed, n_word=n_word, n_frac=self.n_frac)
+        y.set_val(int(self.val) << n, raw=True, vdtype=self.vdtype)   # set raw val shifted
+        return y
 
     # indexation
     def __getitem__(self, index):

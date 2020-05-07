@@ -29,3 +29,16 @@ def test_bugs_0_2_1():
     assert c() == 4.00
     assert c.n_frac == 4
     assert c.n_word == 8
+
+def test_bugs_0_2_2():
+    x = Fxp('0b1100')
+    assert x() == -4
+    assert x.n_word == 4
+    assert x.signed == True
+    assert x.n_frac == 0
+
+    x = Fxp('0b11.00')
+    assert x() == -1.0
+    assert x.n_word == 4
+    assert x.signed == True
+    assert x.n_frac == 2
