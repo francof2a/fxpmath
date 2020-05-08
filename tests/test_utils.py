@@ -106,4 +106,11 @@ def test_base_repr():
     assert base_repr(-30, base=16) == '-1E'
 
 
-
+def test_bits_len():
+    assert bits_len(1) == 1
+    assert bits_len(-1) == 1
+    assert bits_len(1, signed=True) == 2
+    assert bits_len(31) == 5
+    assert bits_len(32) == 6
+    assert bits_len(-32) == 6
+    assert bits_len(-33) == 7

@@ -36,7 +36,7 @@ SOFTWARE.
 import numpy as np 
 
 #%% 
-def twos_complement(val, nbits):
+def twos_complement_repr(val, nbits):
     if val < 0:
         val = (1 << nbits) + val
     else:
@@ -188,3 +188,37 @@ def base_repr(x, n_word=None, base=2, n_frac=None):
     elif base == 2:
         val = insert_frac_point(np.base_repr(x, base=base), n_frac=n_frac)
     return val
+
+def bits_len(x, signed=None):
+    if signed is None and x < 0:
+        signed = True
+    elif signed is None:
+        signed = False
+    elif not signed and x < 0:
+        raise ValueError('negative value and unsigned type are incompatible!')
+
+    n_bits = max( np.ceil(np.log2(np.abs(int(x)+0.5))).astype(int), 0) + signed
+    return n_bits
+
+def binary_invert(x, n_word=None):
+    if n_word is None:
+        n_word = bits_len(x)
+    return int((1 << n_word) - 1 - x)
+
+def binary_and(x, y, n_word=None):
+    xm = int(x) % (1 << n_word)
+    ym = int(y) % (1 << n_word)
+    z = xm & ym
+    return z
+
+def binary_or(x, y, n_word=None):
+    xm = int(x) % (1 << n_word)
+    ym = int(y) % (1 << n_word)
+    z = xm | ym
+    return z
+
+def binary_xor(x, y, n_word=None):
+    xm = int(x) % (1 << n_word)
+    ym = int(y) % (1 << n_word)
+    z = xm ^ ym
+    return z

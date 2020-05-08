@@ -224,11 +224,11 @@ class Fxp():
         if self.signed:
             val_max = (1 << (self.n_word-1)) - 1
             val_min = -val_max - 1
-            val_dtype = 'int64'
+            val_dtype = 'int'
         else:
             val_max =  (1 << self.n_word) - 1
             val_min = 0
-            val_dtype = 'uint64'
+            val_dtype = 'uint'
 
         # conversion factor
         if raw:
@@ -309,11 +309,11 @@ class Fxp():
         elif self.overflow == 'wrap':
             if new_val.ndim == 0:
                 if not ((new_val <= val_max) & (new_val >= val_min)):
-                    val = utils.twos_complement(new_val, self.n_word)
+                    val = utils.twos_complement_repr(new_val, self.n_word)
                 else:
                     val = new_val
             else:
-                val = np.array([v if ((v <= val_max) & (v >= val_min)) else utils.twos_complement(v, self.n_word) for v in new_val])
+                val = np.array([v if ((v <= val_max) & (v >= val_min)) else utils.twos_complement_repr(v, self.n_word) for v in new_val])
         return val
 
     def _round(self, val, method='floor'):
@@ -432,6 +432,60 @@ class Fxp():
         y = Fxp(None, signed=self.signed, n_word=n_word, n_frac=self.n_frac)
         y.set_val(int(self.val) << n, raw=True, vdtype=self.vdtype)   # set raw val shifted
         return y
+
+    def __invert__(self):
+        # inverted_val = ~ self.val
+
+        inverted_val = utils.binary_invert(self.val, n_word=self.n_word)
+        if self.signed:
+            inverted_val = utils.twos_complement_repr(inverted_val, nbits=self.n_word)
+        
+        y = self.deepcopy()
+        y.set_val(inverted_val, raw=True, vdtype=self.vdtype)   # set raw val inverted
+        return y
+
+    def __and__(self, x):
+        if isinstance(x, Fxp):
+            if self.n_word != x.n_word:
+                raise ValueError("Operands dont't have same word size!")
+            else:
+                x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
+
+        added_val = utils.binary_and(self.val, x_val, n_word=self.n_word)
+        if self.signed:
+            added_val = utils.twos_complement_repr(added_val, nbits=self.n_word)
+
+        y = self.deepcopy()
+        y.set_val(added_val, raw=True, vdtype=self.vdtype)   # set raw val with AND operation  
+        return y
+
+    def __or__(self, x):
+        if self.n_word != x.n_word:
+            raise ValueError("Operands dont't have same word size!")
+        else:
+            x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
+
+        ored_val = utils.binary_or(self.val.astype(self.val.dtype), x_val, n_word=self.n_word)
+        if self.signed:
+            ored_val = utils.twos_complement_repr(ored_val, nbits=self.n_word)
+
+        y = self.deepcopy()
+        y.set_val(ored_val, raw=True, vdtype=self.vdtype)   # set raw val with OR operation  
+        return y
+
+    def __xor__(self, x):
+        if self.n_word != x.n_word:
+            raise ValueError("Operands dont't have same word size!")
+        else:
+            x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
+
+        xored_val = utils.binary_xor(self.val.astype(self.val.dtype), x_val, n_word=self.n_word)
+        if self.signed:
+            xored_val = utils.twos_complement_repr(xored_val, nbits=self.n_word)
+
+        y = self.deepcopy()
+        y.set_val(xored_val, raw=True, vdtype=self.vdtype)   # set raw val with XOR operation  
+        return y     
 
     # indexation
     def __getitem__(self, index):
