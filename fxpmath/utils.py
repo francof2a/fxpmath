@@ -45,7 +45,7 @@ def twos_complement_repr(val, nbits):
             val = val - (1 << nbits)
     return val
 
-def strbin2int(x, signed=True, n_word=None):
+def strbin2int(x, signed=True, n_word=None, return_sizes=False):
 
     x = x.split('b')[-1]        # remove 0b at the begining
     x = x.replace(' ', '')      # remove spacing
@@ -67,9 +67,12 @@ def strbin2int(x, signed=True, n_word=None):
     else:
         val = int(x, 2)
 
-    return val
+    if return_sizes:
+        return val, signed, n_word
+    else:
+        return val
 
-def strbin2float(x, signed=True, n_word=None, n_frac=None):
+def strbin2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
     if n_frac is None:
         if '.' in x:
             point_idx = x.find('.')
@@ -84,9 +87,12 @@ def strbin2float(x, signed=True, n_word=None, n_frac=None):
     x = x.replace('.', '')
     val = strbin2int(x, signed, n_word) / (2**n_frac)
     
-    return val
+    if return_sizes:
+        return val, signed, n_word, n_frac
+    else:
+        return val
 
-def strhex2int(x, signed=True, n_word=None):
+def strhex2int(x, signed=True, n_word=None, return_sizes=False):
     x = x.replace('0x', '')
     if n_word is None:
         n_word = len(x)*4
@@ -97,9 +103,13 @@ def strhex2int(x, signed=True, n_word=None):
         x_bin = '0b' + '0'*(n_word - len(x_bin[2:])) + x_bin[2:]
 
     val = strbin2int(x_bin, signed, n_word)
-    return val
 
-def strhex2float(x, signed=True, n_word=None, n_frac=None):
+    if return_sizes:
+        return val, signed, n_word
+    else:
+        return val
+
+def strhex2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
     x = x.replace('0x', '')
     if n_word is None:
         n_word = len(x)*4
@@ -109,10 +119,14 @@ def strhex2float(x, signed=True, n_word=None, n_frac=None):
     if len(x_bin[2:]) < n_word:
         x_bin = '0b' + '0'*(n_word - len(x_bin[2:])) + x_bin[2:]
 
-    val = strbin2float(x_bin, signed, n_word, n_frac)
-    return val
+    val, signed, n_word, n_frac = strbin2float(x_bin, signed, n_word, n_frac, return_sizes=True)
 
-def str2num(x, signed=True, n_word=None, n_frac=None, base=10):
+    if return_sizes:
+        return val, signed, n_word, n_frac
+    else:
+        return val
+
+def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=False):
     if isinstance(x, list):
         for idx, v in enumerate(x):
             x[idx] = str2num(v, signed, n_word, n_frac, base)
@@ -124,15 +138,17 @@ def str2num(x, signed=True, n_word=None, n_frac=None, base=10):
             # binary
             if '.' in x or n_frac is not None:
                 # fractional binary
-                val =  strbin2float(x, signed, n_word, n_frac)
+                val, signed, n_word, n_frac =  strbin2float(x, signed, n_word, n_frac, return_sizes=True)
             else:
-                val = strbin2int(x, signed, n_word)
+                val, signed, n_word = strbin2int(x, signed, n_word, return_sizes=True)
+                n_frac = 0
             
         elif base == 16 or 'x' in x:
             if n_frac is not None:
-                val = strhex2float(x, signed, n_word, n_frac)
+                val, signed, n_word, n_frac = strhex2float(x, signed, n_word, n_frac, return_sizes=True)
             else:
-                val = strhex2int(x, signed, n_word)
+                val, signed, n_word = strhex2int(x, signed, n_word, return_sizes=True)
+                n_frac = 0
 
         elif base == 10:
             if '.' in x:
@@ -148,7 +164,10 @@ def str2num(x, signed=True, n_word=None, n_frac=None, base=10):
     else:
         val = x
     
-    return val
+    if return_sizes:
+        return val, signed, n_word, n_frac
+    else:
+        return val
 
 def insert_frac_point(x_bin, n_frac):
     if n_frac is not None:

@@ -169,7 +169,7 @@ class Fxp():
                 sign = 0
 
             # if val is a str(s), convert to number(s)
-            val = utils.str2num(val, self.signed, self.n_word, self.n_frac)
+            val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
 
             if isinstance(val, (list, np.ndarray)):
                 int_vals = val.astype(int)
@@ -206,6 +206,9 @@ class Fxp():
                 self.n_word = n_word
                 n_int = np.ceil(np.log2(np.abs(val)))
                 self.n_frac = np.max(n_word-n_int-sign, 0).astype(int)
+            else:
+                self.n_word = n_word
+                self.n_frac = n_frac
         
         self.n_word = min(self.n_word, n_word_max)
         self.resize()
