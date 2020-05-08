@@ -85,7 +85,8 @@ def strbin2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
             x = x + '0'*(n_frac - (len(x) - point_idx - 1))     # complete with zeros the frac part
 
     x = x.replace('.', '')
-    val = strbin2int(x, signed, n_word) / (2**n_frac)
+    val, signed, n_word = strbin2int(x, signed, n_word, return_sizes=True)
+    val /= (2**n_frac) 
     
     if return_sizes:
         return val, signed, n_word, n_frac

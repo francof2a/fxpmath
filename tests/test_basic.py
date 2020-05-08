@@ -59,6 +59,20 @@ def test_instances():
     assert x.n_int == 2
     assert x.n_word == 2
 
+    x = Fxp(1.75)
+    assert x() == 1.75
+    assert x.signed == True
+    assert x.n_frac == 2
+    assert x.n_int == 1
+    assert x.n_word == 4
+
+    x = Fxp(1.75, False)
+    assert x() == 1.75
+    assert x.signed == False
+    assert x.n_frac == 2
+    assert x.n_int == 1
+    assert x.n_word == 3
+
     x = Fxp([-1, 0, 1, 2, 3], True, n_word=16, n_frac=4)
     assert x().all() == np.array([-1, 0, 1, 2, 3]).all()
 

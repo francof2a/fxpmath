@@ -182,7 +182,7 @@ class Fxp():
                 max_int_val = np.max(np.abs(int_vals + 0.5))
                 frac_vals = np.abs(np.subtract(val, int_vals))
             elif isinstance(val, (int, float)):
-                max_int_val = abs(val) + 0.5
+                max_int_val = abs(int(val) + 0.5)
                 frac_vals = [np.abs(val - int(val))]
             else:
                 raise TypeError('Type not supported for val parameter!')
