@@ -37,6 +37,12 @@ import numpy as np
 import copy
 from . import utils
 
+import sys
+__maxsize__ = sys.maxsize
+_n_word_max = np.log2(__maxsize__).astype(int) + 1
+
+_max_error = 1.0e-6
+
 #%%
 class Fxp():
     def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, **kwargs):
@@ -82,8 +88,8 @@ class Fxp():
         if self.shifting is None: self.shifting = kwargs.pop('shifting', 'expand')
         # size
         if init_like is None:
-            if max_error is None: max_error = kwargs.pop('max_error', 1.0e-6)
-            if n_word_max is None: n_word_max = kwargs.pop('n_word_max', 64)
+            if max_error is None: max_error = kwargs.pop('max_error', _max_error)
+            if n_word_max is None: n_word_max = kwargs.pop('n_word_max', _n_word_max)
             self._init_size(val, signed, n_word, n_frac, n_int, max_error=max_error, n_word_max=n_word_max)
 
         # store the value
@@ -91,7 +97,7 @@ class Fxp():
 
 
     # methods about size
-    def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=1.0e-6, n_word_max=64):
+    def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=_max_error, n_word_max=_n_word_max):
         # sign by default
         if signed is None:
             self.signed = True
@@ -224,6 +230,10 @@ class Fxp():
         # convert to (numpy) ndarray
         val = np.array(val)
 
+        # check if val overflow max int possible
+        if val.dtype == 'O':
+            raise OverflowError('Integer value too large to convert to C long')
+
         if self.signed:
             val_max = (1 << (self.n_word-1)) - 1
             val_min = -val_max - 1
@@ -320,7 +330,7 @@ class Fxp():
         return val
 
     def _round(self, val, method='floor'):
-        if val.dtype == int  or val.dtype == 'uint':
+        if isinstance(val, int) or val.dtype == int or val.dtype == 'uint':
             rval = val
         elif method == 'around':
             rval = np.around(val)

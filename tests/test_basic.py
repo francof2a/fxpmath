@@ -103,6 +103,9 @@ def test_misc_values():
     x = Fxp(-2**63, signed=False)
     assert x() == 0
 
+    # x = Fxp(2**64)
+    # assert x() == 2**64
+
 
 
 def test_base_representations():
