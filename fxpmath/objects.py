@@ -57,6 +57,7 @@ class Fxp():
         # scaling (linear)
         self.scale = None
         self.bias = None
+        self.scaled = None
         # format sizes
         self.signed = None
         self.n_word = None
@@ -87,7 +88,8 @@ class Fxp():
         #status (overwrite)
         self.status = {
             'overflow': False,
-            'underflow': False}
+            'underflow': False,
+            'inaccuracy': False}
         # scaling
         if self.scale is None: self.scale = kwargs.pop('scale', 1)
         if self.bias is None: self.bias = kwargs.pop('bias', 0)
@@ -163,7 +165,7 @@ class Fxp():
             self.precision = 1 / 2.0**self.n_frac
 
         # scaling conversion
-        if self.scale is not None and self.bias is not None:
+        if self.scaled:
             self.upper = self.scale * self.upper + self.bias
             self.lower = self.scale * self.lower + self.bias
             self.precision = self.scale * self.precision
@@ -242,8 +244,11 @@ class Fxp():
         # convert to (numpy) ndarray
         val = np.array(val)
         # scaling conversion
+        self.scaled = False
         if self.scale is not None and self.bias is not None:
-            val = (val - self.bias) / self.scale
+            if self.scale != 1 or self.bias != 0:
+                self.scaled = True
+                val = (val - self.bias) / self.scale
 
         if return_sizes:
             return val, signed, n_word, n_frac
@@ -285,7 +290,7 @@ class Fxp():
             new_val_imag = self._round(val.imag * conv_factor, method=self.rounding)
             new_val_real = self._overflow_action(new_val_real, val_min, val_max).astype(val_dtype)
             new_val_imag = self._overflow_action(new_val_imag, val_min, val_max).astype(val_dtype)
-            self.val = new_val_real + 1j * new_val_imag
+            self.val = new_val = new_val_real + 1j * new_val_imag
             self.real = self.astype(complex).real
             self.imag = self.astype(complex).imag
 
@@ -301,6 +306,10 @@ class Fxp():
                 self.vdtype = vdtype
         else:
             self.vdtype = val.dtype
+
+        # check inaccuray
+        if not np.equal(val, new_val/conv_factor).all() :
+            self.status['inaccuray'] = True
 
         return self
 
@@ -318,7 +327,7 @@ class Fxp():
             val = None
 
         # scaling reconversion
-        if val is not None and self.scale is not None and self.bias is not None:
+        if val is not None and self.scaled:
             val = val * self.scale + self.bias
         return val
 
@@ -336,9 +345,9 @@ class Fxp():
     # behaviors
 
     def _overflow_action(self, new_val, val_min, val_max):
-        if np.any(new_val.any() > val_max):
+        if np.any(new_val > val_max):
             self.status['overflow'] = True
-        if np.any(new_val.any() < val_min):
+        if np.any(new_val < val_min):
             self.status['underflow'] = True
         
         if self.overflow == 'saturate':
@@ -539,6 +548,8 @@ class Fxp():
         y.val = y.val >> n
         return y
 
+    __irshift__ = __rshift__
+
     def __lshift__(self, n):
         if self.shifting == 'expand':
             n_word = max(self.n_word, np.ceil(np.log2(np.abs(self.val)+0.5)).astype(int) + self.signed + n)
@@ -548,6 +559,8 @@ class Fxp():
         y = Fxp(None, signed=self.signed, n_word=n_word, n_frac=self.n_frac)
         y.set_val(int(self.val) << n, raw=True, vdtype=self.vdtype)   # set raw val shifted
         return y
+    
+    __ilshift__ = __lshift__
 
     def __invert__(self):
         # inverted_val = ~ self.val
@@ -577,6 +590,10 @@ class Fxp():
         y.set_val(added_val, raw=True, vdtype=self.vdtype)   # set raw val with AND operation  
         return y
 
+    __rand__ = __and__
+
+    __iand__ = __and__
+
     def __or__(self, x):
         if isinstance(x, Fxp):
             if self.n_word != x.n_word:
@@ -593,6 +610,10 @@ class Fxp():
         y = self.deepcopy()
         y.set_val(ored_val, raw=True, vdtype=self.vdtype)   # set raw val with OR operation  
         return y
+
+    __ror__ = __or__
+
+    __ior__ = __or__
 
     def __xor__(self, x):
         if isinstance(x, Fxp):
@@ -611,21 +632,9 @@ class Fxp():
         y.set_val(xored_val, raw=True, vdtype=self.vdtype)   # set raw val with XOR operation  
         return y  
 
-    __rand__ = __and__
-
-    __ror__ = __or__
-
     __rxor__ = __xor__
 
-    __irshift__ = __rshift__
-
-    __ilshift__ = __lshift__
-
-    __iand__ = __and__
-
-    __ior__ = __or__
-
-    __ixor__ = __xor__
+    __ixor__ = __xor__    
 
 
     # comparisons
@@ -681,15 +690,26 @@ class Fxp():
                     s += '\t{:<8}\t=\t{}\n'.format(k,v)
         return s
 
-    def info(self):
+    def info(self, verbose=1):
         s = ''
-        s += '\tdtype\t\t=\t{}\n'.format(self.dtype)
-        s += '\tValue\t\t=\t' + self.__str__() + '\n'
-        s += '\tSigned\t\t=\t{}\n'.format(self.signed)
-        s += '\tWord bits\t=\t{}\n'.format(self.n_word)
-        s += '\tFract bits\t=\t{}\n'.format(self.n_frac)
-        s += '\tInt bits\t=\t{}\n'.format(self.n_int)
-        s += self.get_status(format=str)
+        if verbose > 0:
+            s += '\tdtype\t\t=\t{}\n'.format(self.dtype)
+            s += '\tValue\t\t=\t' + self.__str__() + '\n'
+            if self.scaled:
+                s += '\tScaling\t\t=\t{} * val + {}\n'.format(self.scale, self.bias)
+            s += self.get_status(format=str)
+        if verbose > 1:
+            s += '\n\tSigned\t\t=\t{}\n'.format(self.signed)
+            s += '\tWord bits\t=\t{}\n'.format(self.n_word)
+            s += '\tFract bits\t=\t{}\n'.format(self.n_frac)
+            s += '\tInt bits\t=\t{}\n'.format(self.n_int)
+        if verbose > 2:
+            s += '\n\tUpper\t\t=\t{}\n'.format(self.upper)
+            s += '\tLower\t\t=\t{}\n'.format(self.lower)
+            s += '\tPrecision\t=\t{}\n'.format(self.precision)
+            s += '\tOverflow\t=\t{}\n'.format(self.overflow)
+            s += '\tRounfing\t=\t{}\n'.format(self.rounding)
+            s += '\tShifting\t=\t{}\n'.format(self.shifting)
         print(s)
 
 
@@ -753,4 +773,11 @@ class Fxp():
     def like(self, x):
         return  x.copy().set_val(self.get_val()) 
 
+    # reset
+    def reset(self):
+        #status (overwrite)
+        self.status = {
+            'overflow': False,
+            'underflow': False,
+            'inaccuracy': False}        
 

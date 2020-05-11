@@ -195,6 +195,29 @@ def test_strvals():
     x('0x8c')
     assert x() == -7.25
 
+def test_saturate():
+    x = Fxp(0.0, True, 8, 2)
+    assert x.upper == 31.75
+    assert x.lower == -32.00
+    assert x.status['overflow'] == False
+    assert x.status['underflow'] == False
+
+    assert x(32.00) == 31.75
+    assert x.status['overflow'] == True
+    assert x.status['underflow'] == False
+
+    x.reset()
+    assert x.status['overflow'] == False
+    assert x.status['underflow'] == False
+
+    assert x(-32.25) == -32.00
+    assert x.status['overflow'] == False
+    assert x.status['underflow'] == True
+
+    assert x(32.00) == 31.75
+    assert x.status['overflow'] == True
+    assert x.status['underflow'] == True    
+
 def test_scaling():
     x = Fxp(4.5, scale=2.0, bias=-1.5)
     assert x() == 4.5
