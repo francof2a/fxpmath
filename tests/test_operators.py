@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import fxpmath as fxp
 from fxpmath.objects import Fxp
+from fxpmath import utils
 
 import numpy as np
 
@@ -100,6 +101,10 @@ def test_and():
     assert (x & yu).bin() == and_str
     assert (xu & y).bin() == and_str
     assert (xu & yu).bin() == and_str
+    assert (x & utils.str2num('0b'+mks_str)).bin() == and_str
+    assert (xu & utils.str2num('0b'+mks_str)).bin() == and_str
+    assert (utils.str2num('0b'+mks_str) & x).bin() == and_str
+    assert (utils.str2num('0b'+mks_str) & xu).bin() == and_str
 
     val_str = '10101100'
     mks_str = '11001100'
@@ -114,6 +119,10 @@ def test_and():
     assert (x & yu).bin() == and_str
     assert (xu & y).bin() == and_str
     assert (xu & yu).bin() == and_str
+    assert (x & utils.str2num('0b'+mks_str)).bin() == and_str
+    assert (xu & utils.str2num('0b'+mks_str)).bin() == and_str
+    assert (utils.str2num('0b'+mks_str) & x).bin() == and_str
+    assert (utils.str2num('0b'+mks_str) & xu).bin() == and_str
 
 def test_or():
     x = Fxp(None, True, 8, 4)
@@ -134,6 +143,10 @@ def test_or():
     assert (x | yu).bin() == or_str
     assert (xu | y).bin() == or_str
     assert (xu | yu).bin() == or_str
+    assert (x | utils.str2num('0b'+mks_str)).bin() == or_str
+    assert (xu | utils.str2num('0b'+mks_str)).bin() == or_str
+    assert (utils.str2num('0b'+mks_str) | x).bin() == or_str
+    assert (utils.str2num('0b'+mks_str) | xu).bin() == or_str
 
     val_str = '10101100'
     mks_str = '11001100'
@@ -148,6 +161,10 @@ def test_or():
     assert (x | yu).bin() == or_str
     assert (xu | y).bin() == or_str
     assert (xu | yu).bin() == or_str
+    assert (x | utils.str2num('0b'+mks_str)).bin() == or_str
+    assert (xu | utils.str2num('0b'+mks_str)).bin() == or_str
+    assert (utils.str2num('0b'+mks_str) | x).bin() == or_str
+    assert (utils.str2num('0b'+mks_str) | xu).bin() == or_str
 
 def test_xor():
     x = Fxp(None, True, 8, 4)
@@ -168,6 +185,10 @@ def test_xor():
     assert (x ^ yu).bin() == xor_str
     assert (xu ^ y).bin() == xor_str
     assert (xu ^ yu).bin() == xor_str
+    assert (x ^ utils.str2num('0b'+mks_str)).bin() == xor_str
+    assert (xu ^ utils.str2num('0b'+mks_str)).bin() == xor_str
+    assert (utils.str2num('0b'+mks_str) ^ x).bin() == xor_str
+    assert (utils.str2num('0b'+mks_str) ^ xu).bin() == xor_str
 
     val_str = '10101100'
     mks_str = '11001100'
@@ -182,3 +203,48 @@ def test_xor():
     assert (x ^ yu).bin() == xor_str
     assert (xu ^ y).bin() == xor_str
     assert (xu ^ yu).bin() == xor_str
+    assert (x ^ utils.str2num('0b'+mks_str)).bin() == xor_str
+    assert (xu ^ utils.str2num('0b'+mks_str)).bin() == xor_str
+    assert (utils.str2num('0b'+mks_str) ^ x).bin() == xor_str
+    assert (utils.str2num('0b'+mks_str) ^ xu).bin() == xor_str
+
+def test_arrays():
+    x = Fxp(None, True, 8, 4)
+    y = Fxp(None, True, 8, 4)
+
+    x(['0b00110101', '0b10101100'])
+    y('0b11110000')
+
+    z = x & y
+    assert z.bin()[0] == '00110000'
+    assert z.bin()[1] == '10100000'
+
+def test_operations_with_combinations():
+    
+    v = [-256, -64, -16, -4.75, -3.75, -3.25, -1, -0.75, -0.125, 0.0, 0.125, 0.75, 1, 1.5, 3.75, 4.0, 8.0, 32, 128]
+    for i in range(len(v)):
+        for j in range(len(v)):
+            vx, vy = v[i], v[j]
+            x = Fxp(vx)
+            y = Fxp(vy)
+            assert (x + vy)() == (vx + vy) == (vx + y)() == (x + y)()
+            assert (vy + x)() == (vy + vx) == (y + vx)() == (y + x)()
+
+            assert (x - vy)() == (vx - vy) == (vx - y)() == (x - y)()
+            assert -(vy - x)() == -(vy - vx) == -(y - vx)() == -(y - x)()
+
+            assert (x * vy)() == (vx * vy) == (vx * y)() == (x * y)()
+            assert (vy * x)() == (vy * vx) == (y * vx)() == (y * x)()
+
+    v = [-256, -64, -16, -4.75, -4.25, -1, -0.75, -0.125, 0.125, 0.75, 1, 1.5, 2.75, 4.0, 8.0, 32, 128]
+    for i in range(len(v)):
+        for j in range(len(v)):
+            vx, vy = v[i], v[j]
+            x = Fxp(vx)
+            y = Fxp(vy)
+
+            assert (x / vy)() == (vx / vy) == (vx / y)() == (x / y)()
+            assert (vy / x)() == (vy / vx) == (y / vx)() == (y / x)()
+
+            assert (x // vy)() == (vx // vy) == (vx // y)() == (x // y)()
+            assert (vy // x)() == (vy // vx) == (y // vx)() == (y // x)()

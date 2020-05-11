@@ -41,7 +41,7 @@ import sys
 __maxsize__ = sys.maxsize
 _n_word_max = np.log2(__maxsize__).astype(int) + 1
 
-_max_error = 1.0e-6
+_max_error = 1 / (1 << (_n_word_max - 1))
 
 #%%
 class Fxp():
@@ -54,10 +54,11 @@ class Fxp():
         self.val = None
         self.real = None
         self.imag = None
-        # format
+        # format sizes
         self.signed = None
         self.n_word = None
         self.n_frac = None
+        self.n_int = None
         # format properties
         self.upper = None
         self.lower = None
@@ -176,20 +177,18 @@ class Fxp():
 
             # if val is a str(s), convert to number(s)
             val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
+            val = np.array([val])
 
-            if isinstance(val, (list, np.ndarray)):
-                int_vals = val.astype(int)
-                max_int_val = np.max(np.abs(int_vals + 0.5))
-                frac_vals = np.abs(np.subtract(val, int_vals))
-            elif isinstance(val, (int, float)):
-                max_int_val = abs(int(val) + 0.5)
-                frac_vals = [np.abs(val - int(val))]
-            else:
-                raise TypeError('Type not supported for val parameter!')
+            # check if val is complex, if it is: convert to array of float/int
+            if np.iscomplexobj(val):
+                val = np.array([val.real, val.imag])
 
-            if n_word is None and n_frac is None:
-                n_int = max( np.ceil(np.log2(max_int_val)).astype(int), 0) 
-                max_n_frac = n_word_max - n_int - sign
+            # find fractional parts
+            frac_vals = np.abs(np.subtract(val, val.astype(int))).ravel()
+
+            # n_frac estimation
+            if n_frac is None:
+                max_n_frac = n_word_max - sign
 
                 n_frac_calcs = []
                 for r in frac_vals:
@@ -202,19 +201,19 @@ class Fxp():
                         if r_i >= 0.0:
                             r = r_i
                     n_frac_calcs.append(n_frac)
-                self.n_frac = max(n_frac_calcs)
-                self.n_word = int(n_frac + n_int + sign)
-            elif n_word is None:
-                n_int = max( np.ceil(np.log2(max_int_val)).astype(int), 0)
+                n_frac = int(max(n_frac_calcs))
+
+            # max raw value (integer) estimation
+            n_int = max( np.ceil(np.log2(np.max(np.abs( val*(1 << n_frac) + 0.5 )))).astype(int) - n_frac, 0)
+
+            # size assignement
+            if n_word is None:
+                n_frac = min(n_word_max - sign - n_int, n_frac) # n_frac limit according n_word max size
                 self.n_frac = n_frac
                 self.n_word = int(n_frac + n_int + sign)
-            elif n_frac is None:
-                self.n_word = n_word
-                n_int = np.ceil(np.log2(np.abs(val)))
-                self.n_frac = np.max(n_word-n_int-sign, 0).astype(int)
             else:
                 self.n_word = n_word
-                self.n_frac = n_frac
+                self.n_frac = n_frac = min(n_word - sign - n_int, n_frac)
         
         self.n_word = min(self.n_word, n_word_max)
         self.resize()
@@ -357,14 +356,18 @@ class Fxp():
             rval = self.set_val(val)
         return rval
 
+    
     # representation
+    
     def __repr__(self):
         return str(self.get_val())
 
     def __str__(self):
         return str(self.get_val())
 
+    
     # math operations
+    
     def __neg__(self):
         y = Fxp(-self.get_val(), signed=self.signed, n_word=self.n_word, n_frac=self.n_frac)
         return y
@@ -377,21 +380,37 @@ class Fxp():
         if isinstance(x, (int, float, list, np.ndarray)):
             x = Fxp(x)
         
-        n_word = max(self.n_word, x.n_word) + 1
+        n_int = max(self.n_int, x.n_int) + 1
         n_frac = max(self.n_frac, x.n_frac)
 
-        y = Fxp(self.astype(float) + x.astype(float), signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
+        y = Fxp(self.get_val() + x.get_val(), signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac)
         return y
+
+    __radd__ = __add__
+
+    __iadd__ = __add__
 
     def __sub__(self, x):
         if isinstance(x, (int, float, list, np.ndarray)):
             x = Fxp(x)
         
-        n_word = max(self.n_word, x.n_word) + 1
+        n_int = max(self.n_int, x.n_int) + 1
         n_frac = max(self.n_frac, x.n_frac)
 
-        y = Fxp(self.astype(float) - x.astype(float), signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
+        y = Fxp(self.get_val() - x.get_val(), signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac)
         return y
+
+    def __rsub__(self, x):
+        if isinstance(x, (int, float, list, np.ndarray)):
+            x = Fxp(x)
+        
+        n_int = max(self.n_int, x.n_int) + 1
+        n_frac = max(self.n_frac, x.n_frac)
+
+        y = Fxp(x.get_val() - self.get_val(), signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac)
+        return y
+
+    __isub__ = __sub__
 
     def __mul__(self, x):
         if isinstance(x, (int, float)):
@@ -400,25 +419,44 @@ class Fxp():
         n_word = self.n_word + x.n_word
         n_frac = self.n_frac + x.n_frac
 
-        y = Fxp(self.astype(float) * x.astype(float), signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
+        y = Fxp(self.get_val() * x.get_val(), signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
         return y
 
-    def __rmul__(self, x):
-        return self * x
+    __rmul__ = __mul__
+
+    __imul__ = __mul__
 
     def __truediv__(self, x):
         if isinstance(x, (int, float)):
             x = Fxp(x)
 
-        y = Fxp(self.astype(float) / x.astype(float), signed=self.signed or x.signed)
+        y = Fxp(self.get_val() / x.get_val(), signed=self.signed or x.signed)
         return y
+
+    def __rtruediv__(self, x):
+        if isinstance(x, (int, float)):
+            x = Fxp(x)
+
+        y = Fxp(x.get_val() / self.get_val(), signed=self.signed or x.signed)
+        return y
+
+    __itruediv__ = __truediv__
 
     def __floordiv__(self, x):
         if isinstance(x, (int, float)):
             x = Fxp(x)
 
-        y = Fxp(self.astype(float) // x.astype(float), signed=self.signed or x.signed)
+        y = Fxp(self.get_val() // x.get_val(), signed=self.signed or x.signed)
         return y
+
+    def __rfloordiv__(self, x):
+        if isinstance(x, (int, float)):
+            x = Fxp(x)
+
+        y = Fxp(x.get_val() // self.get_val(), signed=self.signed or x.signed)
+        return y
+
+    __ifloordiv__ = __floordiv__
 
     def __mod__(self, x):
         if isinstance(x, (int, float)):
@@ -427,10 +465,40 @@ class Fxp():
         n_frac = max(self.n_frac, x.n_frac)
         n_int = min(self.n_int, x.n_int)
 
-        y = Fxp(self.astype(float) % x.astype(float), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
+        y = Fxp(self.get_val() % x.get_val(), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
         return y
 
+    def __rmod__(self, x):
+        if isinstance(x, (int, float)):
+            x = Fxp(x)
+        
+        n_frac = max(self.n_frac, x.n_frac)
+        n_int = min(self.n_int, x.n_int)
+
+        y = Fxp(x.get_val() % self.get_val(), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
+        return y
+
+    __imod__ = __mod__
+
+    def __pow__(self, n):
+        n_word = self.n_word * n
+        n_frac = self.n_frac * n
+
+        y = Fxp(self.get_val() ** n, signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
+        return y
+
+    def __rpow__(self, n):
+        n_word = self.n_word * n
+        n_frac = self.n_frac * n
+
+        y = Fxp(n ** self.get_val(), signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
+        return y
+
+    __ipow__ = __pow__
+
+    
     # bit level operators
+
     def __rshift__(self, n):
         y = self.deepcopy()
         y.val = y.val >> n
@@ -463,6 +531,8 @@ class Fxp():
                 raise ValueError("Operands dont't have same word size!")
             else:
                 x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
+        else:
+            x_val = x
 
         added_val = utils.binary_and(self.val, x_val, n_word=self.n_word)
         if self.signed:
@@ -473,10 +543,13 @@ class Fxp():
         return y
 
     def __or__(self, x):
-        if self.n_word != x.n_word:
-            raise ValueError("Operands dont't have same word size!")
+        if isinstance(x, Fxp):
+            if self.n_word != x.n_word:
+                raise ValueError("Operands dont't have same word size!")
+            else:
+                x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
         else:
-            x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
+            x_val = x
 
         ored_val = utils.binary_or(self.val.astype(self.val.dtype), x_val, n_word=self.n_word)
         if self.signed:
@@ -487,10 +560,13 @@ class Fxp():
         return y
 
     def __xor__(self, x):
-        if self.n_word != x.n_word:
-            raise ValueError("Operands dont't have same word size!")
+        if isinstance(x, Fxp):
+            if self.n_word != x.n_word:
+                raise ValueError("Operands dont't have same word size!")
+            else:
+                x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
         else:
-            x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
+            x_val = x
 
         xored_val = utils.binary_xor(self.val.astype(self.val.dtype), x_val, n_word=self.n_word)
         if self.signed:
@@ -498,7 +574,56 @@ class Fxp():
 
         y = self.deepcopy()
         y.set_val(xored_val, raw=True, vdtype=self.vdtype)   # set raw val with XOR operation  
-        return y     
+        return y  
+
+    __rand__ = __and__
+
+    __ror__ = __or__
+
+    __rxor__ = __xor__
+
+    __irshift__ = __rshift__
+
+    __ilshift__ = __lshift__
+
+    __iand__ = __and__
+
+    __ior__ = __or__
+
+    __ixor__ = __xor__
+
+
+    # comparisons
+
+    def __lt__(self, x):
+        if isinstance(x, Fxp):
+            x = x.get_val()
+        return self.get_val() < x
+
+    def __le__(self, x):
+        if isinstance(x, Fxp):
+            x = x.get_val()
+        return self.get_val() <= x
+
+    def __eq__(self, x):
+        if isinstance(x, Fxp):
+            x = x.get_val()
+        return self.get_val() == x
+
+    def __ne__(self, x):
+        if isinstance(x, Fxp):
+            x = x.get_val()
+        return self.get_val() != x
+
+    def __gt__(self, x):
+        if isinstance(x, Fxp):
+            x = x.get_val()
+        return self.get_val() > x
+
+    def __ge__(self, x):
+        if isinstance(x, Fxp):
+            x = x.get_val()
+        return self.get_val() >= x
 
     # indexation
     def __getitem__(self, index):

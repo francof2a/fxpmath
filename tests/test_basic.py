@@ -76,6 +76,14 @@ def test_instances():
     x = Fxp([-1, 0, 1, 2, 3], True, n_word=16, n_frac=4)
     assert x().all() == np.array([-1, 0, 1, 2, 3]).all()
 
+    x = Fxp(0.25 + 1j*15)
+    assert x() == 0.25 + 1j*15
+    assert x.dtype == 'fxp-s7/2-complex'
+    assert x.signed == True
+    assert x.n_frac == 2
+    assert x.n_int == 4
+    assert x.n_word == 7
+
 def test_signed():
     # signed
     x_fxp = Fxp(0.0, True, 8, 7)
