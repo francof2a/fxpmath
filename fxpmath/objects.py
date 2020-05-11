@@ -54,6 +54,9 @@ class Fxp():
         self.val = None
         self.real = None
         self.imag = None
+        # scaling (linear)
+        self.scale = None
+        self.bias = None
         # format sizes
         self.signed = None
         self.n_word = None
@@ -73,6 +76,8 @@ class Fxp():
         max_error = None
         n_word_max = None
 
+        # ---
+
         # check if init must be a `like` other Fxp
         init_like = kwargs.pop('like', None) 
         if init_like is not None:
@@ -83,6 +88,9 @@ class Fxp():
         self.status = {
             'overflow': False,
             'underflow': False}
+        # scaling
+        if self.scale is None: self.scale = kwargs.pop('scale', 1)
+        if self.bias is None: self.bias = kwargs.pop('bias', 0)
         # behavior
         if self.overflow is None: self.overflow = kwargs.pop('overflow', 'saturate')
         if self.rounding is None: self.rounding = kwargs.pop('rounding', 'trunc')
@@ -143,7 +151,7 @@ class Fxp():
             lower_val = -upper_val - 1
         else:
             upper_val =  (1 << self.n_word) - 1
-            lower_val = 0
+            lower_val = 0 
 
         if self.vdtype == complex:
             self.upper = (upper_val + 1j * upper_val) / 2.0**self.n_frac
@@ -153,6 +161,12 @@ class Fxp():
             self.upper = upper_val / 2.0**self.n_frac
             self.lower = lower_val / 2.0**self.n_frac
             self.precision = 1 / 2.0**self.n_frac
+
+        # scaling conversion
+        if self.scale is not None and self.bias is not None:
+            self.upper = self.scale * self.upper + self.bias
+            self.lower = self.scale * self.lower + self.bias
+            self.precision = self.scale * self.precision
 
         # re store the value
         self.set_val(self.get_val())
@@ -176,7 +190,7 @@ class Fxp():
                 sign = 0
 
             # if val is a str(s), convert to number(s)
-            val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
+            val, signed, n_word, n_frac = self._format_inupt_val(val, return_sizes=True)
             val = np.array([val])
 
             # check if val is complex, if it is: convert to array of float/int
@@ -220,14 +234,25 @@ class Fxp():
 
     # methods about value
 
-    def set_val(self, val, raw=False, vdtype=None):
+    def _format_inupt_val(self, val, return_sizes=False):
         if val is None:
             val = 0
-
         # if val is a str(s), convert to number(s)
-        val = utils.str2num(val, self.signed, self.n_word, self.n_frac)
+        val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
         # convert to (numpy) ndarray
         val = np.array(val)
+        # scaling conversion
+        if self.scale is not None and self.bias is not None:
+            val = (val - self.bias) / self.scale
+
+        if return_sizes:
+            return val, signed, n_word, n_frac
+        else:
+            return val
+
+    def set_val(self, val, raw=False, vdtype=None):
+        # convert input value to valid format
+        val = self._format_inupt_val(val)
 
         # check if val overflow max int possible
         if val.dtype == 'O':
@@ -291,6 +316,10 @@ class Fxp():
             val = (self.val.real + 1j * self.val.imag) / 2.0**self.n_frac
         else:
             val = None
+
+        # scaling reconversion
+        if val is not None and self.scale is not None and self.bias is not None:
+            val = val * self.scale + self.bias
         return val
 
     def get_val(self, dtype=None):
@@ -463,7 +492,10 @@ class Fxp():
             x = Fxp(x)
         
         n_frac = max(self.n_frac, x.n_frac)
-        n_int = min(self.n_int, x.n_int)
+        if self.signed or x.signed:
+            n_int = max(self.n_int, x.n_int)  # because python modulo implementation
+        else:
+            n_int = min(self.n_int, x.n_int)
 
         y = Fxp(self.get_val() % x.get_val(), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
         return y
@@ -473,7 +505,10 @@ class Fxp():
             x = Fxp(x)
         
         n_frac = max(self.n_frac, x.n_frac)
-        n_int = min(self.n_int, x.n_int)
+        if self.signed or x.signed:
+            n_int = max(self.n_int, x.n_int)  # because python modulo implementation
+        else:
+            n_int = min(self.n_int, x.n_int)
 
         y = Fxp(x.get_val() % self.get_val(), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
         return y

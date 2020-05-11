@@ -248,3 +248,6 @@ def test_operations_with_combinations():
 
             assert (x // vy)() == (vx // vy) == (vx // y)() == (x // y)()
             assert (vy // x)() == (vy // vx) == (y // vx)() == (y // x)()
+
+            assert (x % vy)() == (vx % vy) == (vx % y)() == (x % y)()
+            assert (vy % x)() == (vy % vx) == (y % vx)() == (y % x)()

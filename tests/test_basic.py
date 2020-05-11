@@ -128,8 +128,6 @@ def test_misc_values():
     # x = Fxp(2**64)
     # assert x() == 2**64
 
-
-
 def test_base_representations():
     x = Fxp(0.0, True, 8, 4)
 
@@ -196,3 +194,20 @@ def test_strvals():
     x = Fxp(0.0, True, 8, 4)
     x('0x8c')
     assert x() == -7.25
+
+def test_scaling():
+    x = Fxp(4.5, scale=2.0, bias=-1.5)
+    assert x() == 4.5
+    assert x.n_word == 3
+    assert x.n_frac == 0
+    assert x.upper == 4.5
+    assert x.lower == -9.5
+    assert x.precision == 2.0
+
+    x = Fxp(1003, False, scale=0.5, bias=1000)
+    assert x() == 1003
+    assert x.n_word == 3
+    assert x.n_frac == 0
+    assert x.upper == 1003.5
+    assert x.lower == 1000
+    assert x.precision == 0.5   
