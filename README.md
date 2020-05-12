@@ -47,8 +47,8 @@ x = Fxp(-7.25)      # create fxp variable with value 7.25
 x.info()
 ```
 
-> dtype           =       fxp-s6/2
-> Value           =       -7.25 
+> dtype           =       fxp-s6/2  
+> Value           =       -7.25  
 
 We have created a variable of 6 bits, where 1 bit has been reserved for sign, 2 bits for fractional part, and 3 remains for integer part. Here, bit sizes had been calculated to just satisfy the value you want to save.
 
@@ -76,21 +76,21 @@ You can print more information only changing the verbosity of *info* method.
 x.info(verbose=3)
 ```
 
-> dtype           =       fxp-s16/8
-> Value           =       -7.25
+> dtype           =       fxp-s16/8  
+> Value           =       -7.25  
 >  
-> Signed          =       True
-> Word bits       =       16
-> Fract bits      =       8
-> Int bits        =       7
-> Val data type   =       float64
+> Signed          =       True  
+> Word bits       =       16  
+> Fract bits      =       8  
+> Int bits        =       7  
+> Val data type   =       float64  
 >  
-> Upper           =       127.99609375
-> Lower           =       -128.0
-> Precision       =       0.00390625
-> Overflow        =       saturate
-> Rounfing        =       trunc
-> Shifting        =       expand
+> Upper           =       127.99609375  
+> Lower           =       -128.0  
+> Precision       =       0.00390625  
+> Overflow        =       saturate  
+> Rounfing        =       trunc  
+> Shifting        =       expand  
 
 ### Representations
 
@@ -100,14 +100,14 @@ We can representate the value stored en `x` in several ways:
 x
 ```
 
-> -7.25
+> -7.25  
 
 ```python
 x.get_val()     # return a Numpy array with the val/values in original data type representation
 x()             # equivalent to x.get_val() or x.astype(self.vdtype)
 ```
 
-> -7.25
+> -7.25  
 
 In different bases:
 
@@ -120,9 +120,9 @@ x.base_repr(16)         # hex with sign symbol (not complement)
 ```
 
 > '1111100011000000'  
-> '11111000.11000000'
-> '-11101000000'
-> '0xf8c0'
+> '11111000.11000000'  
+> '-11101000000'  
+> '0xf8c0'  
 > '-740'  
 
 
@@ -458,21 +458,21 @@ x = Fxp(10128.5, signed=False, n_word=12, scale=1, bias=10000)
 x.info(3)
 ```
 
-> dtype           =       fxp-u12/1
-> Value           =       10128.5
-> Scaling         =       1 * val + 10000
+> dtype           =       fxp-u12/1  
+> Value           =       10128.5  
+> Scaling         =       1 * val + 10000  
 >  
-> Signed          =       False
-> Word bits       =       12
-> Fract bits      =       1
-> Int bits        =       11
-> Val data type   =       float64
+> Signed          =       False  
+> Word bits       =       12  
+> Fract bits      =       1  
+> Int bits        =       11  
+> Val data type   =       float64  
 >  
-> Upper           =       12047.5
-> Lower           =       10000.0
-> Precision       =       0.5
-> Overflow        =       saturate
-> Rounfing        =       trunc
-> Shifting        =       expand
+> Upper           =       12047.5  
+> Lower           =       10000.0  
+> Precision       =       0.5  
+> Overflow        =       saturate  
+> Rounfing        =       trunc  
+> Shifting        =       expand  
 
 Note de *upper* and *lower* limits are correct, and that the *precision* is what we needed.
