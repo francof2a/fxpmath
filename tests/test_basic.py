@@ -218,6 +218,43 @@ def test_saturate():
     assert x.status['overflow'] == True
     assert x.status['underflow'] == True    
 
+def test_rounding():
+    # trunc
+    x = Fxp(None, True, 8, 2, rounding='trunc')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50]
+    vo = [0.00, 1.00, 1.00, 1.25, 1.25, 1.25, 1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+        assert x(-i) == -o
+
+    # ceil
+    x = Fxp(None, True, 8, 2, rounding='ceil')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50]
+    vo = [0.00, 1.00, 1.25, 1.25, 1.50, 1.50, 1.50, -1.00, -1.00, -1.25, -1.25, -1.25, -1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
+    # floor
+    x = Fxp(None, True, 8, 2, rounding='floor')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50]
+    vo = [0.00, 1.00, 1.00, 1.25, 1.25, 1.25, 1.50, -1.00, -1.25, -1.25, -1.50, -1.50, -1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+    
+    # fix
+    x = Fxp(None, True, 8, 2, rounding='fix')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50]
+    vo = [0.00, 1.00, 1.00, 1.25, 1.25, 1.25, 1.50, -1.00, -1.00, -1.25, -1.25, -1.25, -1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
+    # around
+    x = Fxp(None, True, 8, 2, rounding='around')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50]
+    vo = [0.00, 1.00, 1.25, 1.25, 1.25, 1.50, 1.50, -1.00, -1.25, -1.25, -1.25, -1.50, -1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
 def test_scaling():
     x = Fxp(4.5, scale=2.0, bias=-1.5)
     assert x() == 4.5
@@ -234,3 +271,12 @@ def test_scaling():
     assert x.upper == 1003.5
     assert x.lower == 1000
     assert x.precision == 0.5   
+
+    x = Fxp(10128.5, signed=False, n_word=12, scale=1, bias=10000)
+    assert x() == 10128.5
+    assert x.n_word == 12
+    assert x.n_frac == 1
+    assert x.upper == 12047.5
+    assert x.lower == 10000.0
+    assert x.precision == 0.5
+    assert x.get_status(str) == ''    

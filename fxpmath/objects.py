@@ -128,7 +128,7 @@ class Fxp():
             self.resize(self.signed, n_word, n_frac, n_int)
 
 
-    def resize(self, signed=None, n_word=None, n_frac=None, n_int=None):
+    def resize(self, signed=None, n_word=None, n_frac=None, n_int=None, restore_val=True):
         # n_int defined:
         if n_word is None and n_frac is not None and n_int is not None:
             n_word = n_int + n_frac + (1 if self.signed else 0)
@@ -171,7 +171,8 @@ class Fxp():
             self.precision = self.scale * self.precision
 
         # re store the value
-        self.set_val(self.get_val())
+        if restore_val:
+            self.set_val(self.get_val())
     
     def set_best_sizes(self, val=None, n_word=None, n_frac=None, max_error=1.0e-6, n_word_max=64):
 
@@ -191,6 +192,9 @@ class Fxp():
             else:
                 sign = 0
 
+            self.n_word = n_word
+            self.n_frac = n_frac
+            
             # if val is a str(s), convert to number(s)
             val, signed, n_word, n_frac = self._format_inupt_val(val, return_sizes=True)
             val = np.array([val])
@@ -232,7 +236,7 @@ class Fxp():
                 self.n_frac = n_frac = min(n_word - sign - n_int, n_frac)
         
         self.n_word = min(self.n_word, n_word_max)
-        self.resize()
+        self.resize(restore_val=False)
 
     # methods about value
 
@@ -703,6 +707,7 @@ class Fxp():
             s += '\tWord bits\t=\t{}\n'.format(self.n_word)
             s += '\tFract bits\t=\t{}\n'.format(self.n_frac)
             s += '\tInt bits\t=\t{}\n'.format(self.n_int)
+            s += '\tVal data type\t=\t{}\n'.format(self.vdtype)
         if verbose > 2:
             s += '\n\tUpper\t\t=\t{}\n'.format(self.upper)
             s += '\tLower\t\t=\t{}\n'.format(self.lower)

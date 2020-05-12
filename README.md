@@ -1,6 +1,18 @@
 # fxpmath
 
-A python library for fractional fixed-point arithmetic.
+A python library for fractional fixed-point (base 2) arithmetic and binary manipulation.
+
+Some key features:
+
+* Fixed-point signed and unsigned numbers representation.
+* Arbitrary word and fractional sizes. Auto sizing capability.
+* Arithmetic and logical (bitwise) operations supported.
+* Input values can be: int, float, complex, list, numpy arrays, strings (bin, hex, dec).
+* Input rounding methods, overflow and underflow behaviors and flags.
+* Binary, Hexadecimal, and other bases representations (like strings).
+* Indexing supported.
+* Linear scaling: scale and bias.
+* Numpy backend. Fxp returns a numpy array and works internally with Numpy.
 
 ## install
 
@@ -35,12 +47,8 @@ x = Fxp(-7.25)      # create fxp variable with value 7.25
 x.info()
 ```
 
-> dtype           =       fxp-s6/2  
-> Value           =       -7.25  
-> Signed          =       True  
-> Word bits       =       6  
-> Fract bits      =       2  
-> Int bits        =       3  
+> dtype           =       fxp-s6/2
+> Value           =       -7.25 
 
 We have created a variable of 6 bits, where 1 bit has been reserved for sign, 2 bits for fractional part, and 3 remains for integer part. Here, bit sizes had been calculated to just satisfy the value you want to save.
 
@@ -62,6 +70,28 @@ or just
 x = Fxp(-7.25, True, 16, 8)
 ```
 
+You can print more information only changing the verbosity of *info* method.
+
+```python
+x.info(verbose=3)
+```
+
+> dtype           =       fxp-s16/8
+> Value           =       -7.25
+>  
+> Signed          =       True
+> Word bits       =       16
+> Fract bits      =       8
+> Int bits        =       7
+> Val data type   =       float64
+>  
+> Upper           =       127.99609375
+> Lower           =       -128.0
+> Precision       =       0.00390625
+> Overflow        =       saturate
+> Rounfing        =       trunc
+> Shifting        =       expand
+
 ### Representations
 
 We can representate the value stored en `x` in several ways:
@@ -73,7 +103,7 @@ x
 > -7.25
 
 ```python
-x.get_val()     # return the val with original type
+x.get_val()     # return a Numpy array with the val/values in original data type representation
 x()             # equivalent to x.get_val() or x.astype(self.vdtype)
 ```
 
@@ -83,14 +113,16 @@ In different bases:
 
 ```python
 x.bin()
+x.bin(frac_dot=True)    # binary with fractional dot
+x.base_repr(2)          # binary with sign symbol (not complement)
 x.hex()
-x.base_repr(2)  # binary with sign symbol (not complement)
-x.base_repr(16) # hex with sign symbol (not complement)
+x.base_repr(16)         # hex with sign symbol (not complement)
 ```
 
 > '1111100011000000'  
-> '0xf8c0'  
-> '-11101000000'  
+> '11111000.11000000'
+> '-11101000000'
+> '0xf8c0'
 > '-740'  
 
 
@@ -105,8 +137,6 @@ x.astype(complex)
 > -8  
 > -7.25  
 > (-7.25+0j)  
-
-... yes **fxpmath** supports *complex* numbers!
 
 **Note** that if we do:
 
@@ -150,6 +180,7 @@ Fxp can handle following input data types:
 * complex
 * list
 * ndarrays (n-dimensional numpy arrays)
+* strings (bin, hex, dec)
 
 Here some examples:
 
@@ -159,6 +190,9 @@ x(-1.75)
 x(-2.5 + 1j*0.25)
 x([1.0, 1.5, 2.0])
 x(np.random.uniform(size=(2,4)))
+x('3.5')
+x('0b11001010')
+x('0xa4')
 ```
 
 ### indexing
@@ -183,6 +217,7 @@ x - 0.125   # substract a constant
 x / 1.5     # division by a constant
 x // 1.5    # floor division by a constant
 x % 2       # modulo
+x ** 3      # power
 ```
 
 This math operations returns a **new Fxp** object with automatic precision enough to represent the result. So, in all these cases we can assign the result to a (Fxp) variable, or to the same (overwritting the old Fxp object).
@@ -231,6 +266,35 @@ N = 1000        # number of samples
 
 n = Fxp( list(range(N)) )                       # sample indices
 y( 0.5 * np.sin(2 * np.pi * f * n() / fs) )     # a sin wave with 5.0 Hz of frequecy sampled at 400 samples per second
+```
+
+## logical (bitwise) operators
+
+*Fxp* supports logical (bitwise) operations like *not* (*inverse*), *and*, *or*, *xor* with constants or others Fxp variables. It also supports bits *shifting* to the right and left.
+
+```python
+x & 0b1100110011110000          # Fxp var AND constant
+x & Fxp('0b11001100.11110000')  # Fxp var AND other Fxp with same constant
+x & y                           # x AND y, both previoulsy defined
+
+~x      # bits inversion
+x | y   # x OR y
+x ^ y   # x XOR y
+
+x << 5  # x shifted 5 bits to the left
+x >> 3  # x shifted 3 bits to the right (filled with sign bit)
+```
+
+When logical operations are performed with a constant, this constant is converted to a Fxp with de same characteristics of Fxp operand.
+
+## Comparisons
+
+*Fxp* supoorts comparison operators with constants, other variables, or another Fxp.
+
+```python
+x > 5
+x == y
+# ... and other comparison availables
 ```
 
 ---
@@ -303,6 +367,32 @@ print(x.precision)              # print the precision of x
 print(Fxp(n_frac=7).precision)  # print the precision of a fxp with 7 bits for fractional part.
 ```
 
+### inaccuracy
+
+When the input value couldn't be represented exactly as a fixed-point, a **inaccuracy** flag is raised in the status of Fxp variable. You can check this flag to know if you are carrying a precision error.
+
+## Status flags
+
+*Fxp* have **status flags** to show that some events have occured inside the variable. The status flags are:
+
+* overflow
+* underflow
+* inaccuracy
+
+Those can be checked using:
+```python
+x.get_status()  # returns a dictionary with the flags
+
+# or
+x.get_status(format=str)    # return a string with flags RAISED only
+```
+
+The method **reset** can be call to reset status flags raised.
+
+```python
+x.reset()
+```
+
 ---
 
 ## copy
@@ -353,3 +443,36 @@ m.equal(c*x2)
 y.equal(x1 + m)
 
 ```
+
+## Scaling
+
+*Fxp* implements an alternative way to input data and represent it, as an linear transformation through *scale* and *bias*. In this way, the raw fracitonal value stored in Fxp variable is "scaled down" during input and "scaled up" during output or operations.
+
+It allows to use less bits to represent numbers in a huge range and/or offset.
+
+For example, suppose that the set of numbers to represent are in [10000, 12000] range, and the precision needed is 0.5. We have 4000 numbers to represent, at least. Using scaling we can avoid to represent 12000 number or more. So, we only need 12 bits (4096) values.
+
+```python
+x = Fxp(10128.5, signed=False, n_word=12, scale=1, bias=10000)
+
+x.info(3)
+```
+
+> dtype           =       fxp-u12/1
+> Value           =       10128.5
+> Scaling         =       1 * val + 10000
+>  
+> Signed          =       False
+> Word bits       =       12
+> Fract bits      =       1
+> Int bits        =       11
+> Val data type   =       float64
+>  
+> Upper           =       12047.5
+> Lower           =       10000.0
+> Precision       =       0.5
+> Overflow        =       saturate
+> Rounfing        =       trunc
+> Shifting        =       expand
+
+Note de *upper* and *lower* limits are correct, and that the *precision* is what we needed.

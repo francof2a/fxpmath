@@ -1,0 +1,26 @@
+version 0.3.0
+--------------------------------------------------
+* support logical (bitwise) operators.
+* binary shifting.
+* value/s sclaing (scale and offset).
+* comparison support.
+* inaccuracy status flag to inform that the value stored is not equal to input value.
+* info() method now have verbosity to display more information.
+* reset() method to reset status flags.
+* set_val() now also supports raw value input.
+* pow operator.
+* inplace operators support.
+* some bugs fixed (of course).
+
+version 0.2.0
+--------------------------------------------------
+* bin, hex, and base representations.
+* upper, lower and precision properties.
+* arithmetic operators support.
+* support for input values as strings, bin, hex, also in fractional format.
+* copy Fxp.
+* init Fxp like other Fxp previously defined.
+* indexing support.
+
+version 0.1.0 (first release)
+--------------------------------------------------
