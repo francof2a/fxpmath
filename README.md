@@ -475,4 +475,4 @@ x.info(3)
 > Rounfing        =       trunc  
 > Shifting        =       expand  
 
-Note de *upper* and *lower* limits are correct, and that the *precision* is what we needed.
+Note that *upper* and *lower* limits are correct, and that the *precision* is what we needed.

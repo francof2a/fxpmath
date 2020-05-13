@@ -1,22 +1,30 @@
 from setuptools import setup
 
+from os import path
 
+project_folder = path.abspath(path.dirname(__file__))
+
+# Get the long description from the README file
+with open(path.join(project_folder, 'README.md'), 'r') as f:
+    long_description = f.read()
+
+_version = __import__('fxpmath').__version__
 
 setup(
     name='fxpmath',
-    version=__import__('fxpmath').__version__,
+    version=_version,
     author='francof2a',
     author_email='empty@empty.com',
     packages=['fxpmath'],
-    description='A python library for fractional fixed-point arithmetic.',
+    description='A python library for fractional fixed-point (base 2) arithmetic and binary manipulation.',
     url='https://github.com/francof2a/fxpmath',
-    download_url = 'https://github.com/francof2a/fxpmath/archive/0.2.2.tar.gz',
+    download_url = 'https://github.com/francof2a/fxpmath/archive/{}.tar.gz'.format(_version),
     license='MIT',
     keywords=['fixed point', 'fractional', 'math', 'python', 'fxpmath', 'fxp', 'arithmetic', 'FPGA', 'DSP'],
     install_requires=['numpy'],
 
-    long_description = \
-        'A python library for fractional fixed-point arithmetic.',
+    long_description = long_description,
+    long_description_content_type="text/markdown",
 
     classifiers=[
         'Development Status :: 4 - Beta',
