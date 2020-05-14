@@ -1,3 +1,7 @@
+version 0.3.2
+--------------------------------------------------
+* fix N dimensional arrays as inputs (N > 1).
+
 version 0.3.1
 --------------------------------------------------
 * fix init and best_size_calc for Win32 platforms
