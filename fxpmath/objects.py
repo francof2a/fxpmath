@@ -373,11 +373,12 @@ class Fxp():
             self.status['underflow'] = True
         
         if self.overflow == 'saturate':
-            #val = np.clip(new_val, val_min, val_max) # it returns float that cause an error for 64 bits huge integers
-            if new_val.ndim > 0:
-                val = np.array([max(val_min, min(val_max, v)) for v in new_val])
-            else:
-                val = np.array(max(val_min, min(val_max, new_val)))
+            # val = np.clip(new_val, val_min, val_max) # it returns float that cause an error for 64 bits huge integers
+            # if new_val.ndim > 0:
+            #     val = np.array([max(val_min, min(val_max, v)) for v in new_val])
+            # else:
+            #     val = np.array(max(val_min, min(val_max, new_val)))
+            val = utils.clip(new_val, val_min, val_max)
         elif self.overflow == 'wrap':
             if new_val.ndim == 0:
                 if not ((new_val <= val_max) & (new_val >= val_min)):

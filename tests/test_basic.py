@@ -84,6 +84,12 @@ def test_instances():
     assert x.n_int == 4
     assert x.n_word == 7
 
+    x = Fxp([[1.5, 2.25], [-0.125, -3.75]])
+    assert x().all() == np.array([[1.5, 2.25], [-0.125, -3.75]]).all()
+
+    x = Fxp([['0b1100', '0b0110'], ['0b0000', '0b1111']], signed=True, n_frac=2)
+    assert x().all() == np.array([[-1.0, 1.5], [0.0, -0.25]]).all()
+
 def test_signed():
     # signed
     x_fxp = Fxp(0.0, True, 8, 7)

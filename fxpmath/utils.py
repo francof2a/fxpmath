@@ -263,3 +263,7 @@ def binary_xor(x, y, n_word=None):
     z = xm ^ ym
     return z
 
+@array_support
+def clip(x, val_min, val_max):
+    x_clipped = np.array(max(val_min, min(val_max, x)))
+    return x_clipped
