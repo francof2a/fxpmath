@@ -212,8 +212,14 @@ class Fxp():
             if np.iscomplexobj(val):
                 val = np.array([val.real, val.imag])
 
+            # define numpy integer type
+            if self.signed:
+                int_dtype = np.int64
+            else:
+                int_dtype = np.uint64
+
             # find fractional parts
-            frac_vals = np.abs(np.subtract(val, val.astype(int))).ravel()
+            frac_vals = np.abs(np.subtract(val, val.astype(int_dtype))).ravel()
 
             # n_frac estimation
             if n_frac is None:
@@ -233,7 +239,7 @@ class Fxp():
                 n_frac = int(max(n_frac_calcs))
 
             # max raw value (integer) estimation
-            n_int = max( np.ceil(np.log2(np.max(np.abs( val*(1 << n_frac) + 0.5 )))).astype(int) - n_frac, 0)
+            n_int = max( np.ceil(np.log2(np.max(np.abs( val*(1 << n_frac) + 0.5 )))).astype(int_dtype) - n_frac, 0)
 
             # size assignement
             if n_word is None:
@@ -279,11 +285,11 @@ class Fxp():
         if self.signed:
             val_max = (1 << (self.n_word-1)) - 1
             val_min = -val_max - 1
-            val_dtype = 'int'
+            val_dtype = np.int64
         else:
             val_max =  (1 << self.n_word) - 1
             val_min = 0
-            val_dtype = 'uint'
+            val_dtype = np.uint64
 
         # conversion factor
         if raw:
@@ -330,12 +336,15 @@ class Fxp():
         if dtype is None:
             dtype = self.vdtype
 
-        if dtype == float:
-            val = self.val / 2.0**self.n_frac
-        elif dtype == int or dtype == 'uint':
-            val = self.val.astype(dtype) // 2**self.n_frac
-        elif dtype == complex:
-            val = (self.val.real + 1j * self.val.imag) / 2.0**self.n_frac
+        if self.val is not None:
+            if dtype == float or np.issubdtype(dtype, np.floating):
+                val = self.val / 2.0**self.n_frac
+            elif dtype == int or dtype == 'uint' or dtype == 'int' or np.issubdtype(dtype, np.integer):
+                val = self.val.astype(dtype) // 2**self.n_frac
+            elif dtype == complex or np.issubdtype(dtype, np.complexfloating):
+                val = (self.val.real + 1j * self.val.imag) / 2.0**self.n_frac
+            else:
+                val = self.val / 2.0**self.n_frac
         else:
             val = None
 
@@ -541,14 +550,14 @@ class Fxp():
         n_word = self.n_word * n
         n_frac = self.n_frac * n
 
-        y = Fxp(self.get_val() ** n, signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
+        y = Fxp(self.get_val() ** n, signed=self.signed or n.signed, n_word=n_word, n_frac=n_frac)
         return y
 
     def __rpow__(self, n):
         n_word = self.n_word * n
         n_frac = self.n_frac * n
 
-        y = Fxp(n ** self.get_val(), signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
+        y = Fxp(n ** self.get_val(), signed=self.signed or n.signed, n_word=n_word, n_frac=n_frac)
         return y
 
     __ipow__ = __pow__
@@ -565,7 +574,7 @@ class Fxp():
 
     def __lshift__(self, n):
         if self.shifting == 'expand':
-            n_word = max(self.n_word, np.ceil(np.log2(np.abs(self.val)+0.5)).astype(int) + self.signed + n)
+            n_word = max(self.n_word, int(np.max(np.ceil(np.log2(np.abs(self.val)+0.5)))) + self.signed + n)
         else:
             n_word = self.n_word
 

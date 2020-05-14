@@ -42,3 +42,8 @@ def test_bugs_0_2_2():
     assert x.n_word == 4
     assert x.signed == True
     assert x.n_frac == 2
+
+def test_bugs_0_3_0():
+    # fail in Win32 because numpy astype(int) behavior
+    x = Fxp(4.001)
+    assert x() == 4.001
