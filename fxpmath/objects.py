@@ -244,13 +244,13 @@ class Fxp():
             # size assignement
             if n_word is None:
                 n_frac = min(n_word_max - sign - n_int, n_frac) # n_frac limit according n_word max size
-                self.n_frac = n_frac
+                self.n_frac = int(n_frac)
                 self.n_word = int(n_frac + n_int + sign)
             else:
-                self.n_word = n_word
-                self.n_frac = n_frac = min(n_word - sign - n_int, n_frac)
+                self.n_word = int(n_word)
+                self.n_frac = n_frac = int(min(n_word - sign - n_int, n_frac))
         
-        self.n_word = min(self.n_word, n_word_max)
+        self.n_word = int(min(self.n_word, n_word_max))
         self.resize(restore_val=False)
 
     # methods about value

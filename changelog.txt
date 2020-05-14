@@ -1,3 +1,7 @@
+version 0.3.1
+--------------------------------------------------
+* fix init and best_size_calc for Win32 platforms
+
 version 0.3.0
 --------------------------------------------------
 * support logical (bitwise) operators.
