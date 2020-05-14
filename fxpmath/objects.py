@@ -568,7 +568,7 @@ class Fxp():
 
     def __rshift__(self, n):
         y = self.deepcopy()
-        y.val = y.val >> n
+        y.val = y.val >> np.array(n, dtype=y.val.dtype)
         return y
 
     __irshift__ = __rshift__
@@ -580,7 +580,7 @@ class Fxp():
             n_word = self.n_word
 
         y = Fxp(None, signed=self.signed, n_word=n_word, n_frac=self.n_frac)
-        y.set_val(int(self.val) << n, raw=True, vdtype=self.vdtype)   # set raw val shifted
+        y.set_val(self.val << np.array(n, dtype=self.val.dtype), raw=True, vdtype=self.vdtype)   # set raw val shifted
         return y
     
     __ilshift__ = __lshift__

@@ -49,6 +49,37 @@ def test_shift_bitwise():
     assert (x << 1)() == 64
     assert (x << 2)() == x.upper
 
+    # unsigned
+
+    x = Fxp(32, False, 8, 0)
+    # left
+    assert (x << 1)() == 64
+    assert (x << 2)() == 128 
+    assert (x << 3)() == 256
+    assert (x << 3).n_word == 9
+    assert (x << 10)() == 32*(2**10)
+    # right
+    assert (x >> 1)() == 16
+    assert (x >> 2)() == 8
+    assert (x >> 3)() == 4
+    assert (x >> 5)() == 1
+    assert (x >> 6)() == 0   
+
+    # float val
+    x = Fxp(24.25, False, 8, 2)
+    #left
+    assert (x << 1)() == 48.5
+    assert (x << 4)() == 388.0
+    #right
+    x = Fxp(24.5, False, 8, 2)
+    assert (x >> 1)() == 12.25
+    assert (x >> 2)() == 6.0
+
+    # trunc left shift
+    x = Fxp(64, False, 8, 0, shifting='trunc')
+    assert (x << 1)() == 128
+    assert (x << 2)() == x.upper
+
 def test_invert():
     x = Fxp(None, True, 8, 4)
     xu = Fxp(None, False, 8, 4)
