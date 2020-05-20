@@ -732,7 +732,7 @@ class Fxp():
             s += '\tLower\t\t=\t{}\n'.format(self.lower)
             s += '\tPrecision\t=\t{}\n'.format(self.precision)
             s += '\tOverflow\t=\t{}\n'.format(self.overflow)
-            s += '\tRounfing\t=\t{}\n'.format(self.rounding)
+            s += '\tRounding\t=\t{}\n'.format(self.rounding)
             s += '\tShifting\t=\t{}\n'.format(self.shifting)
         print(s)
 
