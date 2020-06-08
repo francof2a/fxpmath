@@ -57,7 +57,7 @@ def twos_complement_repr(val, nbits):
         val = (1 << nbits) + val
     else:
         val = val % (1 << nbits) 
-        if (val >= (1 << (nbits - 1))):
+        if val >= (1 << (nbits - 1)):
             val = val - (1 << nbits)
     return val
 
