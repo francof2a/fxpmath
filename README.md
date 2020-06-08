@@ -89,7 +89,7 @@ x.info(verbose=3)
 > Lower           =       -128.0  
 > Precision       =       0.00390625  
 > Overflow        =       saturate  
-> Rounfing        =       trunc  
+> Rounding        =       trunc  
 > Shifting        =       expand  
 
 ### Representations
@@ -472,7 +472,7 @@ x.info(3)
 > Lower           =       10000.0  
 > Precision       =       0.5  
 > Overflow        =       saturate  
-> Rounfing        =       trunc  
+> Rounding        =       trunc  
 > Shifting        =       expand  
 
 Note that *upper* and *lower* limits are correct, and that the *precision* is what we needed.
