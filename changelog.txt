@@ -1,6 +1,7 @@
 version 0.3.3
 --------------------------------------------------
 * fix shifting bitwise of unsigned values.
+* fix wrap error when input was a float.
 
 version 0.3.2
 --------------------------------------------------

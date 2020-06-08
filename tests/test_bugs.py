@@ -52,3 +52,10 @@ def test_bugs_0_3_2():
     # fail in Win32 because numpy astype(int) behavior
     x = Fxp(1.25, False, 3, 1)
     assert (x >> 1)() == 0.5
+
+    # wrap error
+    x = Fxp(4.5, False, 3, 1, overflow='wrap')
+    assert x() == 0.5
+    assert x(4.0) == 0.0
+    assert x(5.0) == 1.0
+    assert x([3.5, 4.0, 4.5, 5.0])().all() == np.array([3.5, 0.0, 0.5, 1.0]).all()
