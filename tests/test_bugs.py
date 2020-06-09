@@ -59,3 +59,8 @@ def test_bugs_0_3_2():
     assert x(4.0) == 0.0
     assert x(5.0) == 1.0
     assert x([3.5, 4.0, 4.5, 5.0])().all() == np.array([3.5, 0.0, 0.5, 1.0]).all()
+
+def test_bugs_0_3_3():
+    # wrap error
+    x = Fxp(12.5, False, 11, 8, overflow='wrap')
+    assert x() == 4.5

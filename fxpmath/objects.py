@@ -382,7 +382,10 @@ class Fxp():
         elif self.overflow == 'wrap':
             if new_val.ndim == 0:
                 if not ((new_val <= val_max) & (new_val >= val_min)):
-                    val = utils.twos_complement_repr(new_val, self.n_word)
+                    if self.signed:
+                        val = utils.twos_complement_repr(new_val, self.n_word)
+                    else:
+                        val = new_val % (1 << self.n_word)
                 else:
                     val = new_val
             else:

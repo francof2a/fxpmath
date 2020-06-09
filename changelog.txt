@@ -1,3 +1,7 @@
+version 0.3.4
+--------------------------------------------------
+* fix wrap error for unsigned Fxp.
+
 version 0.3.3
 --------------------------------------------------
 * fix shifting bitwise of unsigned values.
