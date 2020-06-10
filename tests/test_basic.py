@@ -285,4 +285,37 @@ def test_scaling():
     assert x.upper == 12047.5
     assert x.lower == 10000.0
     assert x.precision == 0.5
-    assert x.get_status(str) == ''    
+    assert x.get_status(str) == ''   
+
+def test_wrap():
+    x = Fxp(3.75, False, 4, 2, overflow='wrap')
+    assert x() == 3.75
+    assert x.status['overflow'] == False
+    assert x.status['underflow'] == False
+
+    x(4.0)
+    assert x() == 0.0
+    assert x.status['overflow'] == True
+    assert x.status['underflow'] == False
+
+    x.reset()
+    x(-0.25)
+    assert x() == 3.75
+    assert x.status['overflow'] == False
+    assert x.status['underflow'] == True
+
+    x = Fxp(3.75, True, 5, 2, overflow='wrap')
+    assert x() == 3.75
+    assert x.status['overflow'] == False
+    assert x.status['underflow'] == False
+
+    x(4.0)
+    assert x() == -4.0
+    assert x.status['overflow'] == True
+    assert x.status['underflow'] == False
+
+    x.reset()
+    x(-4.25)
+    assert x() == 3.75
+    assert x.status['overflow'] == False
+    assert x.status['underflow'] == True

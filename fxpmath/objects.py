@@ -380,16 +380,7 @@ class Fxp():
             #     val = np.array(max(val_min, min(val_max, new_val)))
             val = utils.clip(new_val, val_min, val_max)
         elif self.overflow == 'wrap':
-            if new_val.ndim == 0:
-                if not ((new_val <= val_max) & (new_val >= val_min)):
-                    if self.signed:
-                        val = utils.twos_complement_repr(new_val, self.n_word)
-                    else:
-                        val = new_val % (1 << self.n_word)
-                else:
-                    val = new_val
-            else:
-                val = np.array([v if ((v <= val_max) & (v >= val_min)) else utils.twos_complement_repr(v, self.n_word) for v in new_val])
+            val = utils.wrap(new_val, val_min, val_max, self.signed, self.n_word)
         return val
 
     def _round(self, val, method='floor'):

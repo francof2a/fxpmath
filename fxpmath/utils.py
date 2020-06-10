@@ -267,3 +267,14 @@ def binary_xor(x, y, n_word=None):
 def clip(x, val_min, val_max):
     x_clipped = np.array(max(val_min, min(val_max, x)))
     return x_clipped
+
+@array_support
+def wrap(x, val_min, val_max, signed, n_word):
+    if not ((x <= val_max) & (x >= val_min)):
+        if signed:
+            x_wrapped = twos_complement_repr(x, n_word)
+        else:
+            x_wrapped = x % (1 << n_word)
+    else:
+        x_wrapped = x
+    return x_wrapped
