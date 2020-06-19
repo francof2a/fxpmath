@@ -8,11 +8,16 @@ project_folder = path.abspath(path.dirname(__file__))
 with open(path.join(project_folder, 'README.md'), 'r') as f:
     long_description = f.read()
 
-_version = __import__('fxpmath').__version__
+ def _get_version():
+    with open(path.join(project_folder, 'fxpmath', '__init__.py')) as f:
+        for line in f.readlines():
+            if line.startswith('__version__'):
+                return line.split("'")[1]
+
 
 setup(
     name='fxpmath',
-    version=_version,
+    version=_get_version(),
     author='francof2a',
     author_email='empty@empty.com',
     packages=['fxpmath'],
