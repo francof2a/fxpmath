@@ -1,3 +1,7 @@
+version 0.3.6
+--------------------------------------------------
+* chage in setup.py to resolve not installed package dependencies.
+
 version 0.3.5
 --------------------------------------------------
 * fix wrap error for ndarrays.
