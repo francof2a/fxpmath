@@ -11,7 +11,7 @@ import numpy as np
 def test_sum():
     vals = np.array([-2, -1, 0, 1, 2, 3, 4])
 
-    x = Fxp(vals, True, 32, 2)
+    x = Fxp(vals, True, 16, 2)
     y = fxp.sum(x)
     assert (y() == np.sum(vals)).all()
 
@@ -42,7 +42,7 @@ def test_sum():
     vals = np.array([
         [-2, -1, 0], 
         [1, 2, 3]])
-    x = Fxp(vals, True, 32, 2)
+    x = Fxp(vals, True, 16, 2)
     
     y = fxp.sum(x, axis=0)
     assert (y() == np.sum(vals, axis=0)).all()
