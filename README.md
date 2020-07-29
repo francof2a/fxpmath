@@ -125,7 +125,6 @@ x.base_repr(16)         # hex with sign symbol (not complement)
 > '0xf8c0'  
 > '-740'  
 
-
 In different types:
 
 ```python
@@ -181,6 +180,7 @@ Fxp can handle following input data types:
 * list
 * ndarrays (n-dimensional numpy arrays)
 * strings (bin, hex, dec)
+* Fxp objects
 
 Here some examples:
 
@@ -380,6 +380,7 @@ When the input value couldn't be represented exactly as a fixed-point, a **inacc
 * inaccuracy
 
 Those can be checked using:
+
 ```python
 x.get_status()  # returns a dictionary with the flags
 

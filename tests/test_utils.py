@@ -79,7 +79,7 @@ def test_str2num():
     # list
     assert str2num(['10', '-7.2', '0b0110', '0x7F']) == [10, -7.2, 6, 127]
     # transparent types
-    assert str2num(np.array([0,1,2,3])).all() == np.array([0,1,2,3]).all()
+    assert (str2num(np.array([0,1,2,3])) == np.array([0,1,2,3])).all()
     assert str2num(None) is None
 
 def test_binary_repr():

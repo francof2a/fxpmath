@@ -54,6 +54,32 @@ except:
 
 #%%
 class Fxp():
+    '''
+    Numerical Fractional Fixed-Point object (base 2).
+
+    Parameters
+    ---
+
+    val : None, int, float, complex, list of numbers, numpy array, str (bin, hex, dec), optional, default=None
+        Value(s) to be stored in fractional fixed-point (base 2) format.
+    
+    signed : bool, optional, default=None
+        If True, a sign bit is used for the binary word. If None, Fxp is signed.
+
+    n_word : int, optional, defualt=None
+        Number of the bits for binary word (sign + integer part + fractional part).
+        If None, best word size is calculated according input value(s) and other sizes defined.
+
+    n_frac : int, optional, default=None
+        Number of bits for fractional part.
+        If None, best word size is calculated according input value(s) and other sizes defined.
+
+    n_int : int, optional, default=None
+        Number of bits for integer part.
+        If None, best word size is calculated according input value(s) and other sizes defined.
+
+    **kwargs : alternative keywords parameters.
+    '''
     def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, **kwargs):
 
         # Init all properties in None
@@ -93,6 +119,9 @@ class Fxp():
         if init_like is not None:
             if isinstance(init_like, Fxp):
                 self.__dict__ = copy.deepcopy(init_like.__dict__)
+                self.val = None
+                self.real = None
+                self.imag = None
 
         #status (overwrite)
         self.status = {
@@ -205,7 +234,7 @@ class Fxp():
             self.n_frac = n_frac
             
             # if val is a str(s), convert to number(s)
-            val, signed, n_word, n_frac = self._format_inupt_val(val, return_sizes=True)
+            val, _, signed, n_word, n_frac = self._format_inupt_val(val, return_sizes=True)
             val = np.array([val])
 
             # check if val is complex, if it is: convert to array of float/int
@@ -219,7 +248,7 @@ class Fxp():
                 int_dtype = np.uint64
 
             # find fractional parts
-            frac_vals = np.abs(np.subtract(val, val.astype(int_dtype))).ravel()
+            frac_vals = np.abs(val%1).ravel()
 
             # n_frac estimation
             if n_frac is None:
@@ -256,12 +285,37 @@ class Fxp():
     # methods about value
 
     def _format_inupt_val(self, val, return_sizes=False):
+        vdtype = None
+
         if val is None:
             val = 0
+            vdtype = int
+
+        # if val is an Fxp object
+        if isinstance(val, Fxp):
+            vdtype = val.vdtype
+            val = val()     # extract values
+        elif isinstance(val, (int, float)):
+            vdtype = type(val)
+            # convert to (numpy) ndarray
+            val = np.array(val)
+        elif isinstance(val, (np.ndarray, np.generic)):
+            try:
+                if isinstance(val, np.float128):
+                    val = np.array(float(val))
+            except:
+                # by now it is just an extra test, not critical
+                pass
+
         # if val is a str(s), convert to number(s)
         val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
+
         # convert to (numpy) ndarray
         val = np.array(val)
+
+        if vdtype is None:
+            vdtype = val.dtype
+        
         # scaling conversion
         self.scaled = False
         if self.scale is not None and self.bias is not None:
@@ -270,17 +324,17 @@ class Fxp():
                 val = (val - self.bias) / self.scale
 
         if return_sizes:
-            return val, signed, n_word, n_frac
+            return val, vdtype, signed, n_word, n_frac
         else:
-            return val
+            return val, vdtype
 
-    def set_val(self, val, raw=False, vdtype=None):
+    def set_val(self, val, raw=False, vdtype=None, index=None):
         # convert input value to valid format
-        val = self._format_inupt_val(val)
+        val, original_vdtype = self._format_inupt_val(val)
 
         # check if val overflow max int possible
-        if val.dtype == 'O':
-            raise OverflowError('Integer value too large to convert to C long')
+        # if val.dtype == 'O':
+        #     raise OverflowError('Integer value too large to convert to C long')
 
         if self.signed:
             val_max = (1 << (self.n_word-1)) - 1
@@ -290,6 +344,9 @@ class Fxp():
             val_max =  (1 << self.n_word) - 1
             val_min = 0
             val_dtype = np.uint64
+
+        if self.n_word > _n_word_max:
+            val_dtype = np.array(2**_n_word_max).dtype
 
         # conversion factor
         if raw:
@@ -301,15 +358,30 @@ class Fxp():
         if val.dtype != complex:
             new_val = self._round(val * conv_factor , method=self.rounding)
             new_val = self._overflow_action(new_val, val_min, val_max)
-            self.val = new_val.astype(val_dtype)
+            if np.issubdtype(val_dtype, np.integer):
+                new_val = new_val.astype(val_dtype)
+            
+            if index is not None:
+                self.val[index] = new_val
+            else:
+                self.val = new_val
             self.real = self.get_val()
             self.imag = 0
         else:
             new_val_real = self._round(val.real * conv_factor, method=self.rounding)
             new_val_imag = self._round(val.imag * conv_factor, method=self.rounding)
-            new_val_real = self._overflow_action(new_val_real, val_min, val_max).astype(val_dtype)
-            new_val_imag = self._overflow_action(new_val_imag, val_min, val_max).astype(val_dtype)
-            self.val = new_val = new_val_real + 1j * new_val_imag
+            new_val_real = self._overflow_action(new_val_real, val_min, val_max)
+            new_val_imag = self._overflow_action(new_val_imag, val_min, val_max)
+            if np.issubdtype(val_dtype, np.integer):
+                new_val_real = new_val_real.astype(val_dtype)
+                new_val_imag = new_val_imag.astype(val_dtype)
+                
+            new_val = new_val_real + 1j * new_val_imag
+
+            if index is not None:
+                self.val[index] = new_val_imag
+            else:
+                self.val = new_val          
             self.real = self.astype(complex).real
             self.imag = self.astype(complex).imag
 
@@ -324,7 +396,9 @@ class Fxp():
             if vdtype is not None:
                 self.vdtype = vdtype
         else:
-            self.vdtype = val.dtype
+            self.vdtype = original_vdtype
+            if np.issubdtype(self.vdtype, np.integer) and self.n_frac > 0:
+                self.vdtype = np.float  # change to float type if Fxp has fractional part
 
         # check inaccuray
         if not np.equal(val, new_val/conv_factor).all() :
@@ -340,7 +414,7 @@ class Fxp():
             if dtype == float or np.issubdtype(dtype, np.floating):
                 val = self.val / 2.0**self.n_frac
             elif dtype == int or dtype == 'uint' or dtype == 'int' or np.issubdtype(dtype, np.integer):
-                val = self.val.astype(dtype) // 2**self.n_frac
+                val = self.val // 2**self.n_frac
             elif dtype == complex or np.issubdtype(dtype, np.complexfloating):
                 val = (self.val.real + 1j * self.val.imag) / 2.0**self.n_frac
             else:
@@ -384,7 +458,7 @@ class Fxp():
         return val
 
     def _round(self, val, method='floor'):
-        if isinstance(val, int) or val.dtype == int or val.dtype == 'uint':
+        if isinstance(val, int) or np.issubdtype(np.array(val).dtype, np.integer):
             rval = val
         elif method == 'around':
             rval = np.around(val)
@@ -561,8 +635,18 @@ class Fxp():
     # bit level operators
 
     def __rshift__(self, n):
-        y = self.deepcopy()
-        y.val = y.val >> np.array(n, dtype=y.val.dtype)
+        if self.shifting == 'expand':
+            min_pow2 = utils.min_pow2(self.val)     # minimum power of 2 in raw val
+            if min_pow2 is not None and n > min_pow2:
+                n_frac_expansion = n - min_pow2
+            else:
+                n_frac_expansion = 0
+            
+            y = Fxp(None, signed=self.signed, n_word=self.n_word+n_frac_expansion, n_frac=self.n_frac+n_frac_expansion)
+            y.set_val(self.val >> np.array(n - n_frac_expansion, dtype=self.val.dtype), raw=True)   # set raw val shifted
+        else:
+            y = self.deepcopy()
+            y.val = y.val >> np.array(n, dtype=y.val.dtype)
         return y
 
     __irshift__ = __rshift__
@@ -688,12 +772,10 @@ class Fxp():
 
     # indexation
     def __getitem__(self, index):
-        return self.get_val()[index]
+        return Fxp(self.get_val()[index], like=self)
 
     def __setitem__(self, index, value):
-        new_vals = self.astype(type(value))
-        new_vals[index] = value
-        self.set_val(new_vals)
+        self.set_val(value, index=index)
 
     # get info about me
     def get_status(self, format=dict):
@@ -742,12 +824,12 @@ class Fxp():
             if self.vdtype == complex:
                 rval = [ utils.binary_repr(int(val.real), n_word=self.n_word, n_frac=n_frac_dot) + '+' + utils.binary_repr(int(val.imag), n_word=self.n_word, n_frac=n_frac_dot) + 'j' for val in self.val]
             else:
-                rval = [utils.binary_repr(val, n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
+                rval = [utils.binary_repr(int(val), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
         else:
             if self.vdtype == complex:
                 rval = utils.binary_repr(int(self.val.real), n_word=self.n_word, n_frac=n_frac_dot) + '+' + utils.binary_repr(int(self.val.imag), n_word=self.n_word, n_frac=n_frac_dot) + 'j'
             else:
-                rval = utils.binary_repr(self.val, n_word=self.n_word, n_frac=n_frac_dot)
+                rval = utils.binary_repr(int(self.val), n_word=self.n_word, n_frac=n_frac_dot)
         return rval
 
     def hex(self):
@@ -773,12 +855,12 @@ class Fxp():
             if self.vdtype == complex:
                 rval = [utils.base_repr(int(val.real), base=base, n_frac=n_frac_dot) + ('+' if val.imag >= 0 else '') + utils.base_repr(int(val.imag), base=base, n_frac=n_frac_dot) + 'j' for val in self.val]
             else:
-                rval = [utils.base_repr(val, base=base, n_frac=n_frac_dot) for val in self.val]
+                rval = [utils.base_repr(int(val), base=base, n_frac=n_frac_dot) for val in self.val]
         else:
             if self.vdtype == complex:
                 rval = utils.base_repr(int(self.val.real), base=base, n_frac=n_frac_dot) + ('+' if self.val.imag >= 0 else '') + utils.base_repr(int(self.val.imag), base=base, n_frac=n_frac_dot) + 'j'
             else:
-                rval = utils.base_repr(self.val, base=base, n_frac=n_frac_dot)
+                rval = utils.base_repr(int(self.val), base=base, n_frac=n_frac_dot)
         return rval
 
     # copy

@@ -58,7 +58,7 @@ def test_bugs_0_3_2():
     assert x() == 0.5
     assert x(4.0) == 0.0
     assert x(5.0) == 1.0
-    assert x([3.5, 4.0, 4.5, 5.0])().all() == np.array([3.5, 0.0, 0.5, 1.0]).all()
+    assert (x([3.5, 4.0, 4.5, 5.0])() == np.array([3.5, 0.0, 0.5, 1.0])).all()
 
 def test_bugs_0_3_3():
     # wrap error
@@ -68,4 +68,4 @@ def test_bugs_0_3_3():
 def test_bugs_0_3_4():
     # wrap error for ndarrays
     x = Fxp([[1, 1]], False, 17 + 3, 9, overflow='wrap')
-    assert x().all() == np.array([[1, 1]]).all()
+    assert (x() == np.array([[1, 1]])).all()

@@ -1,3 +1,13 @@
+version 0.3.7
+--------------------------------------------------
+* right shift support expand shifting='expand' mode.
+* improve performance in indexed assignement.
+* Fxp slicing (when Fxp has values as array) returns a Fxp object.
+* Fxp accept other Fxp as input value.
+* New `sum` function in `functions`.
+* Fxp object supports > 64 bits words and values.
+* docstrings update.
+
 version 0.3.6
 --------------------------------------------------
 * chage in setup.py to resolve not installed package dependencies.

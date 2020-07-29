@@ -236,6 +236,20 @@ def bits_len(x, signed=None):
     n_bits = max( np.ceil(np.log2(np.abs(int(x)+0.5))).astype(int), 0) + signed
     return n_bits
 
+def min_pow2(x, n_frac=0):
+    _pow = 1
+    x = np.array(x)
+
+    if np.any(x != 0):
+        while not np.any(x % 2**_pow):
+            _pow += 1
+        _pow -= n_frac + 1 
+    else:
+        _pow = None
+    
+    return _pow
+    
+
 @array_support
 def binary_invert(x, n_word=None):
     if n_word is None:
@@ -263,12 +277,12 @@ def binary_xor(x, y, n_word=None):
     z = xm ^ ym
     return z
 
-@array_support
+@np.vectorize
 def clip(x, val_min, val_max):
     x_clipped = np.array(max(val_min, min(val_max, x)))
     return x_clipped
 
-@array_support
+@np.vectorize
 def wrap(x, val_min, val_max, signed, n_word):
     if not ((x <= val_max) & (x >= val_min)):
         if signed:
@@ -278,3 +292,29 @@ def wrap(x, val_min, val_max, signed, n_word):
     else:
         x_wrapped = x
     return x_wrapped
+
+def get_sizes_from_dtype(dtype):
+    if isinstance(dtype, str):
+        head, props = dtype.split('-')
+        if head == 'fxp':
+            # sign
+            if props[0] == 's':
+                signed = True
+            elif props[0] == 'u':
+                signed = False
+            else:
+                raise ValueError('dtype sign specifier should be `s` or `u`')
+
+            # sizes
+            if '-' in props:
+                props, _ = props.split('-')
+
+            n_word, n_frac = props[1:].split('/')
+            n_word = int(n_word)
+            n_frac = int(n_frac)
+        else:
+            raise ValueError('dtype str format must be fxp-<sign><n_word>/<n_frac>-<complex>')
+    else:
+        raise ValueError('dtype must be a str!')
+
+    return signed, n_word, n_frac

@@ -74,7 +74,7 @@ def test_instances():
     assert x.n_word == 3
 
     x = Fxp([-1, 0, 1, 2, 3], True, n_word=16, n_frac=4)
-    assert x().all() == np.array([-1, 0, 1, 2, 3]).all()
+    assert (x() == np.array([-1, 0, 1, 2, 3])).all()
 
     x = Fxp(0.25 + 1j*15)
     assert x() == 0.25 + 1j*15
@@ -85,10 +85,10 @@ def test_instances():
     assert x.n_word == 7
 
     x = Fxp([[1.5, 2.25], [-0.125, -3.75]])
-    assert x().all() == np.array([[1.5, 2.25], [-0.125, -3.75]]).all()
+    assert (x() == np.array([[1.5, 2.25], [-0.125, -3.75]])).all()
 
     x = Fxp([['0b1100', '0b0110'], ['0b0000', '0b1111']], signed=True, n_frac=2)
-    assert x().all() == np.array([[-1.0, 1.5], [0.0, -0.25]]).all()
+    assert (x() == np.array([[-1.0, 1.5], [0.0, -0.25]])).all()
 
 def test_signed():
     # signed
@@ -131,8 +131,17 @@ def test_misc_values():
     x = Fxp(-2**63, signed=False)
     assert x() == 0
 
-    # x = Fxp(2**64)
-    # assert x() == 2**64
+    x = Fxp(2**64, n_word_max=128)
+    assert x() == 2**64
+
+    x = Fxp(2.0**64  - 1, signed=False, n_word=128, n_frac=64)
+    assert x() == 2.0**64 - 1
+
+    x = Fxp(2**128  - 1, signed=False, n_word=128, n_frac=0)
+    assert x() == 2**128 - 1
+
+    x = Fxp(2.0**32  - 1, signed=False, n_word=128, n_frac=96)
+    assert x() == 2.0**32 - 1
 
 def test_base_representations():
     x = Fxp(0.0, True, 8, 4)
