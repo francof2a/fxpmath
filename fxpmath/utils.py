@@ -218,6 +218,16 @@ def binary_repr(x, n_word=None, n_frac=None):
         val = insert_frac_point(np.binary_repr(x, width=n_word), n_frac=n_frac)
     return val
 
+def hex_repr(x, n_word=None, padding=None):
+    if n_word is not None:
+        val = '0x{0:0{1}X}'.format(x, int(np.ceil(n_word/4)))
+    elif padding is not None:
+        val = '0x{0:0{1}X}'.format(x, padding)
+    else:
+        val = hex(x)
+        val = '0x'+val[2:].upper()
+    return val  
+
 def base_repr(x, n_word=None, base=2, n_frac=None):
     if n_frac is None:
         val = np.base_repr(x, base=base)

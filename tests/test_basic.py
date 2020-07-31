@@ -150,6 +150,7 @@ def test_base_representations():
     x(2.5)
     assert x.bin() == '00101000'
     assert x.hex() == '0x28'
+    assert x.hex(padding=False) == '0x28'
     assert x.base_repr(2) == '101000'
     assert x.base_repr(16) == '28'
     
@@ -157,7 +158,8 @@ def test_base_representations():
     x(-7.25)
     assert x.bin() == '10001100'
     assert x.bin(frac_dot=True) == '1000.1100'
-    assert x.hex() == '0x8c'
+    assert x.hex() == '0x8C'
+    assert x.hex(padding=False) == '0x8C'
     assert x.base_repr(2) == '-1110100'
     assert x.base_repr(2, frac_dot=True) == '-111.0100'
     assert x.base_repr(16) == '-74'
@@ -165,21 +167,44 @@ def test_base_representations():
     # complex
     x(1.5 + 1j*0.75)
     assert x.bin() == '00011000+00001100j'
-    assert x.hex() == '0x18+0xcj'
+    assert x.hex() == '0x18+0x0Cj'
+    assert x.hex(padding=False) == '0x18+0xCj'
     assert x.base_repr(2) == '11000+1100j'
     assert x.base_repr(16) == '18+Cj'  
 
     x(1.5 - 1j*0.75)
     assert x.bin() == '00011000+11110100j'
-    assert x.hex() == '0x18+0xf4j'
+    assert x.hex() == '0x18+0xF4j'
+    assert x.hex(padding=False) == '0x18+0xF4j'
     assert x.base_repr(2) == '11000-1100j'
     assert x.base_repr(16) == '18-Cj'
 
     x(-1.5 + 1j*0.75)
     assert x.bin() == '11101000+00001100j'
-    assert x.hex() == '0xe8+0xcj'
+    assert x.hex() == '0xE8+0x0Cj'
+    assert x.hex(padding=False) == '0xE8+0xCj'
     assert x.base_repr(2) == '-11000+1100j'
     assert x.base_repr(16) == '-18+Cj' 
+
+    # padding
+    x = Fxp(3.125, True, 31, 5)
+    y = Fxp(-3.125, True, 31, 5)
+
+    assert x.hex() == '0x00000064'
+    assert y.hex() == '0x7FFFFF9C'
+
+    x = Fxp(3.125, True, 32, 5)
+    y = Fxp(-3.125, True, 32, 5)
+
+    assert x.hex() == '0x00000064'
+    assert y.hex() == '0xFFFFFF9C'
+
+    x = Fxp(3.125, True, 33, 5)
+    y = Fxp(-3.125, True, 33, 5)
+
+    assert x.hex() == '0x000000064'
+    assert y.hex() == '0x1FFFFFF9C'
+
 
 def test_like():
     ref = Fxp(0.0, True, 16, 4)

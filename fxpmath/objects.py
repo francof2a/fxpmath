@@ -818,17 +818,22 @@ class Fxp():
                 rval = utils.binary_repr(int(self.val), n_word=self.n_word, n_frac=n_frac_dot)
         return rval
 
-    def hex(self):
+    def hex(self, padding=True):
+        if padding:
+            hex_n_word = self.n_word
+        else:
+            hex_n_word = None
+
         if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
-                rval = [ hex(int(val.split('+')[0], 2)) + '+' +  hex(int(val.split('+')[1][:-1], 2)) + 'j' for val in self.bin()]
+                rval = [ utils.hex_repr(int(val.split('+')[0], 2), n_word=hex_n_word) + '+' +  utils.hex_repr(int(val.split('+')[1][:-1], 2), n_word=hex_n_word) + 'j' for val in self.bin()]
             else:
-                rval = [hex(int(val, 2)) for val in self.bin()]
+                rval = [utils.hex_repr(int(val, 2), n_word=hex_n_word) for val in self.bin()]
         else:
             if self.vdtype == complex:
-                rval = hex(int(self.bin().split('+')[0], 2)) + '+' +  hex(int(self.bin().split('+')[1][:-1], 2)) + 'j'
+                rval = utils.hex_repr(int(self.bin().split('+')[0], 2), n_word=hex_n_word) + '+' +  utils.hex_repr(int(self.bin().split('+')[1][:-1], 2), n_word=hex_n_word) + 'j'
             else:
-                rval = hex(int(self.bin(), 2))
+                rval = utils.hex_repr(int(self.bin(), 2), n_word=hex_n_word)
         return rval
     
     def base_repr(self, base, frac_dot=False):
