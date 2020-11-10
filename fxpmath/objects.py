@@ -602,10 +602,11 @@ class Fxp():
     __imod__ = __mod__
 
     def __pow__(self, n):
-        n_word = self.n_word * n
+        n_intg = self.n_word - self.n_frac - 1 if self.signed else self.n_word - self.n_frac
         n_frac = self.n_frac * n
+        n_word = n_intg * n + n_frac + 1 if self.signed else n_intg * n + n_frac
 
-        y = Fxp(self.get_val() ** n, signed=self.signed or n.signed, n_word=n_word, n_frac=n_frac)
+        y = Fxp(self.get_val() ** n, signed=self.signed, n_word=n_word, n_frac=n_frac)
         return y
 
     def __rpow__(self, n):
