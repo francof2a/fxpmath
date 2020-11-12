@@ -42,3 +42,46 @@ def test_issue_11_v0_3_6():
 
     # x = Fxp(np.float128(1.5), True, 256, 64)
     # assert x() == 1.5
+
+def test_issue_14_v0_3_7():
+    # d = Fxp('0b000.00000000000000000001011101010110101011101010101010101010101010101010101010101001010101010101010101001010101001010101010101010', 
+    #         True, n_word=128, n_frac=125, rounding='around')
+    # assert d.bin(frac_dot=True) == '000.00000000000000000001011101010110101011101010101010101010101010101010101010101001010101010101010101001010101001010101010101010'
+
+    d = Fxp('0b00000000000000000000001011101010110101011101010101010101010101010101010101010101001010101010101010101001010101001010101010101010', 
+            True, n_word=128, n_frac=125, rounding='around', raw=True)
+    assert d.bin() == '00000000000000000000001011101010110101011101010101010101010101010101010101010101001010101010101010101001010101001010101010101010'
+ 
+
+def test_issue_15_v0_3_7():
+    x = Fxp('0xb', True, 10, 4)
+    assert x.hex() == '0x00B'
+
+
+def test_issue_17_v0_3_7():
+    a = Fxp(15, signed=False)
+    b = a ** 2
+
+    assert b() == 15**2
+
+def test_issue_19_v0_3_7():
+    DW=12
+    DATA_FXPTYPE = Fxp(None, signed=True, n_word=DW, n_frac=DW-1)
+
+    a = Fxp(np.zeros(2, dtype=complex), like=DATA_FXPTYPE)
+    c = Fxp(complex(0,0), like=DATA_FXPTYPE)
+    b = Fxp(0.5-0.125j, like=DATA_FXPTYPE)
+
+    # print(c.get_val() + b.get_val())
+    c.equal(c+b)
+    
+    # c.info()
+    assert c() == 0.5-0.125j
+
+    # print(a[0].get_val() + b.get_val())
+    # a[0].equal(a[0]+b) # not supported
+    a[0] = a[0]+b
+    
+    # a[0].info()
+    assert a[0]() == 0.5-0.125j
+

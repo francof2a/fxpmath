@@ -122,7 +122,7 @@ x.base_repr(16)         # hex with sign symbol (not complement)
 > '1111100011000000'  
 > '11111000.11000000'  
 > '-11101000000'  
-> '0xf8c0'  
+> '0xF8C0'  
 > '-740'  
 
 In different types:
@@ -192,7 +192,7 @@ x([1.0, 1.5, 2.0])
 x(np.random.uniform(size=(2,4)))
 x('3.5')
 x('0b11001010')
-x('0xa4')
+x('0xA4')
 ```
 
 ### indexing

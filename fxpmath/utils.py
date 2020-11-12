@@ -151,7 +151,7 @@ def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=Fals
     elif isinstance(x, str):
         x = x.replace('h', 'x')     # for hex numbers: h -> x
 
-        if base == 2 or 'b' in x:
+        if base == 2 or 'b' in x[:2]:
             # binary
             if '.' in x or n_frac is not None:
                 # fractional binary
@@ -160,7 +160,7 @@ def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=Fals
                 val, signed, n_word = strbin2int(x, signed, n_word, return_sizes=True)
                 n_frac = 0
             
-        elif base == 16 or 'x' in x:
+        elif base == 16 or 'x' in x[:2]:
             if n_frac is not None:
                 val, signed, n_word, n_frac = strhex2float(x, signed, n_word, n_frac, return_sizes=True)
             else:

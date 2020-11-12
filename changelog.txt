@@ -1,3 +1,11 @@
+version 0.3.8
+--------------------------------------------------
+* hex representations support padding.
+* fix bug with 'b' in hex string (issue #15).
+* fix inaccuracy word in status (issue #16).
+* fix __pow__ method (issue #17).
+* fix bug that only store imaginary part in complex assignement by indexing (issue #19).
+
 version 0.3.7
 --------------------------------------------------
 * right shift support expand shifting='expand' mode.

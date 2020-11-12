@@ -75,6 +75,7 @@ class Fxp():
         self.val = None
         self.real = None
         self.imag = None
+        raw = None
         # scaling (linear)
         self.scale = None
         self.bias = None
@@ -121,6 +122,8 @@ class Fxp():
         if self.overflow is None: self.overflow = kwargs.pop('overflow', 'saturate')
         if self.rounding is None: self.rounding = kwargs.pop('rounding', 'trunc')
         if self.shifting is None: self.shifting = kwargs.pop('shifting', 'expand')
+        # check if val is a raw value
+        if raw is None: raw = kwargs.pop('raw', False)
         # size
         if init_like is None:
             if max_error is None: max_error = kwargs.pop('max_error', _max_error)
@@ -128,7 +131,7 @@ class Fxp():
             self._init_size(val, signed, n_word, n_frac, n_int, max_error=max_error, n_word_max=n_word_max)
 
         # store the value
-        self.set_val(val)
+        self.set_val(val, raw=raw)
 
 
     # methods about size
@@ -270,7 +273,7 @@ class Fxp():
 
     # methods about value
 
-    def _format_inupt_val(self, val, return_sizes=False):
+    def _format_inupt_val(self, val, return_sizes=False, raw=False):
         vdtype = None
 
         if val is None:
@@ -294,7 +297,11 @@ class Fxp():
                 pass
 
         # if val is a str(s), convert to number(s)
-        val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
+        if not raw:
+            val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
+        else:
+            val, signed, n_word, _ = utils.str2num(val, self.signed, self.n_word, None, return_sizes=True)
+            n_frac = self.n_frac
 
         # convert to (numpy) ndarray
         val = np.array(val)
@@ -304,7 +311,7 @@ class Fxp():
         
         # scaling conversion
         self.scaled = False
-        if self.scale is not None and self.bias is not None:
+        if self.scale is not None and self.bias is not None and not raw:
             if self.scale != 1 or self.bias != 0:
                 self.scaled = True
                 val = (val - self.bias) / self.scale
@@ -316,7 +323,7 @@ class Fxp():
 
     def set_val(self, val, raw=False, vdtype=None, index=None):
         # convert input value to valid format
-        val, original_vdtype = self._format_inupt_val(val)
+        val, original_vdtype = self._format_inupt_val(val, raw=raw)
 
         # check if val overflow max int possible
         # if val.dtype == 'O':
@@ -346,6 +353,8 @@ class Fxp():
             new_val = self._overflow_action(new_val, val_min, val_max)
             if np.issubdtype(val_dtype, np.integer):
                 new_val = new_val.astype(val_dtype)
+
+            # if new_val.ndim == 0: new_val = new_val.item() # convert 0-dim array to scalar
             
             if index is not None:
                 self.val[index] = new_val
@@ -364,8 +373,10 @@ class Fxp():
                 
             new_val = new_val_real + 1j * new_val_imag
 
+            # if new_val.ndim == 0: new_val = new_val.item() # convert 0-dim array to scalar
+
             if index is not None:
-                self.val[index] = new_val_imag
+                self.val[index] = new_val
             else:
                 self.val = new_val          
             self.real = self.astype(complex).real
@@ -386,9 +397,9 @@ class Fxp():
             if np.issubdtype(self.vdtype, np.integer) and self.n_frac > 0:
                 self.vdtype = np.float  # change to float type if Fxp has fractional part
 
-        # check inaccuray
+        # check inaccuracy
         if not np.equal(val, new_val/conv_factor).all() :
-            self.status['inaccuray'] = True
+            self.status['inaccuracy'] = True
 
         return self
 
@@ -602,17 +613,28 @@ class Fxp():
     __imod__ = __mod__
 
     def __pow__(self, n):
-        n_word = self.n_word * n
-        n_frac = self.n_frac * n
+        if isinstance(n, Fxp):
+            n = n.get_val().item()
+        
+        if isinstance(n, int):
+            if n > 0:
+                n_int = self.n_int * n + 1
+                n_frac = self.n_frac * n
+            else:
+                n_int = n_frac = None # best sizes will be estimated
+        elif isinstance(n, float):
+            n_int = n_frac = None   # best sizes will be estimated
+        else:
+            raise TypeError('exponent type {} not supported'.format(str(type(n))))
 
-        y = Fxp(self.get_val() ** n, signed=self.signed or n.signed, n_word=n_word, n_frac=n_frac)
+        y = Fxp(self.get_val() ** n, signed=self.signed, n_int=n_int, n_frac=n_frac)
         return y
 
-    def __rpow__(self, n):
-        n_word = self.n_word * n
-        n_frac = self.n_frac * n
-
-        y = Fxp(n ** self.get_val(), signed=self.signed or n.signed, n_word=n_word, n_frac=n_frac)
+    def __rpow__(self, x):
+        if isinstance(x, Fxp):
+            y = x**self
+        else:
+            y = Fxp(x ** self.get_val())
         return y
 
     __ipow__ = __pow__

@@ -288,3 +288,41 @@ def test_operations_with_combinations():
 
             assert (x % vy)() == (vx % vy) == (vx % y)() == (x % y)()
             # assert (vy % x)() == (vy % vx) == (y % vx)() == (y % x)()
+
+def test_pow():
+    v = 15
+    n_vals = [0, 1, 2, 3]
+
+    x = Fxp(v, signed=True)
+    xu = Fxp(v, signed=False)
+    for n in n_vals:
+        assert (x**n)() == v**n
+        assert (xu**n)() == v**n
+    
+    v = -16
+    x = Fxp(v, signed=True)
+    for n in n_vals:
+        assert (x**n)() == v**n
+
+    v = 15.0
+    n_vals = [-2, -1, 0, 1, 2, 3]
+
+    x = Fxp(v, signed=True)
+    xu = Fxp(v, signed=False)
+    for n in n_vals:
+        assert (x**n)() == v**n
+        assert (xu**n)() == v**n
+    
+    v = -16.0
+    x = Fxp(v, signed=True)
+    for n in n_vals:
+        assert (x**n)() == v**n
+
+    v = 81
+    n_vals = [0, 0.25, 0.5]
+
+    x = Fxp(v, signed=True)
+    xu = Fxp(v, signed=False)
+    for n in n_vals:
+        assert (x**n)() == v**n
+        assert (xu**n)() == v**n

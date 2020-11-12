@@ -9,7 +9,7 @@ from fxpmath import utils
 import numpy as np
 import time
 
-def test_perf_clip(repeat=100):
+def test_perf_clip(repeat=10):
     exec_time_vals = np.zeros(repeat)
     for i in range(repeat):
         start_time = time.time()
@@ -27,7 +27,7 @@ def test_perf_clip(repeat=100):
     print('\tmean = {:.3f} ms\n\tstd = {:.3f} ms'.format(np.mean(exec_time_vals)*1e3, np.std(exec_time_vals)*1e3))
 
 
-def test_perf_wrap(signed=True, n_word=8, repeat=100):
+def test_perf_wrap(signed=True, n_word=8, repeat=10):
     exec_time_vals = np.zeros(repeat)
     for i in range(repeat):
         start_time = time.time()
@@ -37,7 +37,7 @@ def test_perf_wrap(signed=True, n_word=8, repeat=100):
     print('\tmean = {:.3f} ms\n\tstd = {:.3f} ms'.format(np.mean(exec_time_vals)*1e3, np.std(exec_time_vals)*1e3))
 
 
-def test_perf_change_2d_indexed_value(m=24, n=16, repeat=100):
+def test_perf_change_2d_indexed_value(m=24, n=16, repeat=10):
 
     A_fxp = Fxp(np.random.uniform(size=[m,n]))
     x = 1/repeat
