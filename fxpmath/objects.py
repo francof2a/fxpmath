@@ -339,7 +339,7 @@ class Fxp():
             val_dtype = np.uint64
 
         if self.n_word > _n_word_max:
-            val_dtype = np.array(2**_n_word_max).dtype
+            val_dtype = np.array(1<<_n_word_max).dtype
 
         # conversion factor
         if raw:
@@ -455,7 +455,7 @@ class Fxp():
         return val
 
     def _round(self, val, method='floor'):
-        if isinstance(val, int) or np.issubdtype(np.array(val).dtype, np.integer):
+        if isinstance(val, int) or np.issubdtype(np.array(val).dtype, np.integer) or np.issubdtype(np.array(val).dtype, np.object_):
             rval = val
         elif method == 'around':
             rval = np.around(val)
@@ -509,7 +509,8 @@ class Fxp():
         n_int = max(self.n_int, x.n_int) + 1
         n_frac = max(self.n_frac, x.n_frac)
 
-        y = Fxp(self.get_val() + x.get_val(), signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac)
+        new_raw_val = utils.int_array(self.val) * 2**(n_frac - self.n_frac) + utils.int_array(x.val) * 2**(n_frac - x.n_frac)
+        y = Fxp(new_raw_val, signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac, raw=True)
         return y
 
     __radd__ = __add__
@@ -523,7 +524,8 @@ class Fxp():
         n_int = max(self.n_int, x.n_int) + 1
         n_frac = max(self.n_frac, x.n_frac)
 
-        y = Fxp(self.get_val() - x.get_val(), signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac)
+        new_raw_val = utils.int_array(self.val) * 2**(n_frac - self.n_frac) - utils.int_array(x.val) * 2**(n_frac - x.n_frac)
+        y = Fxp(new_raw_val, signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac, raw=True)
         return y
 
     def __rsub__(self, x):
@@ -533,7 +535,8 @@ class Fxp():
         n_int = max(self.n_int, x.n_int) + 1
         n_frac = max(self.n_frac, x.n_frac)
 
-        y = Fxp(x.get_val() - self.get_val(), signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac)
+        new_raw_val = utils.int_array(x.val) * 2**(n_frac - x.n_frac) - utils.int_array(self.val) * 2**(n_frac - self.n_frac)
+        y = Fxp(new_raw_val, signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac, raw=True)
         return y
 
     __isub__ = __sub__
@@ -545,7 +548,8 @@ class Fxp():
         n_word = self.n_word + x.n_word
         n_frac = self.n_frac + x.n_frac
 
-        y = Fxp(self.get_val() * x.get_val(), signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
+        new_raw_val = utils.int_array(self.val) * utils.int_array(x.val) * 2**(n_frac - self.n_frac - x.n_frac)
+        y = Fxp(new_raw_val, signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac, raw=True)
         return y
 
     __rmul__ = __mul__

@@ -328,3 +328,15 @@ def get_sizes_from_dtype(dtype):
         raise ValueError('dtype must be a str!')
 
     return signed, n_word, n_frac
+
+
+def int_array(x):
+    x = np.array(x) 
+    int_vectorized = np.vectorize(int)
+
+    if x.dtype != complex:
+        y = np.array(int_vectorized(x))
+    else:
+        y = np.array(int_vectorized(x.real) + 1j*int_vectorized(x.imag))
+    
+    return y
