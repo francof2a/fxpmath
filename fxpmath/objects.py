@@ -567,14 +567,28 @@ class Fxp():
         if isinstance(x, (int, float)):
             x = Fxp(x)
 
-        y = Fxp(self.get_val() / x.get_val(), signed=self.signed or x.signed)
+        # y = Fxp(self.get_val() / x.get_val(), signed=self.signed or x.signed)
+
+        signed = self.signed or x.signed
+        n_int = self.n_int + x.n_frac + signed
+        n_frac = self.n_frac + x.n_int
+
+        new_raw_val = (utils.int_array(self.val) * 2**(n_frac - self.n_frac + x.n_frac)) // utils.int_array(x.val)
+        y = Fxp(new_raw_val, signed=signed, n_int=n_int, n_frac=n_frac, raw=True)       
         return y
 
     def __rtruediv__(self, x):
         if isinstance(x, (int, float)):
             x = Fxp(x)
 
-        y = Fxp(x.get_val() / self.get_val(), signed=self.signed or x.signed)
+        # y = Fxp(x.get_val() / self.get_val(), signed=self.signed or x.signed)
+
+        signed = self.signed or x.signed
+        n_int = x.n_int + self.n_frac + signed
+        n_frac = x.n_frac + self.n_int
+
+        new_raw_val = (utils.int_array(x.val) * 2**(n_frac + self.n_frac - x.n_frac)) // utils.int_array(self.val)
+        y = Fxp(new_raw_val, signed=signed, n_int=n_int, n_frac=n_frac, raw=True)  
         return y
 
     __itruediv__ = __truediv__
@@ -583,14 +597,28 @@ class Fxp():
         if isinstance(x, (int, float)):
             x = Fxp(x)
 
-        y = Fxp(self.get_val() // x.get_val(), signed=self.signed or x.signed)
+        # y = Fxp(self.get_val() // x.get_val(), signed=self.signed or x.signed)
+
+        signed = self.signed or x.signed
+        n_int = self.n_int + x.n_frac + signed
+        n_frac = 0
+
+        new_raw_val = (utils.int_array(self.val) * 2**(n_frac - self.n_frac + x.n_frac)) // utils.int_array(x.val)
+        y = Fxp(new_raw_val, signed=signed, n_int=n_int, n_frac=n_frac, raw=True)    
         return y
 
     def __rfloordiv__(self, x):
         if isinstance(x, (int, float)):
             x = Fxp(x)
 
-        y = Fxp(x.get_val() // self.get_val(), signed=self.signed or x.signed)
+        # y = Fxp(x.get_val() // self.get_val(), signed=self.signed or x.signed)
+
+        signed = self.signed or x.signed
+        n_int = x.n_int + self.n_frac + signed
+        n_frac = 0
+
+        new_raw_val = (utils.int_array(x.val) * 2**(n_frac + self.n_frac - x.n_frac)) // utils.int_array(self.val)
+        y = Fxp(new_raw_val, signed=signed, n_int=n_int, n_frac=n_frac, raw=True) 
         return y
 
     __ifloordiv__ = __floordiv__
