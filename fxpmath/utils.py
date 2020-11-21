@@ -144,7 +144,7 @@ def strhex2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
         return val
 
 def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=False):
-    if isinstance(x, list):
+    if isinstance(x, (list, tuple)):
         for idx, v in enumerate(x):
             x[idx] = str2num(v, signed, n_word, n_frac, base)
         val = x

@@ -275,20 +275,24 @@ class Fxp():
 
     def _format_inupt_val(self, val, return_sizes=False, raw=False):
         vdtype = None
+        signed = self.signed
+        n_word = self.n_word
+        n_frac = self.n_frac
 
         if val is None:
             val = 0
-            vdtype = int
+            vdtype = int    
 
-        # if val is an Fxp object
-        if isinstance(val, Fxp):
+        elif isinstance(val, Fxp):
+            # if val is an Fxp object
             vdtype = val.vdtype
             val = val()     # extract values
-        elif isinstance(val, (int, float)):
+
+        elif isinstance(val, (int, float, complex)):
             vdtype = type(val)
-            # convert to (numpy) ndarray
-            val = np.array(val)
+
         elif isinstance(val, (np.ndarray, np.generic)):
+            vdtype = val.dtype
             try:
                 if isinstance(val, np.float128):
                     val = np.array(float(val))
@@ -296,12 +300,16 @@ class Fxp():
                 # by now it is just an extra test, not critical
                 pass
 
-        # if val is a str(s), convert to number(s)
-        if not raw:
-            val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
+        elif isinstance(val, (list, tuple, str)):
+            # if val is a str(s), convert to number(s)
+            if not raw:
+                val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
+            else:
+                val, signed, n_word, _ = utils.str2num(val, self.signed, self.n_word, None, return_sizes=True)
+                n_frac = self.n_frac
+
         else:
-            val, signed, n_word, _ = utils.str2num(val, self.signed, self.n_word, None, return_sizes=True)
-            n_frac = self.n_frac
+            raise ValueError('Not supported input type: {}'.format(type(val)))
 
         # convert to (numpy) ndarray
         val = np.array(val)
@@ -321,13 +329,19 @@ class Fxp():
         else:
             return val, vdtype
 
+    def _get_conv_factor(self, raw=False):
+        if raw:
+            conv_factor = 1
+        elif self.n_frac >= 0:
+            conv_factor = 1<<self.n_frac
+        else:
+            conv_factor = 1/(1<<-self.n_frac)
+
+        return conv_factor
+
     def set_val(self, val, raw=False, vdtype=None, index=None):
         # convert input value to valid format
         val, original_vdtype = self._format_inupt_val(val, raw=raw)
-
-        # check if val overflow max int possible
-        # if val.dtype == 'O':
-        #     raise OverflowError('Integer value too large to convert to C long')
 
         if self.signed:
             val_max = (1 << (self.n_word-1)) - 1
@@ -342,43 +356,41 @@ class Fxp():
             val_dtype = np.array(1<<_n_word_max).dtype
 
         # conversion factor
-        if raw:
-            conv_factor = 1
-        else:
-            conv_factor = int(2**self.n_frac)
+        conv_factor = self._get_conv_factor(raw)
 
         # round, saturate and store
         if val.dtype != complex:
             new_val = self._round(val * conv_factor , method=self.rounding)
             new_val = self._overflow_action(new_val, val_min, val_max)
+
             if np.issubdtype(val_dtype, np.integer):
                 new_val = new_val.astype(val_dtype)
-
-            # if new_val.ndim == 0: new_val = new_val.item() # convert 0-dim array to scalar
             
             if index is not None:
                 self.val[index] = new_val
             else:
                 self.val = new_val
+
             self.real = self.get_val()
             self.imag = 0
+
         else:
             new_val_real = self._round(val.real * conv_factor, method=self.rounding)
             new_val_imag = self._round(val.imag * conv_factor, method=self.rounding)
             new_val_real = self._overflow_action(new_val_real, val_min, val_max)
             new_val_imag = self._overflow_action(new_val_imag, val_min, val_max)
+
             if np.issubdtype(val_dtype, np.integer):
                 new_val_real = new_val_real.astype(val_dtype)
                 new_val_imag = new_val_imag.astype(val_dtype)
                 
             new_val = new_val_real + 1j * new_val_imag
 
-            # if new_val.ndim == 0: new_val = new_val.item() # convert 0-dim array to scalar
-
             if index is not None:
                 self.val[index] = new_val
             else:
-                self.val = new_val          
+                self.val = new_val
+
             self.real = self.astype(complex).real
             self.imag = self.astype(complex).imag
 
@@ -409,13 +421,13 @@ class Fxp():
 
         if self.val is not None:
             if dtype == float or np.issubdtype(dtype, np.floating):
-                val = self.val / 2.0**self.n_frac
+                val = self.val / self._get_conv_factor()
             elif dtype == int or dtype == 'uint' or dtype == 'int' or np.issubdtype(dtype, np.integer):
-                val = self.val // 2**self.n_frac
+                val = self.val // self._get_conv_factor()
             elif dtype == complex or np.issubdtype(dtype, np.complexfloating):
-                val = (self.val.real + 1j * self.val.imag) / 2.0**self.n_frac
+                val = (self.val.real + 1j * self.val.imag) / self._get_conv_factor()
             else:
-                val = self.val / 2.0**self.n_frac
+                val = self.val / self._get_conv_factor()
         else:
             val = None
 
@@ -444,11 +456,6 @@ class Fxp():
             self.status['underflow'] = True
         
         if self.overflow == 'saturate':
-            # val = np.clip(new_val, val_min, val_max) # it returns float that cause an error for 64 bits huge integers
-            # if new_val.ndim > 0:
-            #     val = np.array([max(val_min, min(val_max, v)) for v in new_val])
-            # else:
-            #     val = np.array(max(val_min, min(val_max, new_val)))
             val = utils.clip(new_val, val_min, val_max)
         elif self.overflow == 'wrap':
             val = utils.wrap(new_val, val_min, val_max, self.signed, self.n_word)
