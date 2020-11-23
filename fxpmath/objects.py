@@ -517,6 +517,12 @@ class Fxp():
     def __str__(self):
         return str(self.get_val())
 
+    # numpy array representation
+    def __array__(self):
+        return np.array(self.get_val())
+
+    def __array_wrap__(self, out_arr, context=None):
+        return self.__class__(out_arr)
     
     # math operations
     
@@ -952,3 +958,26 @@ class Fxp():
             'underflow': False,
             'inaccuracy': False}        
 
+
+    # numpy function dispatch
+
+    # def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    #     if method == '__call__':
+    #         scalars = []
+    #         for input in inputs:
+    #             if isinstance(input, self.__class__):
+    #                 scalars.append(input.get_val())
+    #             else:
+    #                 scalars.append(input)
+    #         return self.__class__(ufunc(*scalars, **kwargs))
+    #     else:
+    #         return NotImplemented
+
+    # def __array_function__(self, func, types, args, kwargs):
+    #     if func not in HANDLED_FUNCTIONS:
+    #         return NotImplemented
+    #     # Note: this allows subclasses that don't override
+    #     # __array_function__ to handle Fxp objects
+    #     if not all(issubclass(t, self.__class__) for t in types):
+    #         return NotImplemented
+    #     return self.__class__(HANDLED_FUNCTIONS[func](*args, **kwargs))
