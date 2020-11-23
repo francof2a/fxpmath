@@ -64,9 +64,15 @@ class Fxp():
         Number of bits for integer part.
         If None, best word size is calculated according input value(s) and other sizes defined.
 
+    like : Fxp, optional, default=None
+        Init new Fxp object using all parameters of `like` Fxp object, except its value.
+
     **kwargs : alternative keywords parameters.
     '''
-    def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, **kwargs):
+
+    template = None
+
+    def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, like=None, **kwargs):
 
         # Init all properties in None
         self.dtype = 'fxp' # fxp-<sign><n_word>/<n_frac>-{complex}. i.e.: fxp-s16/15, fxp-u8/1, fxp-s32/24-complex
@@ -99,16 +105,29 @@ class Fxp():
         max_error = None
         n_word_max = None
 
+        _initialized = False
         # ---
 
+        # if `template` is in kwarg, the reference template is updated
+        if 'template' in kwargs: self.template = kwargs.pop('template')
+
         # check if init must be a `like` other Fxp
-        init_like = kwargs.pop('like', None) 
-        if init_like is not None:
-            if isinstance(init_like, Fxp):
-                self.__dict__ = copy.deepcopy(init_like.__dict__)
+        if like is not None:
+            if isinstance(like, Fxp):
+                self.__dict__ = copy.deepcopy(like.__dict__)
                 self.val = None
                 self.real = None
                 self.imag = None
+                _initialized = True
+
+        elif self.template is not None:
+            # init must be a `like` template Fxp
+            if isinstance(self.template, Fxp):
+                self.__dict__ = copy.deepcopy(self.template.__dict__)
+                self.val = None
+                self.real = None
+                self.imag = None
+                _initialized = True
 
         #status (overwrite)
         self.status = {
@@ -125,7 +144,7 @@ class Fxp():
         # check if val is a raw value
         if raw is None: raw = kwargs.pop('raw', False)
         # size
-        if init_like is None:
+        if not _initialized:
             if max_error is None: max_error = kwargs.pop('max_error', _max_error)
             if n_word_max is None: n_word_max = kwargs.pop('n_word_max', _n_word_max)
             self._init_size(val, signed, n_word, n_frac, n_int, max_error=max_error, n_word_max=n_word_max)
