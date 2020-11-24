@@ -959,25 +959,85 @@ class Fxp():
             'inaccuracy': False}        
 
 
-    # numpy function dispatch
+class Config():
+    def __init__(self, **kwargs):
+        # size limits
+        self.max_error = kwargs.pop('max_error', _max_error)
+        self.n_word_max = kwargs.pop('n_word_max', _n_word_max)
 
-    # def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-    #     if method == '__call__':
-    #         scalars = []
-    #         for input in inputs:
-    #             if isinstance(input, self.__class__):
-    #                 scalars.append(input.get_val())
-    #             else:
-    #                 scalars.append(input)
-    #         return self.__class__(ufunc(*scalars, **kwargs))
-    #     else:
-    #         return NotImplemented
+        # behavior
+        self.overflow = kwargs.pop('overflow', 'saturate')
+        self.rounding = kwargs.pop('rounding', 'trunc')
+        self.shifting = kwargs.pop('shifting', 'expand')
 
-    # def __array_function__(self, func, types, args, kwargs):
-    #     if func not in HANDLED_FUNCTIONS:
-    #         return NotImplemented
-    #     # Note: this allows subclasses that don't override
-    #     # __array_function__ to handle Fxp objects
-    #     if not all(issubclass(t, self.__class__) for t in types):
-    #         return NotImplemented
-    #     return self.__class__(HANDLED_FUNCTIONS[func](*args, **kwargs))
+    # max_error
+    @property
+    def max_error(self):
+        return self._max_error
+    
+    @max_error.setter
+    def max_error(self, val):
+        if val > 0:
+            self._max_error = val
+        else:
+            raise ValueError('max_error must be greater than 0!')
+
+    # n_word_max
+    @property
+    def n_word_max(self):
+        return self._n_word_max
+    
+    @n_word_max.setter
+    def n_word_max(self, val):
+        if isinstance(val, int) and val > 0:
+            self._n_word_max = val
+        else:
+            raise ValueError('n_word_max must be int type greater than 0!')
+
+    # overflow
+    @property
+    def _overflow_list(self):
+        return ['saturate', 'wrap']
+
+    @property
+    def overflow(self):
+        return self._overflow
+    
+    @overflow.setter
+    def overflow(self, val):
+        if isinstance(val, str) and val in self._overflow_list:
+            self._overflow = val
+        else:
+            raise ValueError('overflow must be str type with following valid values: {}'.format(self._overflow_list))
+
+    # rounding
+    @property
+    def _rounding_list(self):
+        return ['around', 'floor', 'ceil', 'fix', 'trunc']
+
+    @property
+    def rounding(self):
+        return self._rounding
+    
+    @rounding.setter
+    def rounding(self, val):
+        if isinstance(val, str) and val in self._rounding_list:
+            self._rounding = val
+        else:
+            raise ValueError('rounding must be str type with following valid values: {}'.format(self._rounding_list))
+
+    # shifting
+    @property
+    def _shifting_list(self):
+        return ['expand', 'keep']
+
+    @property
+    def shifting(self):
+        return self._shifting
+    
+    @shifting.setter
+    def shifting(self, val):
+        if isinstance(val, str) and val in self._shifting_list:
+            self._shifting = val
+        else:
+            raise ValueError('shifting must be str type with following valid values: {}'.format(self._rounding_list))    
