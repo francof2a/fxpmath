@@ -97,13 +97,8 @@ class Fxp():
         self.precision = None
         #status
         self.status = None
-        # behavior
-        self.overflow = None
-        self.rounding = None
-        self.shifting = None
-        # size
-        max_error = None
-        n_word_max = None
+        #config
+        self.config = None
 
         _initialized = False
         # ---
@@ -134,20 +129,20 @@ class Fxp():
             'overflow': False,
             'underflow': False,
             'inaccuracy': False}
+        
+        # config
+        self.config = Config(**kwargs)
+
         # scaling
         if self.scale is None: self.scale = kwargs.pop('scale', 1)
         if self.bias is None: self.bias = kwargs.pop('bias', 0)
-        # behavior
-        if self.overflow is None: self.overflow = kwargs.pop('overflow', 'saturate')
-        if self.rounding is None: self.rounding = kwargs.pop('rounding', 'trunc')
-        if self.shifting is None: self.shifting = kwargs.pop('shifting', 'expand')
+
         # check if val is a raw value
         if raw is None: raw = kwargs.pop('raw', False)
+
         # size
         if not _initialized:
-            if max_error is None: max_error = kwargs.pop('max_error', _max_error)
-            if n_word_max is None: n_word_max = kwargs.pop('n_word_max', _n_word_max)
-            self._init_size(val, signed, n_word, n_frac, n_int, max_error=max_error, n_word_max=n_word_max)
+            self._init_size(val, signed, n_word, n_frac, n_int, max_error=self.config.max_error, n_word_max=self.config.n_word_max)
 
         # store the value
         self.set_val(val, raw=raw)
@@ -379,7 +374,7 @@ class Fxp():
 
         # round, saturate and store
         if val.dtype != complex:
-            new_val = self._round(val * conv_factor , method=self.rounding)
+            new_val = self._round(val * conv_factor , method=self.config.rounding)
             new_val = self._overflow_action(new_val, val_min, val_max)
 
             if np.issubdtype(val_dtype, np.integer):
@@ -394,8 +389,8 @@ class Fxp():
             self.imag = 0
 
         else:
-            new_val_real = self._round(val.real * conv_factor, method=self.rounding)
-            new_val_imag = self._round(val.imag * conv_factor, method=self.rounding)
+            new_val_real = self._round(val.real * conv_factor, method=self.config.rounding)
+            new_val_imag = self._round(val.imag * conv_factor, method=self.config.rounding)
             new_val_real = self._overflow_action(new_val_real, val_min, val_max)
             new_val_imag = self._overflow_action(new_val_imag, val_min, val_max)
 
@@ -474,9 +469,9 @@ class Fxp():
         if np.any(new_val < val_min):
             self.status['underflow'] = True
         
-        if self.overflow == 'saturate':
+        if self.config.overflow == 'saturate':
             val = utils.clip(new_val, val_min, val_max)
-        elif self.overflow == 'wrap':
+        elif self.config.overflow == 'wrap':
             val = utils.wrap(new_val, val_min, val_max, self.signed, self.n_word)
         return val
 
@@ -707,7 +702,7 @@ class Fxp():
     # bit level operators
 
     def __rshift__(self, n):
-        if self.shifting == 'expand':
+        if self.config.shifting == 'expand':
             min_pow2 = utils.min_pow2(self.val)     # minimum power of 2 in raw val
             if min_pow2 is not None and n > min_pow2:
                 n_frac_expansion = n - min_pow2
@@ -724,7 +719,7 @@ class Fxp():
     __irshift__ = __rshift__
 
     def __lshift__(self, n):
-        if self.shifting == 'expand':
+        if self.config.shifting == 'expand':
             n_word = max(self.n_word, int(np.max(np.ceil(np.log2(np.abs(self.val)+0.5)))) + self.signed + n)
         else:
             n_word = self.n_word
@@ -879,9 +874,9 @@ class Fxp():
             s += '\n\tUpper\t\t=\t{}\n'.format(self.upper)
             s += '\tLower\t\t=\t{}\n'.format(self.lower)
             s += '\tPrecision\t=\t{}\n'.format(self.precision)
-            s += '\tOverflow\t=\t{}\n'.format(self.overflow)
-            s += '\tRounding\t=\t{}\n'.format(self.rounding)
-            s += '\tShifting\t=\t{}\n'.format(self.shifting)
+            s += '\tOverflow\t=\t{}\n'.format(self.config.overflow)
+            s += '\tRounding\t=\t{}\n'.format(self.config.rounding)
+            s += '\tShifting\t=\t{}\n'.format(self.config.shifting)
         print(s)
 
 
@@ -1029,7 +1024,7 @@ class Config():
     # shifting
     @property
     def _shifting_list(self):
-        return ['expand', 'keep']
+        return ['expand', 'trunc', 'keep']
 
     @property
     def shifting(self):
@@ -1040,4 +1035,10 @@ class Config():
         if isinstance(val, str) and val in self._shifting_list:
             self._shifting = val
         else:
-            raise ValueError('shifting must be str type with following valid values: {}'.format(self._rounding_list))    
+            raise ValueError('shifting must be str type with following valid values: {}'.format(self._shifting_list))
+
+    # methods
+
+    def print(self):
+        for k, v in self.__dict__.items():
+            print('\t{}:\t{}'.format(k.strip('_'), v))

@@ -217,9 +217,9 @@ def test_like():
 
 def test_kwargs():
     x = Fxp(-2.125, True, 16, 4, overflow='wrap')
-    assert x.overflow == 'wrap'
+    assert x.config.overflow == 'wrap'
     y = Fxp(3.2, True, 16, 8, rounding='fix')
-    assert y.rounding == 'fix'
+    assert y.config.rounding == 'fix'
 
 def test_strvals():
     x = Fxp('0b0110')
