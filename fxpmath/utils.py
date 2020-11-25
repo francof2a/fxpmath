@@ -292,16 +292,14 @@ def clip(x, val_min, val_max):
     x_clipped = np.array(max(val_min, min(val_max, x)))
     return x_clipped
 
-@np.vectorize
-def wrap(x, val_min, val_max, signed, n_word):
-    if not ((x <= val_max) & (x >= val_min)):
-        if signed:
-            x_wrapped = twos_complement_repr(x, n_word)
-        else:
-            x_wrapped = x % (1 << n_word)
-    else:
-        x_wrapped = x
-    return x_wrapped
+def wrap(x, signed, n_word): 
+    m = (1 << n_word)
+    if signed: 
+        x = np.array(x).astype(int) & (m - 1) 
+        x = np.where(x < (1 << (n_word-1)), x, x | (-m)) 
+    else: 
+        x = np.array(x).astype(int) & (m - 1) 
+    return x
 
 def get_sizes_from_dtype(dtype):
     if isinstance(dtype, str):
