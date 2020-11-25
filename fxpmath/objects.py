@@ -451,7 +451,7 @@ class Fxp():
             #     val = np.array(max(val_min, min(val_max, new_val)))
             val = utils.clip(new_val, val_min, val_max)
         elif self.overflow == 'wrap':
-            val = utils.wrap(new_val, val_min, val_max, self.signed, self.n_word)
+            val = utils.wrap(new_val, self.signed, self.n_word)
         return val
 
     def _round(self, val, method='floor'):

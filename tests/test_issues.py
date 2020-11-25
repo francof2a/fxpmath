@@ -85,3 +85,11 @@ def test_issue_19_v0_3_7():
     # a[0].info()
     assert a[0]() == 0.5-0.125j
 
+def test_issue_20_v0_3_8():
+    x = Fxp(0, signed=True, n_word = 4, n_frac = 0, overflow='wrap')
+
+    assert x(-30) == 2
+    assert x(-8) == -8
+    assert x(-9) == 7
+    assert x(7) == 7
+    assert x(8) == -8

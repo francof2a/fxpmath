@@ -31,7 +31,7 @@ def test_perf_wrap(signed=True, n_word=8, repeat=10):
     exec_time_vals = np.zeros(repeat)
     for i in range(repeat):
         start_time = time.time()
-        utils.wrap(np.random.uniform(low=-512, high=512, size=[1000,2]), val_min=-64, val_max=64, signed=signed, n_word=n_word )
+        utils.wrap(np.random.uniform(low=-512, high=512, size=[1000,2]), signed=signed, n_word=n_word)
         exec_time_vals[i] = time.time() - start_time
     print('\nutils.wrap execution time over {} repetitions'.format(repeat))
     print('\tmean = {:.3f} ms\n\tstd = {:.3f} ms'.format(np.mean(exec_time_vals)*1e3, np.std(exec_time_vals)*1e3))
