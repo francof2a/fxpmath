@@ -17,5 +17,6 @@ except:
 
 
 from . import objects
+from . import functions
 from .objects import *
 from .functions import *

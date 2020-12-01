@@ -147,6 +147,41 @@ class Fxp():
         # store the value
         self.set_val(val, raw=raw)
 
+    # ---
+    # Properties
+    # ---
+
+    # overflow (mirror of config for compatibility)
+    @property
+    def overflow(self):
+        return self.config.overflow
+    
+    @overflow.setter
+    def overflow(self, val):
+        self.config.overflow = val
+
+    # rounding (mirror of config for compatibility)
+    @property
+    def rounding(self):
+        return self.config.rounding
+    
+    @rounding.setter
+    def rounding(self, val):
+        self.config.rounding = val
+
+    # shifting (mirror of config for compatibility)
+    @property
+    def shifting(self):
+        return self.config.shifting
+    
+    @shifting.setter
+    def shifting(self, val):
+        self.config.shifting = val
+
+
+    # ---
+    # Methods
+    # ---
 
     # methods about size
     def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=_max_error, n_word_max=_n_word_max):
@@ -457,8 +492,10 @@ class Fxp():
 
     def equal(self, x):
         if isinstance(x, Fxp):
-            x = x()
-        self.set_val(x)
+            new_val_raw = x.val * 2**(self.n_frac - x.n_frac)
+            self.set_val(new_val_raw, raw=True)
+        else:
+            self.set_val(x)
         return self
 
     # behaviors
@@ -530,23 +567,14 @@ class Fxp():
         return y             
 
     def __add__(self, x):
-        if isinstance(x, (int, float, list, np.ndarray)):
-            x = Fxp(x)
-        
-        n_int = max(self.n_int, x.n_int) + 1
-        n_frac = max(self.n_frac, x.n_frac)
-
-        new_raw_val = utils.int_array(self.val) * 2**(n_frac - self.n_frac) + utils.int_array(x.val) * 2**(n_frac - x.n_frac)
-        y = Fxp(new_raw_val, signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac, raw=True)
-        return y
+        return functions.add(self, x)
 
     __radd__ = __add__
 
     __iadd__ = __add__
 
     def __sub__(self, x):
-        if isinstance(x, (int, float, list, np.ndarray)):
-            x = Fxp(x)
+        x = self._convert_op_input_value(x)
         
         n_int = max(self.n_int, x.n_int) + 1
         n_frac = max(self.n_frac, x.n_frac)
@@ -951,7 +979,24 @@ class Fxp():
         self.status = {
             'overflow': False,
             'underflow': False,
-            'inaccuracy': False}        
+            'inaccuracy': False}
+
+    def _convert_op_input_value(self, x):
+        if not isinstance(x, Fxp):
+            if self.config is not None:
+                if self.config.op_input_size == 'best':
+                    x_fxp = Fxp(x)
+                elif self.config.op_input_size == 'same':
+                    x_fxp = Fxp(x, like=self)
+                else:
+                    raise ValueError('Sizing parameter not supported: {}'.format(self.config.op_input_size))
+            else:
+                x_fxp = Fxp(x)
+        else:
+            x_fxp = x
+
+        return x_fxp
+
 
 
 class Config():
@@ -964,6 +1009,18 @@ class Config():
         self.overflow = kwargs.pop('overflow', 'saturate')
         self.rounding = kwargs.pop('rounding', 'trunc')
         self.shifting = kwargs.pop('shifting', 'expand')
+        self.calc_method = kwargs.pop('calc_method', 'raw')
+
+        # inputs
+        self.op_input_size = kwargs.pop('op_input_size', 'best')
+
+        # outpus
+        self.output_type = kwargs.pop('output_type', 'fxp')
+        self.output_size = kwargs.pop('output_size', 'max')
+
+    # ---
+    # properties
+    # ---
 
     # max_error
     @property
@@ -1037,8 +1094,12 @@ class Config():
         else:
             raise ValueError('shifting must be str type with following valid values: {}'.format(self._shifting_list))
 
+    # ---
     # methods
+    # ---
 
     def print(self):
         for k, v in self.__dict__.items():
             print('\t{}:\t{}'.format(k.strip('_'), v))
+
+from . import functions
