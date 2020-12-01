@@ -605,77 +605,30 @@ class Fxp():
     __isub__ = __sub__
 
     def __mul__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
-        
-        n_word = self.n_word + x.n_word
-        n_frac = self.n_frac + x.n_frac
-
-        new_raw_val = utils.int_array(self.val) * utils.int_array(x.val) * 2**(n_frac - self.n_frac - x.n_frac)
-        y = Fxp(new_raw_val, signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac, raw=True)
-        return y
+        x = self._convert_op_input_value(x)
+        return _mul(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
 
     __rmul__ = __mul__
 
     __imul__ = __mul__
 
     def __truediv__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
-
-        # y = Fxp(self.get_val() / x.get_val(), signed=self.signed or x.signed)
-
-        signed = self.signed or x.signed
-        n_int = self.n_int + x.n_frac + signed
-        n_frac = self.n_frac + x.n_int
-
-        new_raw_val = (utils.int_array(self.val) * 2**(n_frac - self.n_frac + x.n_frac)) // utils.int_array(x.val)
-        y = Fxp(new_raw_val, signed=signed, n_int=n_int, n_frac=n_frac, raw=True)       
-        return y
+        x = self._convert_op_input_value(x)
+        return _truediv(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
 
     def __rtruediv__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
-
-        # y = Fxp(x.get_val() / self.get_val(), signed=self.signed or x.signed)
-
-        signed = self.signed or x.signed
-        n_int = x.n_int + self.n_frac + signed
-        n_frac = x.n_frac + self.n_int
-
-        new_raw_val = (utils.int_array(x.val) * 2**(n_frac + self.n_frac - x.n_frac)) // utils.int_array(self.val)
-        y = Fxp(new_raw_val, signed=signed, n_int=n_int, n_frac=n_frac, raw=True)  
-        return y
+        x = self._convert_op_input_value(x)
+        return _truediv(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
 
     __itruediv__ = __truediv__
 
     def __floordiv__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
-
-        # y = Fxp(self.get_val() // x.get_val(), signed=self.signed or x.signed)
-
-        signed = self.signed or x.signed
-        n_int = self.n_int + x.n_frac + signed
-        n_frac = 0
-
-        new_raw_val = (utils.int_array(self.val) * 2**(n_frac - self.n_frac + x.n_frac)) // utils.int_array(x.val)
-        y = Fxp(new_raw_val, signed=signed, n_int=n_int, n_frac=n_frac, raw=True)    
-        return y
+        x = self._convert_op_input_value(x)
+        return _floordiv(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
 
     def __rfloordiv__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
-
-        # y = Fxp(x.get_val() // self.get_val(), signed=self.signed or x.signed)
-
-        signed = self.signed or x.signed
-        n_int = x.n_int + self.n_frac + signed
-        n_frac = 0
-
-        new_raw_val = (utils.int_array(x.val) * 2**(n_frac + self.n_frac - x.n_frac)) // utils.int_array(self.val)
-        y = Fxp(new_raw_val, signed=signed, n_int=n_int, n_frac=n_frac, raw=True) 
-        return y
+        x = self._convert_op_input_value(x)
+        return _floordiv(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
 
     __ifloordiv__ = __floordiv__
 
@@ -1037,6 +990,7 @@ class Config():
     # ---
     # properties
     # ---
+    # region
 
     # max_error
     @property
@@ -1165,6 +1119,64 @@ class Config():
             self._op_method = val
         else:
             raise ValueError('op_method must be str type with following valid values: {}'.format(self._op_method_list))
+
+    # array_output_type
+    @property
+    def _array_output_type_list(self):
+        return ['fxp', 'array']
+
+    @property
+    def array_output_type(self):
+        return self._array_output_type
+    
+    @array_output_type.setter
+    def array_output_type(self, val):
+        if isinstance(val, str) and val in self._array_output_type_list:
+            self._array_output_type = val
+        else:
+            raise ValueError('array_output_type must be str type with following valid values: {}'.format(self._array_output_type_list))
+
+    # array_op_out
+    @property
+    def array_op_out(self):
+        return self._array_op_out
+    
+    @array_op_out.setter
+    def array_op_out(self, val):
+        if val is None or isinstance(val, Fxp):
+            self._array_op_out = val
+        else:
+            raise ValueError('array_op_out must be a Fxp object or None!')
+
+    # array_op_out_like
+    @property
+    def array_op_out_like(self):
+        return self._array_op_out_like
+    
+    @array_op_out_like.setter
+    def array_op_out_like(self, val):
+        if val is None or isinstance(val, Fxp):
+            self._array_op_out_like = val
+        else:
+            raise ValueError('array_op_out_like must be a Fxp object or None!')
+
+    # array_op_method
+    @property
+    def _array_op_method_list(self):
+        return ['raw', 'repr']
+
+    @property
+    def array_op_method(self):
+        return self._array_op_method
+    
+    @array_op_method.setter
+    def array_op_method(self, val):
+        if isinstance(val, str) and val in self._array_op_method_list:
+            self._array_op_method = val
+        else:
+            raise ValueError('array_op_method must be str type with following valid values: {}'.format(self._array_op_method_list))
+
+    # endregion
 
     # ---
     # methods
@@ -1321,6 +1333,222 @@ def _sub(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
             z = Fxp(_sub_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
         elif method == 'repr':
             z = Fxp(x() - y(), signed=signed, n_int=n_int, n_frac=n_frac)
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+    
+    return z
+
+def _mul(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
+    """
+    """
+    if not isinstance(x, Fxp):
+        x = Fxp(x)
+    if not isinstance(y, Fxp):
+        y = Fxp(y)
+
+    def _mul_raw(x, y, n_frac):
+        return utils.int_array(x.val) * utils.int_array(y.val) * 2**(n_frac - x.n_frac - y.n_frac)
+
+    signed = x.signed or y.signed
+
+    if out is not None:
+        if not isinstance(out, Fxp):
+            raise TypeError('`out` must be a Fxp object!')
+        if not out.signed and signed:
+            raise ValueError('Signed addition can not be stored in unsigned `out` object!')
+
+        if method == 'raw':
+            n_frac = out.n_frac
+            z = out.set_val(_mul_raw(x, y, n_frac), raw=True)
+        elif method == 'repr':
+            z = out.set_val(x() * y())
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+
+    elif out_like is not None:
+        if not isinstance(out_like, Fxp):
+            raise TypeError('`out_like` must be a Fxp object!')
+        if not out_like.signed and signed:
+            raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
+
+        if method == 'raw':
+            n_frac = out_like.n_frac
+            z = Fxp(_mul_raw(x, y, n_frac), raw=True, like=out_like)
+        elif method == 'repr':
+            z = Fxp(x() * y(), like=out_like)
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+
+    else:
+        if sizing == 'optimal':
+            n_word = x.n_word + y.n_word
+            n_frac = x.n_frac + y.n_frac
+        elif sizing == 'same':
+            n_word = x.n_word
+            n_frac = x.n_frac
+        elif sizing == 'fit' and method == 'raw':
+            n_word = None
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'fit' and method == 'repr':
+            n_word = None
+            n_frac = None
+        elif sizing == 'largest':
+            n_word = max(x.n_word, y.n_word)
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'smallest':
+            n_word = min(x.n_word, y.n_word)
+            n_frac = min(x.n_frac, y.n_frac)
+        else:
+            raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
+
+        if method == 'raw':
+            z = Fxp(_mul_raw(x, y, n_frac), signed=signed, n_word=n_word, n_frac=n_frac, raw=True)
+        elif method == 'repr':
+            z = Fxp(x() * y(), signed=signed, n_word=n_word, n_frac=n_frac)
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+    
+    return z
+
+def _floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
+    """
+    """
+    if not isinstance(x, Fxp):
+        x = Fxp(x)
+    if not isinstance(y, Fxp):
+        y = Fxp(y)
+
+    def _floordiv_raw(x, y, n_frac):
+        return (utils.int_array(x.val) * 2**(n_frac - x.n_frac + y.n_frac)) // utils.int_array(y.val)
+
+    signed = x.signed or y.signed
+
+    if out is not None:
+        if not isinstance(out, Fxp):
+            raise TypeError('`out` must be a Fxp object!')
+        if not out.signed and signed:
+            raise ValueError('Signed addition can not be stored in unsigned `out` object!')
+
+        if method == 'raw':
+            n_frac = out.n_frac
+            z = out.set_val(_floordiv_raw(x, y, n_frac), raw=True)
+        elif method == 'repr':
+            z = out.set_val(x() // y())
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+
+    elif out_like is not None:
+        if not isinstance(out_like, Fxp):
+            raise TypeError('`out_like` must be a Fxp object!')
+        if not out_like.signed and signed:
+            raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
+
+        if method == 'raw':
+            n_frac = out_like.n_frac
+            z = Fxp(_floordiv_raw(x, y, n_frac), raw=True, like=out_like)
+        elif method == 'repr':
+            z = Fxp(x() // y(), like=out_like)
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+
+    else:
+        if sizing == 'optimal':
+            n_int = x.n_int + y.n_frac + signed
+            n_frac = 0
+        elif sizing == 'same':
+            n_int = x.n_int
+            n_frac = x.n_frac
+        elif sizing == 'fit' and method == 'raw':
+            n_int = None
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'fit' and method == 'repr':
+            n_int = None
+            n_frac = None
+        elif sizing == 'largest':
+            n_int = max(x.n_int, y.n_int)
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'smallest':
+            n_int = min(x.n_int, y.n_int)
+            n_frac = min(x.n_frac, y.n_frac)
+        else:
+            raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
+
+        if method == 'raw':
+            z = Fxp(_floordiv_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
+        elif method == 'repr':
+            z = Fxp(x() // y(), signed=signed, n_int=n_int, n_frac=n_frac)
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+    
+    return z
+
+def _truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
+    """
+    """
+    if not isinstance(x, Fxp):
+        x = Fxp(x)
+    if not isinstance(y, Fxp):
+        y = Fxp(y)
+
+    def _truediv_raw(x, y, n_frac):
+        return (utils.int_array(x.val) * 2**(n_frac - x.n_frac + y.n_frac)) // utils.int_array(y.val)
+
+    signed = x.signed or y.signed
+
+    if out is not None:
+        if not isinstance(out, Fxp):
+            raise TypeError('`out` must be a Fxp object!')
+        if not out.signed and signed:
+            raise ValueError('Signed addition can not be stored in unsigned `out` object!')
+
+        if method == 'raw':
+            n_frac = out.n_frac
+            z = out.set_val(_truediv_raw(x, y, n_frac), raw=True)
+        elif method == 'repr':
+            z = out.set_val(x() / y())
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+
+    elif out_like is not None:
+        if not isinstance(out_like, Fxp):
+            raise TypeError('`out_like` must be a Fxp object!')
+        if not out_like.signed and signed:
+            raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
+
+        if method == 'raw':
+            n_frac = out_like.n_frac
+            z = Fxp(_truediv_raw(x, y, n_frac), raw=True, like=out_like)
+        elif method == 'repr':
+            z = Fxp(x() / y(), like=out_like)
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+
+    else:
+        if sizing == 'optimal':
+            n_int = x.n_int + y.n_frac + signed
+            n_frac = x.n_frac + y.n_int
+        elif sizing == 'same':
+            n_int = x.n_int
+            n_frac = x.n_frac
+        elif sizing == 'fit' and method == 'raw':
+            n_int = None
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'fit' and method == 'repr':
+            n_int = None
+            n_frac = None
+        elif sizing == 'largest':
+            n_int = max(x.n_int, y.n_int)
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'smallest':
+            n_int = min(x.n_int, y.n_int)
+            n_frac = min(x.n_frac, y.n_frac)
+        else:
+            raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
+
+        if method == 'raw':
+            z = Fxp(_truediv_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
+        elif method == 'repr':
+            z = Fxp(x() / y(), signed=signed, n_int=n_int, n_frac=n_frac)
         else:
             raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
     
