@@ -641,30 +641,12 @@ class Fxp():
     __ifloordiv__ = __floordiv__
 
     def __mod__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
-        
-        n_frac = max(self.n_frac, x.n_frac)
-        if self.signed or x.signed:
-            n_int = max(self.n_int, x.n_int)  # because python modulo implementation
-        else:
-            n_int = min(self.n_int, x.n_int)
-
-        y = Fxp(self.get_val() % x.get_val(), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
-        return y
+        x = self._convert_op_input_value(x)
+        return _mod(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
 
     def __rmod__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
-        
-        n_frac = max(self.n_frac, x.n_frac)
-        if self.signed or x.signed:
-            n_int = max(self.n_int, x.n_int)  # because python modulo implementation
-        else:
-            n_int = min(self.n_int, x.n_int)
-
-        y = Fxp(x.get_val() % self.get_val(), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
-        return y
+        x = self._convert_op_input_value(x)
+        return _mod(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
 
     __imod__ = __mod__
 
@@ -1563,6 +1545,78 @@ def _truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
             z = Fxp(_truediv_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
         elif method == 'repr':
             z = Fxp(x() / y(), signed=signed, n_int=n_int, n_frac=n_frac)
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+    
+    return z
+
+def _mod(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
+    """
+    """
+    if not isinstance(x, Fxp):
+        x = Fxp(x)
+    if not isinstance(y, Fxp):
+        y = Fxp(y)
+
+    def _mod_raw(x, y, n_frac):
+        return (utils.int_array(x.val) * 2**(n_frac - x.n_frac)) % (utils.int_array(y.val) * 2**(n_frac - y.n_frac))
+
+    signed = x.signed or y.signed
+
+    if out is not None:
+        if not isinstance(out, Fxp):
+            raise TypeError('`out` must be a Fxp object!')
+        if not out.signed and signed:
+            raise ValueError('Signed addition can not be stored in unsigned `out` object!')
+
+        if method == 'raw':
+            n_frac = out.n_frac
+            z = out.set_val(_mod_raw(x, y, n_frac), raw=True)
+        elif method == 'repr':
+            z = out.set_val(x() % y())
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+
+    elif out_like is not None:
+        if not isinstance(out_like, Fxp):
+            raise TypeError('`out_like` must be a Fxp object!')
+        if not out_like.signed and signed:
+            raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
+
+        if method == 'raw':
+            n_frac = out_like.n_frac
+            z = Fxp(_mod_raw(x, y, n_frac), raw=True, like=out_like)
+        elif method == 'repr':
+            z = Fxp(x() % y(), like=out_like)
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+
+    else:
+        if sizing == 'optimal':
+            n_int = max(x.n_int, y.n_int) if signed else min(x.n_int, y.n_int) # because python modulo implementation
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'same':
+            n_int = x.n_int
+            n_frac = x.n_frac
+        elif sizing == 'fit' and method == 'raw':
+            n_int = None
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'fit' and method == 'repr':
+            n_int = None
+            n_frac = None
+        elif sizing == 'largest':
+            n_int = max(x.n_int, y.n_int)
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'smallest':
+            n_int = min(x.n_int, y.n_int)
+            n_frac = min(x.n_frac, y.n_frac)
+        else:
+            raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
+
+        if method == 'raw':
+            z = Fxp(_mod_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
+        elif method == 'repr':
+            z = Fxp(x() % y(), signed=signed, n_int=n_int, n_frac=n_frac)
         else:
             raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
     

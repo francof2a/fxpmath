@@ -153,4 +153,5 @@ scripts/
 dev_info.txt
 tests/test_temp.py
 
+docs/figs/*.svg
 
