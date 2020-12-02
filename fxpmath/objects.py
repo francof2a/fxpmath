@@ -150,6 +150,7 @@ class Fxp():
     # ---
     # Properties
     # ---
+    # region
 
     # overflow (mirror of config for compatibility)
     @property
@@ -178,10 +179,12 @@ class Fxp():
     def shifting(self, val):
         self.config.shifting = val
 
+    # endregion
 
     # ---
     # Methods
     # ---
+    # region
 
     # methods about size
     def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=_max_error, n_word_max=_n_word_max, raw=False):
@@ -202,7 +205,6 @@ class Fxp():
             self.set_best_sizes(val, n_word, n_frac, max_error=max_error, n_word_max=n_word_max, raw=raw)
         else:
             self.resize(self.signed, n_word, n_frac, n_int)
-
 
     def resize(self, signed=None, n_word=None, n_frac=None, n_int=None, restore_val=True):
         # n_int defined:
@@ -272,7 +274,7 @@ class Fxp():
             self.n_frac = n_frac
             
             # if val is a str(s), convert to number(s)
-            val, _, signed, n_word, n_frac = self._format_inupt_val(val, return_sizes=True)
+            val, _, raw, signed, n_word, n_frac = self._format_inupt_val(val, return_sizes=True, raw=raw)
             val = np.array([val])
 
             # if val is raw
@@ -342,7 +344,13 @@ class Fxp():
         elif isinstance(val, Fxp):
             # if val is an Fxp object
             vdtype = val.vdtype
-            val = val()     # extract values
+            # if some of signed, n_word, n_frac is not defined, they are copied from val
+            if self.signed is None: self.signed = val.signed
+            if self.n_word is None: self.n_word = val.n_word
+            if self.n_frac is None: self.n_frac = val.n_frac
+            # force return raw value for better precision
+            val = val.val * 2**(self.n_frac - val.n_frac)
+            raw = True
 
         elif isinstance(val, (int, float, complex)):
             vdtype = type(val)
@@ -381,9 +389,9 @@ class Fxp():
                 val = (val - self.bias) / self.scale
 
         if return_sizes:
-            return val, vdtype, signed, n_word, n_frac
+            return val, vdtype, raw, signed, n_word, n_frac
         else:
-            return val, vdtype
+            return val, vdtype, raw
 
     def _get_conv_factor(self, raw=False):
         if raw:
@@ -397,7 +405,7 @@ class Fxp():
 
     def set_val(self, val, raw=False, vdtype=None, index=None):
         # convert input value to valid format
-        val, original_vdtype = self._format_inupt_val(val, raw=raw)
+        val, original_vdtype, raw = self._format_inupt_val(val, raw=raw)
 
         if self.signed:
             val_max = (1 << (self.n_word-1)) - 1
@@ -932,7 +940,11 @@ class Fxp():
         return copy.deepcopy(self)
 
     def like(self, x):
-        return  x.copy().set_val(self.get_val()) 
+        if isinstance(x, self.__class__):
+            new_raw_val = self.val * 2**(x.n_frac - self.n_frac)
+            return  x.copy().set_val(new_raw_val, raw=True)
+        else:
+            raise ValueError('`x` should be a Fxp object!')
 
     # reset
     def reset(self):
@@ -958,6 +970,7 @@ class Fxp():
 
         return x_fxp
 
+    # endregion
 
 
 class Config():
@@ -1181,12 +1194,13 @@ class Config():
     # ---
     # methods
     # ---
+    # region
 
     def print(self):
         for k, v in self.__dict__.items():
             print('\t{}:\t{}'.format(k.strip('_'), v))
 
-
+    # endregion
 
 
 

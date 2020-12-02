@@ -353,3 +353,13 @@ def test_wrap():
     assert x() == 3.75
     assert x.status['overflow'] == False
     assert x.status['underflow'] == True
+
+def test_init_by_raw():
+    x = Fxp(16, True, 8, 4, raw=True)
+    assert x() == 1.0
+
+    x = Fxp(16, None, None, 4, raw=True)
+    assert x() == 1.0
+
+    x = Fxp('0b1111', n_frac=1, raw=True) 
+    assert x() == -0.5

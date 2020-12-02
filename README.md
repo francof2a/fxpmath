@@ -14,6 +14,43 @@ Some key features:
 * Linear scaling: scale and bias.
 * Numpy backend. Fxp returns a numpy array and works internally with Numpy.
 
+---
+
+![GitHub](https://img.shields.io/github/license/francof2a/fxpmath?style=for-the-badge)
+
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/francof2a/fxpmath?style=for-the-badge)
+
+![PyPI](https://img.shields.io/pypi/v/fxpmath?style=for-the-badge)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/fxpmath?style=for-the-badge)
+
+![Conda](https://img.shields.io/conda/v/francof2a/fxpmath?style=for-the-badge)
+![Conda](https://img.shields.io/conda/pn/francof2a/fxpmath?style=for-the-badge)
+
+---
+
+## Table of content
+
+- [install](#install)
+- [quick start](#quick-start)
+  * [creation](#creation)
+  * [Representations](#representations)
+  * [changing values](#changing-values)
+  * [changing size](#changing-size)
+  * [data types supported](#data-types-supported)
+  * [indexing](#indexing)
+- [arithmetic](#arithmetic)
+- [logical (bitwise) operators](#logical--bitwise--operators)
+- [Comparisons](#comparisons)
+- [behaviors](#behaviors)
+  * [overflow / underflow](#overflow---underflow)
+  * [rounding](#rounding)
+  * [inaccuracy](#inaccuracy)
+- [Status flags](#status-flags)
+- [copy](#copy)
+- [Scaling](#scaling)
+
+---
+
 ## install
 
 To install from *pip* just do the next:
