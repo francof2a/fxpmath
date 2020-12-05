@@ -1,4 +1,4 @@
-# fxpmath
+<img src="./docs/figs/fxpmath_logotipo.png" width="300">
 
 A python library for fractional fixed-point (base 2) arithmetic and binary manipulation.
 
