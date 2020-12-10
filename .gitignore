@@ -152,6 +152,8 @@ todo
 scripts/
 dev_info.txt
 tests/test_temp.py
+tests/temp.py
+fxpmath/temp.py
 
 docs/figs/*.svg
 

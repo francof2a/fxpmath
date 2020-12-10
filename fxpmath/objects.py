@@ -38,6 +38,7 @@ import copy
 from . import utils
 from . import _n_word_max, _max_error
 
+_NUMPY_HANDLED_FUNCTIONS = {}
 #%%
 class Fxp():
     '''
@@ -564,13 +565,14 @@ class Fxp():
     def __str__(self):
         return str(self.get_val())
 
-    # numpy array representation
-    def __array__(self):
+    # numpy array representation - numpy hooks
+    
+    def __array__(self, *args, **kwargs):
         if self.config.array_op_method == 'raw':
-            return np.array(self.val)
+            return np.asarray(self.val, *args, **kwargs)
         else:
-            return np.array(self.get_val())
-
+            return np.asarray(self.get_val(), *args, **kwargs)
+    
     def __array_wrap__(self, out_arr, context=None):
         raw = True if self.config.array_op_method == 'raw' else False
 
@@ -583,7 +585,16 @@ class Fxp():
                 return self.__class__(out_arr)
         else:
             return out_arr
-    
+
+    def __array_prepare__(self, context=None):
+        if self.config.array_op_method == 'raw':
+            return np.asarray(self.val, *args, **kwargs)
+        else:
+            return np.asarray(self.get_val(), *args, **kwargs)
+
+    def __array_finalize__(self, obj):
+        return
+  
     # math operations
     
     def __neg__(self):
@@ -954,6 +965,73 @@ class Fxp():
 
     # endregion
 
+    # numpy functions dispatch
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if method == '__call__':
+            if ufunc in _NUMPY_HANDLED_FUNCTIONS:
+                # dispatch function to implemented in fxpmath
+                return _NUMPY_HANDLED_FUNCTIONS[ufunc](*inputs, **kwargs)
+
+            # call original numpy function and return wrapped result
+            kwargs['method'] = method
+            return self._wrapped_numpy_func(ufunc, *inputs, **kwargs)
+        else:
+            # return NotImplemented
+
+            # call original numpy function and return wrapped result
+            kwargs['method'] = method
+            return self._wrapped_numpy_func(ufunc, *inputs, **kwargs)
+
+    def __array_function__(self, func, types, args, kwargs):
+        if func not in _NUMPY_HANDLED_FUNCTIONS:
+            # return NotImplemented
+
+            # call original numpy function and return wrapped result
+            return self._wrapped_numpy_func(func, *args, **kwargs)
+
+        # Note: this allows subclasses that don't override
+        # __array_function__ to handle Fxp objects
+        if not all(issubclass(t, self.__class__) for t in types):
+            return NotImplemented
+
+        # dispatch function to implemented in fxpmath
+        return _NUMPY_HANDLED_FUNCTIONS[func](*args, **kwargs) 
+
+    def _wrapped_numpy_func(self, func, *args, **kwargs):
+        # convert func inputs to numpy arrays
+        args = [np.asarray(arg) if isinstance(arg, self.__class__) else arg for arg in args]
+
+        # out parameter extraction if Fxp
+        out = None
+        if 'out' in kwargs:
+            if isinstance(kwargs['out'], self.__class__):
+                out = kwargs.pop('out', None)
+            elif (isinstance(kwargs['out'], tuple) and isinstance(kwargs['out'][0], self.__class__)):
+                out = kwargs.pop('out', None)[0]
+
+        # out parameter extraction if Fxp
+        out_like = None
+        if 'out_like' in kwargs:
+            if isinstance(kwargs['out_like'], self.__class__):
+                out_like = kwargs.pop('out_like', None)
+            elif (isinstance(kwargs['out_like'], tuple) and isinstance(kwargs['out_like'][0], self.__class__)):
+                out_like = kwargs.pop('out_like', None)
+
+        # calculate (call original numpy function)
+        if 'method' in kwargs  and isinstance (kwargs['method'], str):
+            method = kwargs.pop('method')
+            val = getattr(func, method)(*args, **kwargs)
+        else:
+            val = func(*args, **kwargs)
+
+        if out is not None:
+            return out(val)
+        elif out_like is not None:
+            return self.__class__(val, like=out_like)
+        else:
+            # return wrapped result
+            return self.__array_wrap__(val)
+
 
 class Config():
     def __init__(self, **kwargs):
@@ -1184,12 +1262,17 @@ class Config():
 
     # endregion
 
-
-
 # ----------------------------------------------------------------------------------------
 # Internal functions
 # ----------------------------------------------------------------------------------------
+def implements(np_function):
+   "Register an __array_function__ implementation for Fxp objects."
+   def decorator(func):
+       _NUMPY_HANDLED_FUNCTIONS[np_function] = func
+       return func
+   return decorator
 
+@implements(np.add)
 def _add(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     """
     """
@@ -1204,6 +1287,8 @@ def _add(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     signed = x.signed or y.signed
 
     if out is not None:
+        if isinstance(out, tuple):
+            out = out[0] # recover only firts element
         if not isinstance(out, Fxp):
             raise TypeError('`out` must be a Fxp object!')
         if not out.signed and signed:
@@ -1262,6 +1347,7 @@ def _add(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     
     return z
 
+@implements(np.subtract)
 def _sub(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     """
     """
@@ -1276,6 +1362,8 @@ def _sub(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     signed = x.signed or y.signed
 
     if out is not None:
+        if isinstance(out, tuple):
+            out = out[0] # recover only firts element
         if not isinstance(out, Fxp):
             raise TypeError('`out` must be a Fxp object!')
         if not out.signed and signed:
@@ -1334,6 +1422,7 @@ def _sub(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     
     return z
 
+@implements(np.multiply)
 def _mul(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     """
     """
@@ -1348,6 +1437,8 @@ def _mul(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     signed = x.signed or y.signed
 
     if out is not None:
+        if isinstance(out, tuple):
+            out = out[0] # recover only firts element
         if not isinstance(out, Fxp):
             raise TypeError('`out` must be a Fxp object!')
         if not out.signed and signed:
@@ -1406,6 +1497,7 @@ def _mul(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     
     return z
 
+@implements(np.floor_divide)
 def _floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     """
     """
@@ -1420,6 +1512,8 @@ def _floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     signed = x.signed or y.signed
 
     if out is not None:
+        if isinstance(out, tuple):
+            out = out[0] # recover only firts element
         if not isinstance(out, Fxp):
             raise TypeError('`out` must be a Fxp object!')
         if not out.signed and signed:
@@ -1478,6 +1572,7 @@ def _floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     
     return z
 
+@implements(np.true_divide)
 def _truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     """
     """
@@ -1492,6 +1587,8 @@ def _truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     signed = x.signed or y.signed
 
     if out is not None:
+        if isinstance(out, tuple):
+            out = out[0] # recover only firts element
         if not isinstance(out, Fxp):
             raise TypeError('`out` must be a Fxp object!')
         if not out.signed and signed:
@@ -1550,6 +1647,7 @@ def _truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     
     return z
 
+@implements(np.mod)
 def _mod(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     """
     """
@@ -1564,6 +1662,8 @@ def _mod(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     signed = x.signed or y.signed
 
     if out is not None:
+        if isinstance(out, tuple):
+            out = out[0] # recover only firts element
         if not isinstance(out, Fxp):
             raise TypeError('`out` must be a Fxp object!')
         if not out.signed and signed:

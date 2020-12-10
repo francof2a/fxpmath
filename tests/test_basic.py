@@ -8,8 +8,7 @@ from fxpmath.objects import Fxp
 import numpy as np
 
 def test_temp():
-    x = Fxp(0.5, True, 8, 7)
-    assert x.astype(float) == 0.5
+    pass
 
 def test_instances():
     x = Fxp()
