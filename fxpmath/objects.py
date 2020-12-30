@@ -39,6 +39,12 @@ from . import utils
 from . import _n_word_max, _max_error
 
 _NUMPY_HANDLED_FUNCTIONS = {}
+
+try:
+    from decimal import Decimal
+except:
+    Decimal = type(None)
+
 #%%
 class Fxp():
     '''
@@ -389,6 +395,13 @@ class Fxp():
             else:
                 val, signed, n_word, _ = utils.str2num(val, self.signed, self.n_word, None, return_sizes=True)
                 n_frac = self.n_frac
+
+        elif isinstance(val, Decimal):
+            vdtype = float            # assuming float format
+            
+            # force return raw value for better precision
+            val = int(val * 2**(self.n_frac))
+            raw = True            
 
         else:
             raise ValueError('Not supported input type: {}'.format(type(val)))
