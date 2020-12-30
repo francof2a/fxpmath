@@ -579,11 +579,34 @@ class Fxp():
             rval = self.set_val(val)
         return rval
 
+    def __len__(self):
+        return len(self.val)
+
+    def __bool__(self):
+        if self.size > 1:
+            raise ValueError("The boolean value cannot be determined. Use any() or all().")
+        else:
+            return bool(self.get_val())
+
+    def __int__(self):
+        if self.size > 1:
+            raise TypeError('only length-1 arrays can be converted to Python scalars')
+        return int(self.astype(int))
+
+    def __float__(self):
+        if self.size > 1:
+            raise TypeError('only length-1 arrays can be converted to Python scalars')
+        return float(self.astype(float))
+
+    def __complex__(self):
+        if self.size > 1:
+            raise TypeError('only length-1 arrays can be converted to Python scalars')
+        return complex(self.astype(complex))
     
     # representation
     
     def __repr__(self):
-        return str(self.get_val())
+        return '{}({})'.format(self.dtype, str(self.get_val()))
 
     def __str__(self):
         return str(self.get_val())
