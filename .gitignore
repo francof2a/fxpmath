@@ -150,6 +150,7 @@ results/*
 # misc
 todo
 scripts/
+info/
 dev_info.txt
 tests/test_temp.py
 tests/temp.py

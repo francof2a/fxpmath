@@ -76,7 +76,7 @@ class Fxp():
     def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, like=None, **kwargs):
 
         # Init all properties in None
-        self.dtype = 'fxp' # fxp-<sign><n_word>/<n_frac>-{complex}. i.e.: fxp-s16/15, fxp-u8/1, fxp-s32/24-complex
+        self._dtype = 'fxp' # fxp-<sign><n_word>/<n_frac>-{complex}. i.e.: fxp-s16/15, fxp-u8/1, fxp-s32/24-complex
         # value
         self.vdtype = None # value(s) dtype to return as default
         self.val = None
@@ -153,6 +153,10 @@ class Fxp():
     # ---
     # region
 
+    @property
+    def dtype(self):
+        return self._dtype
+
     # overflow (mirror of config for compatibility)
     @property
     def overflow(self):
@@ -179,6 +183,19 @@ class Fxp():
     @shifting.setter
     def shifting(self, val):
         self.config.shifting = val
+
+    @property
+    def shape(self):
+        return self.val.shape
+
+    @property
+    def ndim(self):
+        return self.val.ndim
+
+    @property
+    def size(self):
+        return self.val.size
+
 
     # endregion
 
@@ -460,7 +477,7 @@ class Fxp():
             self.imag = self.astype(complex).imag
 
         # dtype
-        self.dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
+        self._dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
                                                              nword=self.n_word, 
                                                              nfrac=self.n_frac, 
                                                              comp='-complex' if val.dtype == complex else '')
@@ -505,6 +522,12 @@ class Fxp():
         if dtype is None:
             dtype = self.vdtype
         return self.astype(dtype)
+
+    def raw(self):
+        return self.val
+    
+    def uraw(self):
+        return np.where(self.val < 0, (1 << self.n_word) + self.val, self.val)
 
     def equal(self, x):
         if isinstance(x, Fxp):
