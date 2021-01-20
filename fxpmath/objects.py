@@ -35,6 +35,7 @@ SOFTWARE.
 #%% 
 import numpy as np 
 import copy
+
 from . import utils
 from . import _n_word_max, _max_error
 
@@ -353,6 +354,15 @@ class Fxp():
         self.n_word = int(min(self.n_word, n_word_max))
         self.resize(restore_val=False)
 
+    def reshape(self, shape):
+        self.val = self.val.reshape(shape)
+        return self
+    
+    def flatten(self):
+        x = self.copy()
+        x.val = x.val.flatten()
+        return x
+
     # methods about value
 
     def _format_inupt_val(self, val, return_sizes=False, raw=False):
@@ -398,7 +408,7 @@ class Fxp():
 
         elif isinstance(val, Decimal):
             vdtype = float            # assuming float format
-            
+
             # force return raw value for better precision
             val = int(val * 2**(self.n_frac))
             raw = True            
@@ -665,85 +675,145 @@ class Fxp():
         return y             
 
     def __add__(self, x):
-        x = self._convert_op_input_value(x)
-        return _add(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return _add(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __radd__ = __add__
 
     __iadd__ = __add__
 
     def __sub__(self, x):
-        x = self._convert_op_input_value(x)
-        return _sub(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return _sub(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     def __rsub__(self, x):
-        x = self._convert_op_input_value(x)
-        return _sub(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+            # _sizing = self.config.const_op_sizing if self.config.const_op_sizing != 'same' else 'same_y'
+        else:
+            _sizing = self.config.op_sizing
+
+        return _sub(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __isub__ = __sub__
 
     def __mul__(self, x):
-        x = self._convert_op_input_value(x)
-        return _mul(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return _mul(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __rmul__ = __mul__
 
     __imul__ = __mul__
 
     def __truediv__(self, x):
-        x = self._convert_op_input_value(x)
-        return _truediv(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return _truediv(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     def __rtruediv__(self, x):
-        x = self._convert_op_input_value(x)
-        return _truediv(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return _truediv(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __itruediv__ = __truediv__
 
     def __floordiv__(self, x):
-        x = self._convert_op_input_value(x)
-        return _floordiv(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return _floordiv(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     def __rfloordiv__(self, x):
-        x = self._convert_op_input_value(x)
-        return _floordiv(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return _floordiv(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __ifloordiv__ = __floordiv__
 
     def __mod__(self, x):
-        x = self._convert_op_input_value(x)
-        return _mod(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return _mod(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     def __rmod__(self, x):
-        x = self._convert_op_input_value(x)
-        return _mod(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=self.config.op_sizing, method=self.config.op_method)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return _mod(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __imod__ = __mod__
 
-    def __pow__(self, n):
-        if isinstance(n, Fxp):
-            n = n.get_val().item()
+    def __pow__(self, x):
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return _pow(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
+
+        # if isinstance(n, Fxp):
+        #     n = n.get_val().item()
         
-        if isinstance(n, int):
-            if n > 0:
-                n_int = self.n_int * n + 1
-                n_frac = self.n_frac * n
-            else:
-                n_int = n_frac = None # best sizes will be estimated
-        elif isinstance(n, float):
-            n_int = n_frac = None   # best sizes will be estimated
-        else:
-            raise TypeError('exponent type {} not supported'.format(str(type(n))))
+        # if isinstance(n, int):
+        #     if n > 0:
+        #         n_int = self.n_int * n + 1
+        #         n_frac = self.n_frac * n
+        #     else:
+        #         n_int = n_frac = None # best sizes will be estimated
+        # elif isinstance(n, float):
+        #     n_int = n_frac = None   # best sizes will be estimated
+        # else:
+        #     raise TypeError('exponent type {} not supported'.format(str(type(n))))
 
-        y = Fxp(self.get_val() ** n, signed=self.signed, n_int=n_int, n_frac=n_frac)
-        return y
+        # y = Fxp(self.get_val() ** n, signed=self.signed, n_int=n_int, n_frac=n_frac)
+        # return y
 
-    def __rpow__(self, x):
-        if isinstance(x, Fxp):
-            y = x**self
-        else:
-            y = Fxp(x ** self.get_val())
-        return y
+    __rpow__ = __pow__
+    # def __rpow__(self, x):
+    #     if isinstance(x, Fxp):
+    #         y = x**self
+    #     else:
+    #         y = Fxp(x ** self.get_val())
+    #     return y
 
     __ipow__ = __pow__
 
@@ -1105,13 +1175,16 @@ class Config():
         self.calc_method = kwargs.pop('calc_method', 'raw')
 
         # inputs
-        self.op_input_size = kwargs.pop('op_input_size', 'best')
+        self.op_input_size = kwargs.pop('op_input_size', 'same')
 
         # alu ops outpus
         self.op_out = kwargs.pop('op_out', None)
         self.op_out_like = kwargs.pop('op_out_like', None)
         self.op_sizing = kwargs.pop('op_sizing', 'optimal')
         self.op_method = kwargs.pop('op_method', 'raw')
+
+        # alu ops with a constant operand
+        self.const_op_sizing = kwargs.pop('const_op_sizing', 'same')
 
         # array ops
         self.array_output_type = kwargs.pop('array_output_type', 'fxp')
@@ -1252,6 +1325,22 @@ class Config():
         else:
             raise ValueError('op_method must be str type with following valid values: {}'.format(self._op_method_list))
 
+    # const_op_sizing
+    @property
+    def _const_op_sizing_list(self):
+        return ['optimal', 'same', 'fit', 'largest', 'smallest']
+
+    @property
+    def const_op_sizing(self):
+        return self._const_op_sizing
+    
+    @const_op_sizing.setter
+    def const_op_sizing(self, val):
+        if isinstance(val, str) and val in self._const_op_sizing_list:
+            self._const_op_sizing = val
+        else:
+            raise ValueError('op_sizing must be str type with following valid values: {}'.format(self._const_op_sizing_list))
+
     # array_output_type
     @property
     def _array_output_type_list(self):
@@ -1382,6 +1471,9 @@ def _add(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         elif sizing == 'same':
             n_int = x.n_int
             n_frac = x.n_frac
+        elif sizing == 'same_y':
+            n_int = y.n_int
+            n_frac = y.n_frac
         elif sizing == 'fit' and method == 'raw':
             n_int = None
             n_frac = max(x.n_frac, y.n_frac)
@@ -1457,6 +1549,9 @@ def _sub(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         elif sizing == 'same':
             n_int = x.n_int
             n_frac = x.n_frac
+        elif sizing == 'same_y':
+            n_int = y.n_int
+            n_frac = y.n_frac
         elif sizing == 'fit' and method == 'raw':
             n_int = None
             n_frac = max(x.n_frac, y.n_frac)
@@ -1532,6 +1627,9 @@ def _mul(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         elif sizing == 'same':
             n_word = x.n_word
             n_frac = x.n_frac
+        elif sizing == 'same_y':
+            n_word = y.n_word
+            n_frac = y.n_frac
         elif sizing == 'fit' and method == 'raw':
             n_word = None
             n_frac = max(x.n_frac, y.n_frac)
@@ -1566,7 +1664,7 @@ def _floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         y = Fxp(y)
 
     def _floordiv_raw(x, y, n_frac):
-        return (utils.int_array(x.val) * 2**(n_frac - x.n_frac + y.n_frac)) // utils.int_array(y.val)
+        return ((utils.int_array(x.val) * 2**(n_frac - x.n_frac)) // (utils.int_array(y.val) * 2**(n_frac - y.n_frac))) * 2**n_frac
 
     signed = x.signed or y.signed
 
@@ -1607,6 +1705,9 @@ def _floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         elif sizing == 'same':
             n_int = x.n_int
             n_frac = x.n_frac
+        elif sizing == 'same_y':
+            n_int = y.n_int
+            n_frac = y.n_frac
         elif sizing == 'fit' and method == 'raw':
             n_int = None
             n_frac = max(x.n_frac, y.n_frac)
@@ -1682,6 +1783,9 @@ def _truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         elif sizing == 'same':
             n_int = x.n_int
             n_frac = x.n_frac
+        elif sizing == 'same_y':
+            n_int = y.n_int
+            n_frac = y.n_frac
         elif sizing == 'fit' and method == 'raw':
             n_int = None
             n_frac = max(x.n_frac, y.n_frac)
@@ -1757,6 +1861,9 @@ def _mod(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         elif sizing == 'same':
             n_int = x.n_int
             n_frac = x.n_frac
+        elif sizing == 'same_y':
+            n_int = y.n_int
+            n_frac = y.n_frac
         elif sizing == 'fit' and method == 'raw':
             n_int = None
             n_frac = max(x.n_frac, y.n_frac)
@@ -1776,6 +1883,134 @@ def _mod(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
             z = Fxp(_mod_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
         elif method == 'repr':
             z = Fxp(x() % y(), signed=signed, n_int=n_int, n_frac=n_frac)
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+    
+    return z
+
+@implements(np.power)
+def _pow(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
+    """
+    """
+    if not isinstance(x, Fxp):
+        x = Fxp(x)
+    if not isinstance(y, Fxp):
+        y = Fxp(y)
+
+    def _pow_raw(x, y, n_frac):
+
+        def _power(x, y, n_frac):
+            x_raw = int(x.val)
+            y_raw = int(y.val)
+            y_conv_factor = 2**y.n_frac
+            _sign = 1
+
+            if y_raw > 0:
+                p1 = (n_frac*y_conv_factor - y_raw*x.n_frac)
+                if p1 >= 0:
+                   z = (x_raw**y_raw) * (2**p1)
+                else:
+                    z = (x_raw**y_raw) // (2**(-p1))
+            elif y_raw < 0:
+                z = (2**(n_frac*y_conv_factor - y_raw*x.n_frac)) // (x_raw**(-1*y_raw))
+            else:
+                z = 2**n_frac
+                y_conv_factor = 1 # force y_conv_factor
+            
+            if y_conv_factor != 1 and z != 0:
+                z = z ** Decimal(1/y_conv_factor)
+                _sign = int((x_raw/abs(x_raw))**(y_raw/y_conv_factor))
+
+            return _sign*int(z)
+
+        if x.ndim == 0 and y.ndim == 0:
+            return _power(x, y, n_frac)
+        elif x.ndim == 0:
+            return utils.int_array([_power(x, yi, n_frac) for yi in y])
+        elif y.ndim == 0:
+            return utils.int_array([_power(xi, y, n_frac) for xi in x])
+        elif x.shape == y.shape:
+            return utils.int_array([_power(xi, yi, n_frac) for xi, yi in zip(x.flatten(), y.flatten())]).reshape(x.shape)
+        else:
+            raise ValueError('base and power must be same dimensions!')        
+
+    signed = x.signed or y.signed
+
+    if out is not None:
+        if isinstance(out, tuple):
+            out = out[0] # recover only firts element
+        if not isinstance(out, Fxp):
+            raise TypeError('`out` must be a Fxp object!')
+        if not out.signed and signed:
+            raise ValueError('Signed addition can not be stored in unsigned `out` object!')
+
+        if method == 'raw':
+            n_frac = out.n_frac
+            z = out.set_val(_pow_raw(x, y, n_frac), raw=True)
+        elif method == 'repr':
+            z = out.set_val(x() * y())
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+
+    elif out_like is not None:
+        if not isinstance(out_like, Fxp):
+            raise TypeError('`out_like` must be a Fxp object!')
+        if not out_like.signed and signed:
+            raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
+
+        if method == 'raw':
+            n_frac = out_like.n_frac
+            z = Fxp(_pow_raw(x, y, n_frac), raw=True, like=out_like)
+        elif method == 'repr':
+            z = Fxp(x() * y(), like=out_like)
+        else:
+            raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
+
+    else:
+        if sizing == 'optimal':
+            if y.n_frac == 0:
+                if y.size == 1 and y.val >= 0:
+                    # non-negative integer exponent
+                    n_int = int(x.n_int * y.val + 1)
+                    n_frac = int(x.n_frac * y.val)
+                elif y.size > 1 and np.all(y.val >= 0):
+                    # array of non-negative integer exponents
+                    n_int = int(x.n_int * np.max(y.val) + 1)
+                    n_frac = int(x.n_frac * np.max(y.val))
+                else:
+                    # negative integer exponent
+                    n_int = n_frac = None # best sizes will be estimated
+            else:
+                # float exponent
+                n_int = n_frac = None   # best sizes will be estimated
+        elif sizing == 'same':
+            n_int = x.n_int
+            n_frac = x.n_frac
+        elif sizing == 'same_y':
+            n_int = y.n_int
+            n_frac = y.n_frac
+        elif sizing == 'fit' and method == 'raw':
+            n_int = None
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'fit' and method == 'repr':
+            n_int = None
+            n_frac = None
+        elif sizing == 'largest':
+            n_int = max(x.n_int, y.n_int)
+            n_frac = max(x.n_frac, y.n_frac)
+        elif sizing == 'smallest':
+            n_int = min(x.n_int, y.n_int)
+            n_frac = min(x.n_frac, y.n_frac)
+        else:
+            raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
+
+        if method == 'raw':
+            if n_frac is not None:
+                z = Fxp(_pow_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
+            else:
+                z = Fxp(x() ** y(), signed=signed, n_int=n_int, n_frac=n_frac)
+        elif method == 'repr':
+            z = Fxp(x() ** y(), signed=signed, n_int=n_int, n_frac=n_frac)
         else:
             raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
     

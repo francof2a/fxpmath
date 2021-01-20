@@ -60,7 +60,7 @@ def test_issue_15_v0_3_7():
 
 def test_issue_17_v0_3_7():
     a = Fxp(15, signed=False)
-    b = a ** 2
+    b = a ** Fxp(2)
 
     assert b() == 15**2
 
