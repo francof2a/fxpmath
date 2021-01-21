@@ -155,6 +155,9 @@ class Fxp():
         # size
         if not _initialized:
             self._init_size(val, signed, n_word, n_frac, n_int, max_error=self.config.max_error, n_word_max=self.config.n_word_max, raw=raw)
+        else:
+            # overwrite with other sizes if some are not None
+            self.resize(signed, n_word, n_frac, n_int)
 
         # store the value
         self.set_val(val, raw=raw)
