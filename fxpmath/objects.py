@@ -105,6 +105,7 @@ class Fxp():
         self.precision = None
         #status
         self.status = None
+        self.callbacks = None
         #config
         self.config = None
 
@@ -137,6 +138,9 @@ class Fxp():
             'overflow': False,
             'underflow': False,
             'inaccuracy': False}
+
+        # callbacks
+        if self.callbacks is None: self.callbacks = kwargs.pop('callbacks', [])
         
         # config
         self.config = Config(**kwargs)
@@ -522,6 +526,10 @@ class Fxp():
         # check inaccuracy
         if not np.equal(val, new_val/conv_factor).all() :
             self.status['inaccuracy'] = True
+            self._run_callbacks('on_status_inaccuracy')
+
+        # run changed value callback
+        self._run_callbacks('on_value_change')
 
         return self
 
@@ -570,8 +578,10 @@ class Fxp():
     def _overflow_action(self, new_val, val_min, val_max):
         if np.any(new_val > val_max):
             self.status['overflow'] = True
+            self._run_callbacks('on_status_overflow')
         if np.any(new_val < val_min):
             self.status['underflow'] = True
+            self._run_callbacks('on_status_underflow')
         
         if self.config.overflow == 'saturate':
             val = utils.clip(new_val, val_min, val_max)
@@ -597,6 +607,11 @@ class Fxp():
         else:
             raise ValueError('<{}> rounding method not valid!')
         return rval
+
+    def _run_callbacks(self, method):
+        if self.callbacks:
+            for cb in self.callbacks:
+                if hasattr(cb, method): getattr(cb, method)(self)
 
     # overloadings
 
