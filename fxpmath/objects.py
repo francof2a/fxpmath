@@ -590,6 +590,8 @@ class Fxp():
             val = utils.clip(new_val, val_min, val_max)
         elif self.config.overflow == 'wrap':
             val = utils.wrap(new_val, self.signed, self.n_word)
+        else:
+            raise ValueError('{} is not a valid config for overflow!'.format(self.config.overflow))
         return val
 
     def _round(self, val, method='floor'):
@@ -678,7 +680,7 @@ class Fxp():
         else:
             return out_arr
 
-    def __array_prepare__(self, context=None):
+    def __array_prepare__(self, context=None, *args, **kwargs):
         if self.config.array_op_method == 'raw':
             return np.asarray(self.val, *args, **kwargs)
         else:
