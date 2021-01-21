@@ -790,30 +790,7 @@ class Fxp():
 
         return _pow(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
-        # if isinstance(n, Fxp):
-        #     n = n.get_val().item()
-        
-        # if isinstance(n, int):
-        #     if n > 0:
-        #         n_int = self.n_int * n + 1
-        #         n_frac = self.n_frac * n
-        #     else:
-        #         n_int = n_frac = None # best sizes will be estimated
-        # elif isinstance(n, float):
-        #     n_int = n_frac = None   # best sizes will be estimated
-        # else:
-        #     raise TypeError('exponent type {} not supported'.format(str(type(n))))
-
-        # y = Fxp(self.get_val() ** n, signed=self.signed, n_int=n_int, n_frac=n_frac)
-        # return y
-
     __rpow__ = __pow__
-    # def __rpow__(self, x):
-    #     if isinstance(x, Fxp):
-    #         y = x**self
-    #     else:
-    #         y = Fxp(x ** self.get_val())
-    #     return y
 
     __ipow__ = __pow__
 
@@ -1897,22 +1874,23 @@ def _pow(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
     if not isinstance(y, Fxp):
         y = Fxp(y)
 
-    def _pow_raw(x, y, n_frac):
+    def _pow_raw(x, y, n_frac): 
 
-        def _power(x, y, n_frac):
-            x_raw = int(x.val)
-            y_raw = int(y.val)
-            y_conv_factor = 2**y.n_frac
+        @np.vectorize
+        def _power(x, y, x_n_frac, y_n_frac, n_frac):
+            x_raw = int(x)
+            y_raw = int(y)
+            y_conv_factor = 2**y_n_frac
             _sign = 1
 
             if y_raw > 0:
-                p1 = (n_frac*y_conv_factor - y_raw*x.n_frac)
+                p1 = int(n_frac*y_conv_factor - y_raw*x_n_frac)
                 if p1 >= 0:
-                   z = (x_raw**y_raw) * (2**p1)
+                    z = (x_raw**y_raw) * (2**p1)
                 else:
                     z = (x_raw**y_raw) // (2**(-p1))
             elif y_raw < 0:
-                z = (2**(n_frac*y_conv_factor - y_raw*x.n_frac)) // (x_raw**(-1*y_raw))
+                z = (2**(n_frac*y_conv_factor - y_raw*x_n_frac)) // (x_raw**(-1*y_raw))
             else:
                 z = 2**n_frac
                 y_conv_factor = 1 # force y_conv_factor
@@ -1923,16 +1901,7 @@ def _pow(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
 
             return _sign*int(z)
 
-        if x.ndim == 0 and y.ndim == 0:
-            return _power(x, y, n_frac)
-        elif x.ndim == 0:
-            return utils.int_array([_power(x, yi, n_frac) for yi in y])
-        elif y.ndim == 0:
-            return utils.int_array([_power(xi, y, n_frac) for xi in x])
-        elif x.shape == y.shape:
-            return utils.int_array([_power(xi, yi, n_frac) for xi, yi in zip(x.flatten(), y.flatten())]).reshape(x.shape)
-        else:
-            raise ValueError('base and power must be same dimensions!')        
+        return _power(x.val, y.val, x.n_frac, y.n_frac, n_frac)   
 
     signed = x.signed or y.signed
 
