@@ -232,6 +232,9 @@ class Fxp():
             self.resize(self.signed, n_word, n_frac, n_int)
 
     def resize(self, signed=None, n_word=None, n_frac=None, n_int=None, restore_val=True):
+        _old_val = self.val
+        _old_n_frac = self.n_frac
+
         # n_int defined:
         if n_word is None and n_frac is not None and n_int is not None:
             n_word = n_int + n_frac + (1 if self.signed else 0)
@@ -274,8 +277,10 @@ class Fxp():
             self.precision = self.scale * self.precision
 
         # re store the value
-        if restore_val:
-            self.set_val(self.get_val())
+        if restore_val and _old_val is not None and self.n_frac is not None:
+            self.set_val(_old_val * 2**(self.n_frac - _old_n_frac), raw=True)
+        else:
+            self.set_val(_old_val, raw=True)
     
     def set_best_sizes(self, val=None, n_word=None, n_frac=None, max_error=1.0e-6, n_word_max=64, raw=False):
 
