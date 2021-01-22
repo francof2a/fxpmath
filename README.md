@@ -1,6 +1,7 @@
+
 <img src="./docs/figs/fxpmath_logotipo.png" width="300">
 
-A python library for fractional fixed-point (base 2) arithmetic and binary manipulation.
+A python library for fractional fixed-point (base 2) arithmetic and binary manipulation with Numpy support.
 
 Some key features:
 
@@ -71,6 +72,13 @@ Or you can clone the repository doing in your console:
 git clone https://github.com/francof2a/fxpmath.git
 ```
 
+and then go to the fxpmath folder and install it:
+
+```bash
+cd fxpmath
+pip install .
+```
+
 ## quick start
 
 ### creation
@@ -82,7 +90,6 @@ from fxpmath import Fxp
 
 x = Fxp(-7.25)      # create fxp variable with value 7.25
 x.info()
-```
 
 > dtype           =       fxp-s6/2  
 > Value           =       -7.25  
@@ -120,7 +127,7 @@ x.info(verbose=3)
 > Word bits       =       16  
 > Fract bits      =       8  
 > Int bits        =       7  
-> Val data type   =       float64  
+> Val data type   =       <class 'float'>  
 >  
 > Upper           =       127.99609375  
 > Lower           =       -128.0  
@@ -137,7 +144,7 @@ We can representate the value stored en `x` in several ways:
 x
 ```
 
-> -7.25  
+> fxp-s16/8(-7.25)  
 
 ```python
 x.get_val()     # return a Numpy array with the val/values in original data type representation
@@ -504,7 +511,7 @@ x.info(3)
 > Word bits       =       12  
 > Fract bits      =       1  
 > Int bits        =       11  
-> Val data type   =       float64  
+> Val data type   =       <class 'float'>  
 >  
 > Upper           =       12047.5  
 > Lower           =       10000.0  
