@@ -285,7 +285,10 @@ class Fxp():
 
         # re store the value
         if restore_val and _old_val is not None and self.n_frac is not None:
-            self.set_val(_old_val * 2**(self.n_frac - _old_n_frac), raw=True)
+            if self.scaled:
+                self.set_val((_old_val / 2**_old_n_frac) * self.scale + self.bias)
+            else:
+                self.set_val(_old_val * 2**(self.n_frac - _old_n_frac), raw=True)
         else:
             self.set_val(_old_val, raw=True)
     
@@ -1444,7 +1447,9 @@ def _add(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = out.set_val(x() + y())          
+        elif method == 'raw':
             n_frac = out.n_frac
             z = out.set_val(_add_raw(x, y, n_frac), raw=True)
         elif method == 'repr':
@@ -1458,7 +1463,9 @@ def _add(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out_like.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = Fxp(x() + y(), like=out_like)           
+        elif method == 'raw':
             n_frac = out_like.n_frac
             z = Fxp(_add_raw(x, y, n_frac), raw=True, like=out_like)
         elif method == 'repr':
@@ -1491,7 +1498,10 @@ def _add(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         else:
             raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            like = y if sizing == 'same_y' else x
+            z = Fxp(x() + y(), signed=signed, n_int=n_int, n_frac=n_frac, like=like)
+        elif method == 'raw':
             z = Fxp(_add_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
         elif method == 'repr':
             z = Fxp(x() + y(), signed=signed, n_int=n_int, n_frac=n_frac)
@@ -1522,7 +1532,9 @@ def _sub(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = out.set_val(x() - y())          
+        elif method == 'raw':
             n_frac = out.n_frac
             z = out.set_val(_sub_raw(x, y, n_frac), raw=True)
         elif method == 'repr':
@@ -1536,7 +1548,9 @@ def _sub(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out_like.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = Fxp(x() - y(), like=out_like)           
+        elif method == 'raw':
             n_frac = out_like.n_frac
             z = Fxp(_sub_raw(x, y, n_frac), raw=True, like=out_like)
         elif method == 'repr':
@@ -1569,7 +1583,10 @@ def _sub(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         else:
             raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            like = y if sizing == 'same_y' else x
+            z = Fxp(x() - y(), signed=signed, n_int=n_int, n_frac=n_frac, like=like)
+        elif method == 'raw':
             z = Fxp(_sub_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
         elif method == 'repr':
             z = Fxp(x() - y(), signed=signed, n_int=n_int, n_frac=n_frac)
@@ -1600,7 +1617,9 @@ def _mul(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = out.set_val(x() * y())          
+        elif method == 'raw':
             n_frac = out.n_frac
             z = out.set_val(_mul_raw(x, y, n_frac), raw=True)
         elif method == 'repr':
@@ -1614,7 +1633,9 @@ def _mul(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out_like.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = Fxp(x() * y(), like=out_like)           
+        elif method == 'raw':
             n_frac = out_like.n_frac
             z = Fxp(_mul_raw(x, y, n_frac), raw=True, like=out_like)
         elif method == 'repr':
@@ -1647,7 +1668,10 @@ def _mul(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         else:
             raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            like = y if sizing == 'same_y' else x
+            z = Fxp(x() * y(), signed=signed, n_word=n_word, n_frac=n_frac, like=like)
+        elif method == 'raw':
             z = Fxp(_mul_raw(x, y, n_frac), signed=signed, n_word=n_word, n_frac=n_frac, raw=True)
         elif method == 'repr':
             z = Fxp(x() * y(), signed=signed, n_word=n_word, n_frac=n_frac)
@@ -1678,7 +1702,9 @@ def _floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = out.set_val(x() // y())          
+        elif method == 'raw':
             n_frac = out.n_frac
             z = out.set_val(_floordiv_raw(x, y, n_frac), raw=True)
         elif method == 'repr':
@@ -1692,7 +1718,9 @@ def _floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out_like.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = Fxp(x() // y(), like=out_like)           
+        elif method == 'raw':
             n_frac = out_like.n_frac
             z = Fxp(_floordiv_raw(x, y, n_frac), raw=True, like=out_like)
         elif method == 'repr':
@@ -1725,7 +1753,10 @@ def _floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         else:
             raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            like = y if sizing == 'same_y' else x
+            z = Fxp(x() // y(), signed=signed, n_int=n_int, n_frac=n_frac, like=like)
+        elif method == 'raw':
             z = Fxp(_floordiv_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
         elif method == 'repr':
             z = Fxp(x() // y(), signed=signed, n_int=n_int, n_frac=n_frac)
@@ -1756,7 +1787,9 @@ def _truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = out.set_val(x() / y())          
+        elif method == 'raw':
             n_frac = out.n_frac
             z = out.set_val(_truediv_raw(x, y, n_frac), raw=True)
         elif method == 'repr':
@@ -1770,7 +1803,9 @@ def _truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out_like.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = Fxp(x() / y(), like=out_like)           
+        elif method == 'raw':
             n_frac = out_like.n_frac
             z = Fxp(_truediv_raw(x, y, n_frac), raw=True, like=out_like)
         elif method == 'repr':
@@ -1803,7 +1838,10 @@ def _truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         else:
             raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            like = y if sizing == 'same_y' else x
+            z = Fxp(x() / y(), signed=signed, n_int=n_int, n_frac=n_frac, like=like)
+        elif method == 'raw':
             z = Fxp(_truediv_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
         elif method == 'repr':
             z = Fxp(x() / y(), signed=signed, n_int=n_int, n_frac=n_frac)
@@ -1834,7 +1872,9 @@ def _mod(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = out.set_val(x() % y())          
+        elif method == 'raw':
             n_frac = out.n_frac
             z = out.set_val(_mod_raw(x, y, n_frac), raw=True)
         elif method == 'repr':
@@ -1848,7 +1888,9 @@ def _mod(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out_like.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = Fxp(x() % y(), like=out_like)           
+        elif method == 'raw':
             n_frac = out_like.n_frac
             z = Fxp(_mod_raw(x, y, n_frac), raw=True, like=out_like)
         elif method == 'repr':
@@ -1881,7 +1923,10 @@ def _mod(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         else:
             raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            like = y if sizing == 'same_y' else x
+            z = Fxp(x() % y(), signed=signed, n_int=n_int, n_frac=n_frac, like=like)
+        elif method == 'raw':
             z = Fxp(_mod_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
         elif method == 'repr':
             z = Fxp(x() % y(), signed=signed, n_int=n_int, n_frac=n_frac)
@@ -1938,11 +1983,13 @@ def _pow(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = out.set_val(x() ** y())          
+        elif method == 'raw':
             n_frac = out.n_frac
             z = out.set_val(_pow_raw(x, y, n_frac), raw=True)
         elif method == 'repr':
-            z = out.set_val(x() * y())
+            z = out.set_val(x() ** y())
         else:
             raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
 
@@ -1952,11 +1999,13 @@ def _pow(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         if not out_like.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out_like` object!')
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            z = Fxp(x() ** y(), like=out_like)           
+        elif method == 'raw':
             n_frac = out_like.n_frac
             z = Fxp(_pow_raw(x, y, n_frac), raw=True, like=out_like)
         elif method == 'repr':
-            z = Fxp(x() * y(), like=out_like)
+            z = Fxp(x() ** y(), like=out_like)
         else:
             raise ValueError('method {} is not valid. Valid methods: raw, repr'.format(method))
 
@@ -1998,7 +2047,10 @@ def _pow(x, y, out=None, out_like=None, sizing='optimal', method='raw'):
         else:
             raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))  
 
-        if method == 'raw':
+        if x.scaled or y.scaled:
+            like = y if sizing == 'same_y' else x
+            z = Fxp(x() ** y(), signed=signed, n_int=n_int, n_frac=n_frac, like=like)
+        elif method == 'raw':
             if n_frac is not None:
                 z = Fxp(_pow_raw(x, y, n_frac), signed=signed, n_int=n_int, n_frac=n_frac, raw=True)
             else:

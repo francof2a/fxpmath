@@ -411,4 +411,12 @@ def test_pow():
     x_vals.config.op_sizing = 'same'
     assert ((x_vals**p_vals)() == np.power(v_vals, n_vals)).all()
 
+def test_scaled():
+    x = Fxp(10.5, True, 16, 8, scale=2, bias=1)
 
+    assert x() == 10.5
+    
+    assert x + 2 == 12.5
+    assert x - 2.5 == 8.0
+    assert x * 3 == 31.5
+    assert x / 2 == 5.25
