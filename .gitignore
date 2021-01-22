@@ -150,5 +150,7 @@ results/*
 # misc
 todo
 scripts/
-
+info/
+temp.py
+dev_*
 
