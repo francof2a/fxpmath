@@ -151,10 +151,10 @@ results/*
 todo
 scripts/
 info/
-dev_info.txt
-tests/test_temp.py
-tests/temp.py
-fxpmath/temp.py
 
+tests/test_temp.py
 docs/figs/*.svg
+temp.py
+dev_*
+
 

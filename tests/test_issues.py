@@ -107,3 +107,4 @@ def test_issue_21_v0_3_8():
     fb = Fxp([0, 1, 0])
     z = np.inner(fa, fb)
     assert (np.inner(fa, fb)() == np.inner(a, b)).all()
+
