@@ -35,8 +35,16 @@ SOFTWARE.
 #%% 
 import numpy as np 
 import copy
+
 from . import utils
 from . import _n_word_max, _max_error
+
+_NUMPY_HANDLED_FUNCTIONS = {}
+
+try:
+    from decimal import Decimal
+except:
+    Decimal = type(None)
 
 #%%
 class Fxp():
@@ -64,12 +72,18 @@ class Fxp():
         Number of bits for integer part.
         If None, best word size is calculated according input value(s) and other sizes defined.
 
+    like : Fxp, optional, default=None
+        Init new Fxp object using all parameters of `like` Fxp object, except its value.
+
     **kwargs : alternative keywords parameters.
     '''
-    def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, **kwargs):
+
+    template = None
+
+    def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, like=None, **kwargs):
 
         # Init all properties in None
-        self.dtype = 'fxp' # fxp-<sign><n_word>/<n_frac>-{complex}. i.e.: fxp-s16/15, fxp-u8/1, fxp-s32/24-complex
+        self._dtype = 'fxp' # fxp-<sign><n_word>/<n_frac>-{complex}. i.e.: fxp-s16/15, fxp-u8/1, fxp-s32/24-complex
         # value
         self.vdtype = None # value(s) dtype to return as default
         self.val = None
@@ -91,51 +105,121 @@ class Fxp():
         self.precision = None
         #status
         self.status = None
-        # behavior
-        self.overflow = None
-        self.rounding = None
-        self.shifting = None
-        # size
-        max_error = None
-        n_word_max = None
+        self.callbacks = None
+        #config
+        self.config = None
 
+        _initialized = False
         # ---
 
+        # if `template` is in kwarg, the reference template is updated
+        if 'template' in kwargs: self.template = kwargs.pop('template')
+
         # check if init must be a `like` other Fxp
-        init_like = kwargs.pop('like', None) 
-        if init_like is not None:
-            if isinstance(init_like, Fxp):
-                self.__dict__ = copy.deepcopy(init_like.__dict__)
+        if like is not None:
+            if isinstance(like, Fxp):
+                self.__dict__ = copy.deepcopy(like.__dict__)
                 self.val = None
                 self.real = None
                 self.imag = None
+                _initialized = True
+
+        elif self.template is not None:
+            # init must be a `like` template Fxp
+            if isinstance(self.template, Fxp):
+                self.__dict__ = copy.deepcopy(self.template.__dict__)
+                self.val = None
+                self.real = None
+                self.imag = None
+                _initialized = True
 
         #status (overwrite)
         self.status = {
             'overflow': False,
             'underflow': False,
             'inaccuracy': False}
+
+        # callbacks
+        if self.callbacks is None: self.callbacks = kwargs.pop('callbacks', [])
+        
+        # config
+        self.config = Config(**kwargs)
+
         # scaling
         if self.scale is None: self.scale = kwargs.pop('scale', 1)
         if self.bias is None: self.bias = kwargs.pop('bias', 0)
-        # behavior
-        if self.overflow is None: self.overflow = kwargs.pop('overflow', 'saturate')
-        if self.rounding is None: self.rounding = kwargs.pop('rounding', 'trunc')
-        if self.shifting is None: self.shifting = kwargs.pop('shifting', 'expand')
+
         # check if val is a raw value
         if raw is None: raw = kwargs.pop('raw', False)
+
         # size
-        if init_like is None:
-            if max_error is None: max_error = kwargs.pop('max_error', _max_error)
-            if n_word_max is None: n_word_max = kwargs.pop('n_word_max', _n_word_max)
-            self._init_size(val, signed, n_word, n_frac, n_int, max_error=max_error, n_word_max=n_word_max)
+        if not _initialized:
+            self._init_size(val, signed, n_word, n_frac, n_int, max_error=self.config.max_error, n_word_max=self.config.n_word_max, raw=raw)
+        else:
+            # overwrite with other sizes if some are not None
+            self.resize(signed, n_word, n_frac, n_int)
 
         # store the value
         self.set_val(val, raw=raw)
 
+    # ---
+    # Properties
+    # ---
+    # region
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    # overflow (mirror of config for compatibility)
+    @property
+    def overflow(self):
+        return self.config.overflow
+    
+    @overflow.setter
+    def overflow(self, val):
+        self.config.overflow = val
+
+    # rounding (mirror of config for compatibility)
+    @property
+    def rounding(self):
+        return self.config.rounding
+    
+    @rounding.setter
+    def rounding(self, val):
+        self.config.rounding = val
+
+    # shifting (mirror of config for compatibility)
+    @property
+    def shifting(self):
+        return self.config.shifting
+    
+    @shifting.setter
+    def shifting(self, val):
+        self.config.shifting = val
+
+    @property
+    def shape(self):
+        return self.val.shape
+
+    @property
+    def ndim(self):
+        return self.val.ndim
+
+    @property
+    def size(self):
+        return self.val.size
+
+
+    # endregion
+
+    # ---
+    # Methods
+    # ---
+    # region
 
     # methods about size
-    def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=_max_error, n_word_max=_n_word_max):
+    def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=_max_error, n_word_max=_n_word_max, raw=False):
         # sign by default
         if signed is None:
             self.signed = True
@@ -150,12 +234,14 @@ class Fxp():
 
         # check if I must find the best size for val
         if n_word is None or n_frac is None:
-            self.set_best_sizes(val, n_word, n_frac, max_error=max_error, n_word_max=n_word_max)
+            self.set_best_sizes(val, n_word, n_frac, max_error=max_error, n_word_max=n_word_max, raw=raw)
         else:
             self.resize(self.signed, n_word, n_frac, n_int)
 
-
     def resize(self, signed=None, n_word=None, n_frac=None, n_int=None, restore_val=True):
+        _old_val = self.val
+        _old_n_frac = self.n_frac
+
         # n_int defined:
         if n_word is None and n_frac is not None and n_int is not None:
             n_word = n_int + n_frac + (1 if self.signed else 0)
@@ -198,10 +284,15 @@ class Fxp():
             self.precision = self.scale * self.precision
 
         # re store the value
-        if restore_val:
-            self.set_val(self.get_val())
+        if restore_val and _old_val is not None and self.n_frac is not None:
+            if self.scaled:
+                self.set_val((_old_val / 2**_old_n_frac) * self.scale + self.bias)
+            else:
+                self.set_val(_old_val * 2**(self.n_frac - _old_n_frac), raw=True)
+        else:
+            self.set_val(_old_val, raw=True)
     
-    def set_best_sizes(self, val=None, n_word=None, n_frac=None, max_error=1.0e-6, n_word_max=64):
+    def set_best_sizes(self, val=None, n_word=None, n_frac=None, max_error=1.0e-6, n_word_max=64, raw=False):
 
         if val is None:
             if n_word is None and n_frac is None:
@@ -223,8 +314,15 @@ class Fxp():
             self.n_frac = n_frac
             
             # if val is a str(s), convert to number(s)
-            val, _, signed, n_word, n_frac = self._format_inupt_val(val, return_sizes=True)
+            val, _, raw, signed, n_word, n_frac = self._format_inupt_val(val, return_sizes=True, raw=raw)
             val = np.array([val])
+
+            # if val is raw
+            if raw:
+                if self.n_frac is not None:
+                    val = val / self._get_conv_factor()
+                else:
+                    raise ValueError('for raw value, `n_frac` must be defined!')
 
             # check if val is complex, if it is: convert to array of float/int
             if np.iscomplexobj(val):
@@ -271,24 +369,43 @@ class Fxp():
         self.n_word = int(min(self.n_word, n_word_max))
         self.resize(restore_val=False)
 
+    def reshape(self, shape):
+        self.val = self.val.reshape(shape)
+        return self
+    
+    def flatten(self, **kwargs):
+        x = self.copy()
+        x.val = x.val.flatten(**kwargs)
+        return x
+
     # methods about value
 
     def _format_inupt_val(self, val, return_sizes=False, raw=False):
         vdtype = None
+        signed = self.signed
+        n_word = self.n_word
+        n_frac = self.n_frac
 
         if val is None:
             val = 0
-            vdtype = int
+            vdtype = int    
 
-        # if val is an Fxp object
-        if isinstance(val, Fxp):
+        elif isinstance(val, Fxp):
+            # if val is an Fxp object
             vdtype = val.vdtype
-            val = val()     # extract values
-        elif isinstance(val, (int, float)):
+            # if some of signed, n_word, n_frac is not defined, they are copied from val
+            if self.signed is None: self.signed = val.signed
+            if self.n_word is None: self.n_word = val.n_word
+            if self.n_frac is None: self.n_frac = val.n_frac
+            # force return raw value for better precision
+            val = val.val * 2**(self.n_frac - val.n_frac)
+            raw = True
+
+        elif isinstance(val, (int, float, complex)):
             vdtype = type(val)
-            # convert to (numpy) ndarray
-            val = np.array(val)
+
         elif isinstance(val, (np.ndarray, np.generic)):
+            vdtype = val.dtype
             try:
                 if isinstance(val, np.float128):
                     val = np.array(float(val))
@@ -296,12 +413,23 @@ class Fxp():
                 # by now it is just an extra test, not critical
                 pass
 
-        # if val is a str(s), convert to number(s)
-        if not raw:
-            val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
+        elif isinstance(val, (list, tuple, str)):
+            # if val is a str(s), convert to number(s)
+            if not raw:
+                val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
+            else:
+                val, signed, n_word, _ = utils.str2num(val, self.signed, self.n_word, None, return_sizes=True)
+                n_frac = self.n_frac
+
+        elif isinstance(val, Decimal):
+            vdtype = float            # assuming float format
+
+            # force return raw value for better precision
+            val = int(val * 2**(self.n_frac))
+            raw = True            
+
         else:
-            val, signed, n_word, _ = utils.str2num(val, self.signed, self.n_word, None, return_sizes=True)
-            n_frac = self.n_frac
+            raise ValueError('Not supported input type: {}'.format(type(val)))
 
         # convert to (numpy) ndarray
         val = np.array(val)
@@ -317,17 +445,23 @@ class Fxp():
                 val = (val - self.bias) / self.scale
 
         if return_sizes:
-            return val, vdtype, signed, n_word, n_frac
+            return val, vdtype, raw, signed, n_word, n_frac
         else:
-            return val, vdtype
+            return val, vdtype, raw
+
+    def _get_conv_factor(self, raw=False):
+        if raw:
+            conv_factor = 1
+        elif self.n_frac >= 0:
+            conv_factor = 1<<self.n_frac
+        else:
+            conv_factor = 1/(1<<-self.n_frac)
+
+        return conv_factor
 
     def set_val(self, val, raw=False, vdtype=None, index=None):
         # convert input value to valid format
-        val, original_vdtype = self._format_inupt_val(val, raw=raw)
-
-        # check if val overflow max int possible
-        # if val.dtype == 'O':
-        #     raise OverflowError('Integer value too large to convert to C long')
+        val, original_vdtype, raw = self._format_inupt_val(val, raw=raw)
 
         if self.signed:
             val_max = (1 << (self.n_word-1)) - 1
@@ -339,51 +473,49 @@ class Fxp():
             val_dtype = np.uint64
 
         if self.n_word > _n_word_max:
-            val_dtype = np.array(2**_n_word_max).dtype
+            val_dtype = np.array(1<<_n_word_max).dtype
 
         # conversion factor
-        if raw:
-            conv_factor = 1
-        else:
-            conv_factor = int(2**self.n_frac)
+        conv_factor = self._get_conv_factor(raw)
 
         # round, saturate and store
         if val.dtype != complex:
-            new_val = self._round(val * conv_factor , method=self.rounding)
+            new_val = self._round(val * conv_factor , method=self.config.rounding)
             new_val = self._overflow_action(new_val, val_min, val_max)
+
             if np.issubdtype(val_dtype, np.integer):
                 new_val = new_val.astype(val_dtype)
-
-            # if new_val.ndim == 0: new_val = new_val.item() # convert 0-dim array to scalar
             
             if index is not None:
                 self.val[index] = new_val
             else:
                 self.val = new_val
+
             self.real = self.get_val()
             self.imag = 0
+
         else:
-            new_val_real = self._round(val.real * conv_factor, method=self.rounding)
-            new_val_imag = self._round(val.imag * conv_factor, method=self.rounding)
+            new_val_real = self._round(val.real * conv_factor, method=self.config.rounding)
+            new_val_imag = self._round(val.imag * conv_factor, method=self.config.rounding)
             new_val_real = self._overflow_action(new_val_real, val_min, val_max)
             new_val_imag = self._overflow_action(new_val_imag, val_min, val_max)
+
             if np.issubdtype(val_dtype, np.integer):
                 new_val_real = new_val_real.astype(val_dtype)
                 new_val_imag = new_val_imag.astype(val_dtype)
                 
             new_val = new_val_real + 1j * new_val_imag
 
-            # if new_val.ndim == 0: new_val = new_val.item() # convert 0-dim array to scalar
-
             if index is not None:
                 self.val[index] = new_val
             else:
-                self.val = new_val          
+                self.val = new_val
+
             self.real = self.astype(complex).real
             self.imag = self.astype(complex).imag
 
         # dtype
-        self.dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
+        self._dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
                                                              nword=self.n_word, 
                                                              nfrac=self.n_frac, 
                                                              comp='-complex' if val.dtype == complex else '')
@@ -400,22 +532,33 @@ class Fxp():
         # check inaccuracy
         if not np.equal(val, new_val/conv_factor).all() :
             self.status['inaccuracy'] = True
+            self._run_callbacks('on_status_inaccuracy')
+
+        # run changed value callback
+        self._run_callbacks('on_value_change')
 
         return self
 
-    def astype(self, dtype=None):
+    def astype(self, dtype=None, index=None, item=None):
         if dtype is None:
             dtype = self.vdtype
 
         if self.val is not None:
-            if dtype == float or np.issubdtype(dtype, np.floating):
-                val = self.val / 2.0**self.n_frac
-            elif dtype == int or dtype == 'uint' or dtype == 'int' or np.issubdtype(dtype, np.integer):
-                val = self.val // 2**self.n_frac
-            elif dtype == complex or np.issubdtype(dtype, np.complexfloating):
-                val = (self.val.real + 1j * self.val.imag) / 2.0**self.n_frac
+            if index is not None:
+                raw_val = self.val[index]
+            elif item is not None:
+                raw_val = self.val.item(item)
             else:
-                val = self.val / 2.0**self.n_frac
+                raw_val = self.val
+
+            if dtype == float or np.issubdtype(dtype, np.floating):
+                val = raw_val / self._get_conv_factor()
+            elif dtype == int or dtype == 'uint' or dtype == 'int' or np.issubdtype(dtype, np.integer):
+                val = raw_val // self._get_conv_factor()
+            elif dtype == complex or np.issubdtype(dtype, np.complexfloating):
+                val = (raw_val.real + 1j * raw_val.imag) / self._get_conv_factor()
+            else:
+                val = raw_val / self._get_conv_factor()
         else:
             val = None
 
@@ -424,15 +567,23 @@ class Fxp():
             val = val * self.scale + self.bias
         return val
 
-    def get_val(self, dtype=None):
+    def get_val(self, dtype=None, index=None, item=None):
         if dtype is None:
             dtype = self.vdtype
-        return self.astype(dtype)
+        return self.astype(dtype, index, item)
+
+    def raw(self):
+        return self.val
+    
+    def uraw(self):
+        return np.where(self.val < 0, (1 << self.n_word) + self.val, self.val)
 
     def equal(self, x):
         if isinstance(x, Fxp):
-            x = x()
-        self.set_val(x)
+            new_val_raw = x.val * 2**(self.n_frac - x.n_frac)
+            self.set_val(new_val_raw, raw=True)
+        else:
+            self.set_val(x)
         return self
 
     # behaviors
@@ -440,22 +591,21 @@ class Fxp():
     def _overflow_action(self, new_val, val_min, val_max):
         if np.any(new_val > val_max):
             self.status['overflow'] = True
+            self._run_callbacks('on_status_overflow')
         if np.any(new_val < val_min):
             self.status['underflow'] = True
+            self._run_callbacks('on_status_underflow')
         
-        if self.overflow == 'saturate':
-            # val = np.clip(new_val, val_min, val_max) # it returns float that cause an error for 64 bits huge integers
-            # if new_val.ndim > 0:
-            #     val = np.array([max(val_min, min(val_max, v)) for v in new_val])
-            # else:
-            #     val = np.array(max(val_min, min(val_max, new_val)))
+        if self.config.overflow == 'saturate':
             val = utils.clip(new_val, val_min, val_max)
-        elif self.overflow == 'wrap':
+        elif self.config.overflow == 'wrap':
             val = utils.wrap(new_val, self.signed, self.n_word)
+        else:
+            raise ValueError('{} is not a valid config for overflow!'.format(self.config.overflow))
         return val
 
     def _round(self, val, method='floor'):
-        if isinstance(val, int) or np.issubdtype(np.array(val).dtype, np.integer):
+        if isinstance(val, int) or np.issubdtype(np.array(val).dtype, np.integer) or np.issubdtype(np.array(val).dtype, np.object_):
             rval = val
         elif method == 'around':
             rval = np.around(val)
@@ -473,6 +623,11 @@ class Fxp():
             raise ValueError('<{}> rounding method not valid!')
         return rval
 
+    def _run_callbacks(self, method):
+        if self.callbacks:
+            for cb in self.callbacks:
+                if hasattr(cb, method): getattr(cb, method)(self)
+
     # overloadings
 
     def __call__(self, val=None):
@@ -482,160 +637,217 @@ class Fxp():
             rval = self.set_val(val)
         return rval
 
+    def __len__(self):
+        return len(self.val)
+
+    def __bool__(self):
+        if self.size > 1:
+            raise ValueError("The boolean value cannot be determined. Use any() or all().")
+        else:
+            return bool(self.get_val())
+
+    def __int__(self):
+        if self.size > 1:
+            raise TypeError('only length-1 arrays can be converted to Python scalars')
+        return int(self.astype(int))
+
+    def __float__(self):
+        if self.size > 1:
+            raise TypeError('only length-1 arrays can be converted to Python scalars')
+        return float(self.astype(float))
+
+    def __complex__(self):
+        if self.size > 1:
+            raise TypeError('only length-1 arrays can be converted to Python scalars')
+        return complex(self.astype(complex))
     
     # representation
     
     def __repr__(self):
-        return str(self.get_val())
+        return '{}({})'.format(self.dtype, str(self.get_val()))
 
     def __str__(self):
         return str(self.get_val())
 
+    # numpy array representation - numpy hooks
     
+    def __array__(self, *args, **kwargs):
+        if self.config.array_op_method == 'raw':
+            return np.asarray(self.val, *args, **kwargs)
+        else:
+            return np.asarray(self.get_val(), *args, **kwargs)
+    
+    def __array_wrap__(self, out_arr, context=None):
+        raw = True if self.config.array_op_method == 'raw' else False
+
+        if self.config.array_output_type == 'fxp':
+            if self.config.array_op_out is not None:
+                return self.config.array_op_out.set_val(out_arr, raw=raw)
+            elif self.config.array_op_out_like is not None:
+                return self.__class__(out_arr, like=self.config.array_op_out_like, raw=raw)
+            else:
+                return self.__class__(out_arr)
+        else:
+            return out_arr
+
+    def __array_prepare__(self, context=None, *args, **kwargs):
+        if self.config.array_op_method == 'raw':
+            return np.asarray(self.val, *args, **kwargs)
+        else:
+            return np.asarray(self.get_val(), *args, **kwargs)
+
+    def __array_finalize__(self, obj):
+        return
+  
     # math operations
     
     def __neg__(self):
-        y = Fxp(-self.get_val(), signed=self.signed, n_word=self.n_word, n_frac=self.n_frac)
+        y = Fxp(-self.val, signed=self.signed, n_word=self.n_word, n_frac=self.n_frac, raw=True)
         return y
 
     def __pos__(self):
-        y = Fxp(+self.get_val(), signed=self.signed, n_word=self.n_word, n_frac=self.n_frac)
+        y = Fxp(+self.val, signed=self.signed, n_word=self.n_word, n_frac=self.n_frac, raw=True)
         return y             
 
     def __add__(self, x):
-        if isinstance(x, (int, float, list, np.ndarray)):
-            x = Fxp(x)
+        from .functions import add
         
-        n_int = max(self.n_int, x.n_int) + 1
-        n_frac = max(self.n_frac, x.n_frac)
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
 
-        y = Fxp(self.get_val() + x.get_val(), signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac)
-        return y
+        return add(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __radd__ = __add__
 
     __iadd__ = __add__
 
     def __sub__(self, x):
-        if isinstance(x, (int, float, list, np.ndarray)):
-            x = Fxp(x)
-        
-        n_int = max(self.n_int, x.n_int) + 1
-        n_frac = max(self.n_frac, x.n_frac)
+        from .functions import sub
 
-        y = Fxp(self.get_val() - x.get_val(), signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac)
-        return y
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return sub(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     def __rsub__(self, x):
-        if isinstance(x, (int, float, list, np.ndarray)):
-            x = Fxp(x)
-        
-        n_int = max(self.n_int, x.n_int) + 1
-        n_frac = max(self.n_frac, x.n_frac)
+        from .functions import sub
 
-        y = Fxp(x.get_val() - self.get_val(), signed=self.signed or x.signed, n_int=n_int, n_frac=n_frac)
-        return y
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+            # _sizing = self.config.const_op_sizing if self.config.const_op_sizing != 'same' else 'same_y'
+        else:
+            _sizing = self.config.op_sizing
+
+        return sub(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __isub__ = __sub__
 
     def __mul__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
-        
-        n_word = self.n_word + x.n_word
-        n_frac = self.n_frac + x.n_frac
+        from .functions import mul
 
-        y = Fxp(self.get_val() * x.get_val(), signed=self.signed or x.signed, n_word=n_word, n_frac=n_frac)
-        return y
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return mul(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __rmul__ = __mul__
 
     __imul__ = __mul__
 
     def __truediv__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
+        from .functions import truediv
 
-        y = Fxp(self.get_val() / x.get_val(), signed=self.signed or x.signed)
-        return y
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return truediv(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     def __rtruediv__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
+        from .functions import truediv
 
-        y = Fxp(x.get_val() / self.get_val(), signed=self.signed or x.signed)
-        return y
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return truediv(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __itruediv__ = __truediv__
 
     def __floordiv__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
+        from .functions import floordiv
 
-        y = Fxp(self.get_val() // x.get_val(), signed=self.signed or x.signed)
-        return y
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return floordiv(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     def __rfloordiv__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
+        from .functions import floordiv
 
-        y = Fxp(x.get_val() // self.get_val(), signed=self.signed or x.signed)
-        return y
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return floordiv(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __ifloordiv__ = __floordiv__
 
     def __mod__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
-        
-        n_frac = max(self.n_frac, x.n_frac)
-        if self.signed or x.signed:
-            n_int = max(self.n_int, x.n_int)  # because python modulo implementation
-        else:
-            n_int = min(self.n_int, x.n_int)
+        from .functions import mod
 
-        y = Fxp(self.get_val() % x.get_val(), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
-        return y
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return mod(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     def __rmod__(self, x):
-        if isinstance(x, (int, float)):
-            x = Fxp(x)
-        
-        n_frac = max(self.n_frac, x.n_frac)
-        if self.signed or x.signed:
-            n_int = max(self.n_int, x.n_int)  # because python modulo implementation
-        else:
-            n_int = min(self.n_int, x.n_int)
+        from .functions import mod
 
-        y = Fxp(x.get_val() % self.get_val(), signed=self.signed or x.signed, n_word=None, n_frac=n_frac, n_int=n_int)
-        return y
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        return mod(x, self, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
 
     __imod__ = __mod__
 
-    def __pow__(self, n):
-        if isinstance(n, Fxp):
-            n = n.get_val().item()
-        
-        if isinstance(n, int):
-            if n > 0:
-                n_int = self.n_int * n + 1
-                n_frac = self.n_frac * n
-            else:
-                n_int = n_frac = None # best sizes will be estimated
-        elif isinstance(n, float):
-            n_int = n_frac = None   # best sizes will be estimated
-        else:
-            raise TypeError('exponent type {} not supported'.format(str(type(n))))
+    def __pow__(self, x):
+        from .functions import pow
 
-        y = Fxp(self.get_val() ** n, signed=self.signed, n_int=n_int, n_frac=n_frac)
-        return y
-
-    def __rpow__(self, x):
-        if isinstance(x, Fxp):
-            y = x**self
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
         else:
-            y = Fxp(x ** self.get_val())
-        return y
+            _sizing = self.config.op_sizing
+
+        return pow(self, x, out=self.config.op_out, out_like=self.config.op_out_like, sizing=_sizing, method=self.config.op_method)
+
+    __rpow__ = __pow__
 
     __ipow__ = __pow__
 
@@ -643,7 +855,7 @@ class Fxp():
     # bit level operators
 
     def __rshift__(self, n):
-        if self.shifting == 'expand':
+        if self.config.shifting == 'expand':
             min_pow2 = utils.min_pow2(self.val)     # minimum power of 2 in raw val
             if min_pow2 is not None and n > min_pow2:
                 n_frac_expansion = n - min_pow2
@@ -660,7 +872,7 @@ class Fxp():
     __irshift__ = __rshift__
 
     def __lshift__(self, n):
-        if self.shifting == 'expand':
+        if self.config.shifting == 'expand':
             n_word = max(self.n_word, int(np.max(np.ceil(np.log2(np.abs(self.val)+0.5)))) + self.signed + n)
         else:
             n_word = self.n_word
@@ -780,7 +992,7 @@ class Fxp():
 
     # indexation
     def __getitem__(self, index):
-        return Fxp(self.get_val()[index], like=self)
+        return Fxp(self.val[index], like=self, raw=True)
 
     def __setitem__(self, index, value):
         self.set_val(value, index=index)
@@ -815,9 +1027,9 @@ class Fxp():
             s += '\n\tUpper\t\t=\t{}\n'.format(self.upper)
             s += '\tLower\t\t=\t{}\n'.format(self.lower)
             s += '\tPrecision\t=\t{}\n'.format(self.precision)
-            s += '\tOverflow\t=\t{}\n'.format(self.overflow)
-            s += '\tRounding\t=\t{}\n'.format(self.rounding)
-            s += '\tShifting\t=\t{}\n'.format(self.shifting)
+            s += '\tOverflow\t=\t{}\n'.format(self.config.overflow)
+            s += '\tRounding\t=\t{}\n'.format(self.config.rounding)
+            s += '\tShifting\t=\t{}\n'.format(self.config.shifting)
         print(s)
 
 
@@ -884,7 +1096,11 @@ class Fxp():
         return copy.deepcopy(self)
 
     def like(self, x):
-        return  x.copy().set_val(self.get_val()) 
+        if isinstance(x, self.__class__):
+            new_raw_val = self.val * 2**(x.n_frac - self.n_frac)
+            return  x.copy().set_val(new_raw_val, raw=True)
+        else:
+            raise ValueError('`x` should be a Fxp object!')
 
     # reset
     def reset(self):
@@ -892,5 +1108,557 @@ class Fxp():
         self.status = {
             'overflow': False,
             'underflow': False,
-            'inaccuracy': False}        
+            'inaccuracy': False}
 
+    def _convert_op_input_value(self, x):
+        if not isinstance(x, Fxp):
+            if self.config is not None:
+                if self.config.op_input_size == 'best':
+                    x_fxp = Fxp(x)
+                elif self.config.op_input_size == 'same':
+                    x_fxp = Fxp(x, like=self)
+                else:
+                    raise ValueError('Sizing parameter not supported: {}'.format(self.config.op_input_size))
+            else:
+                x_fxp = Fxp(x)
+        else:
+            x_fxp = x
+
+        return x_fxp
+
+    # endregion
+
+    # numpy functions dispatch
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if method == '__call__':
+            if ufunc in _NUMPY_HANDLED_FUNCTIONS:
+                # dispatch function to implemented in fxpmath
+                return _NUMPY_HANDLED_FUNCTIONS[ufunc](*inputs, **kwargs)
+
+            # call original numpy function and return wrapped result
+            kwargs['method'] = method
+            return self._wrapped_numpy_func(ufunc, *inputs, **kwargs)
+        else:
+            # return NotImplemented
+
+            # call original numpy function and return wrapped result
+            kwargs['method'] = method
+            return self._wrapped_numpy_func(ufunc, *inputs, **kwargs)
+
+    def __array_function__(self, func, types, args, kwargs):
+        if func not in _NUMPY_HANDLED_FUNCTIONS:
+            # return NotImplemented
+
+            # call original numpy function and return wrapped result
+            return self._wrapped_numpy_func(func, *args, **kwargs)
+
+        # Note: this allows subclasses that don't override
+        # __array_function__ to handle Fxp objects
+        if not all(issubclass(t, self.__class__) for t in types):
+            # return NotImplemented
+            pass    # delegates to implemented functions deal with conversion
+
+        # dispatch function to implemented in fxpmath
+        return _NUMPY_HANDLED_FUNCTIONS[func](*args, **kwargs) 
+
+    def _wrapped_numpy_func(self, func, *args, **kwargs):
+        # convert func inputs to numpy arrays
+        args = [np.asarray(arg) if isinstance(arg, self.__class__) else arg for arg in args]
+
+        # out parameter extraction if Fxp
+        out = None
+        if 'out' in kwargs:
+            if isinstance(kwargs['out'], self.__class__):
+                out = kwargs.pop('out', None)
+            elif (isinstance(kwargs['out'], tuple) and isinstance(kwargs['out'][0], self.__class__)):
+                out = kwargs.pop('out', None)[0]
+            else:
+                out = None
+                kwargs.pop('out')
+
+        # out parameter extraction if Fxp
+        out_like = None
+        if 'out_like' in kwargs:
+            if isinstance(kwargs['out_like'], self.__class__):
+                out_like = kwargs.pop('out_like', None)
+            elif (isinstance(kwargs['out_like'], tuple) and isinstance(kwargs['out_like'][0], self.__class__)):
+                out_like = kwargs.pop('out_like', None)
+            else:
+                out_like = None
+                kwargs.pop('out_like')
+
+        # calculate (call original numpy function)
+        if 'method' in kwargs  and isinstance (kwargs['method'], str):
+            method = kwargs.pop('method')
+            val = getattr(func, method)(*args, **kwargs)
+        else:
+            val = func(*args, **kwargs)
+
+        if out is not None:
+            return out(val)
+        elif out_like is not None:
+            return self.__class__(val, like=out_like)
+        else:
+            # return wrapped result
+            return self.__array_wrap__(val)
+
+    # methods derived from Numpy ndarray
+
+    def all(self, axis=None, **kwargs):
+        return np.all(np.array(self), axis=axis, **kwargs)
+
+    def any(self, axis=None, **kwargs):
+        return np.any(np.array(self), axis=axis, **kwargs)
+
+    def argmax(self, axis=None, **kwargs):
+        return np.argmax(self.val, axis=axis, **kwargs)    # operates over raw values
+
+    def argmin(self, axis=None, **kwargs):
+        return np.argmin(self.val, axis=axis, **kwargs)    # operates over raw values
+
+    def argpartition(self, axis=-1, **kwargs):
+        return np.argpartition(self.val, axis=axis, **kwargs)    # operates over raw values
+
+    def argsort(self, axis=-1, **kwargs):
+        return np.argsort(self.val, axis=axis, **kwargs)    # operates over raw values
+
+    def nonzero(self):
+        from .functions import nonzero
+        return nonzero(self)  
+
+    def max(self, axis=None, **kwargs):
+        from .functions import fxp_max
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return fxp_max(self, axis=axis, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
+
+    def min(self, axis=None, **kwargs):
+        from .functions import fxp_min
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return fxp_min(self, axis=axis, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
+
+    def mean(self, axis=None, **kwargs):
+        if not 'out' in kwargs and \
+            self.config.array_output_type == 'fxp' and \
+            self.config.array_op_out is None and self.config.array_op_out_like is None: 
+            
+            kwargs['out'] = Fxp(like=self)  # define Fxp output with same size by default
+
+        return np.mean(self, axis=axis, **kwargs)
+
+    def std(self, axis=None, **kwargs):
+        if not 'out' in kwargs and \
+            self.config.array_output_type == 'fxp' and \
+            self.config.array_op_out is None and self.config.array_op_out_like is None: 
+            
+            kwargs['out'] = Fxp(like=self)  # define Fxp output with same size by default
+
+        return np.std(self, axis=axis, **kwargs)
+
+    def var(self, axis=None, **kwargs):
+        if not 'out' in kwargs and \
+            self.config.array_output_type == 'fxp' and \
+            self.config.array_op_out is None and self.config.array_op_out_like is None: 
+            
+            kwargs['out'] = Fxp(like=self)  # define Fxp output with same size by default
+
+        return np.var(self, axis=axis, **kwargs)
+
+    def sum(self, axis=None, **kwargs):
+        from .functions import sum
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return sum(self, axis=axis, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
+
+    def cumsum(self, axis=None, **kwargs):
+        from .functions import cumsum
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return cumsum(self, axis=axis, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
+
+    def cumprod(self, axis=None, **kwargs):
+        from .functions import cumprod
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return cumprod(self, axis=axis, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
+
+    ravel = flatten
+
+    def tolist(self):
+        return self.get_val().tolist()
+
+    def sort(self, axis=-1, **kwargs):
+        self.val.sort(axis=axis, **kwargs)
+
+    def conjugate(self, **kwargs):
+        from .functions import conjugate
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return conjugate(self, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
+
+    conj = conjugate
+
+    @property
+    def T(self):
+        x = self.copy()
+        x.val = x.val.T
+        return x    
+    
+    def transpose(self, **kwargs):
+        from .functions import transpose
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return transpose(self, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
+
+    def item(self, *args):
+        if len(args) > 1:
+            items = tuple(args)
+        else:
+            items = args[0]
+        return self.astype(item=items)
+
+    # ToDo:
+    #  nonzero
+
+    def clip(self, a_min=None, a_max=None, **kwargs):
+        from .functions import clip
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return clip(self, a_min=a_min, a_max=a_max, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
+
+    def diagonal(self, offset=0, axis1=0, axis2=1, **kwargs):
+        from .functions import diagonal
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return diagonal(self, offset=offset, axis1=axis1, axis2=axis2, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)  
+
+    def trace(self, offset=0, axis1=0, axis2=1, **kwargs):
+        from .functions import trace
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return trace(self, offset=offset, axis1=axis1, axis2=axis2, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs) 
+
+    def prod(self, axis=None, **kwargs):
+        from .functions import prod
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', self.config.op_sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return prod(self, axis=axis, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs) 
+
+    def dot(self, x, **kwargs):
+        from .functions import dot
+
+        if not isinstance(x, Fxp):
+            x = self._convert_op_input_value(x)
+            _sizing = self.config.const_op_sizing
+        else:
+            _sizing = self.config.op_sizing
+
+        out = kwargs.pop('out', self.config.op_out)
+        out_like = kwargs.pop('out_like', self.config.op_out_like)
+        sizing = kwargs.pop('sizing', _sizing)
+        method = kwargs.pop('method', self.config.op_method)
+
+        return dot(self, x, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs) 
+
+class Config():
+    def __init__(self, **kwargs):
+        # size limits
+        self.max_error = kwargs.pop('max_error', _max_error)
+        self.n_word_max = kwargs.pop('n_word_max', _n_word_max)
+
+        # behavior
+        self.overflow = kwargs.pop('overflow', 'saturate')
+        self.rounding = kwargs.pop('rounding', 'trunc')
+        self.shifting = kwargs.pop('shifting', 'expand')
+        self.op_method = kwargs.pop('op_method', 'raw')
+
+        # inputs
+        self.op_input_size = kwargs.pop('op_input_size', 'same')
+
+        # alu ops outpus
+        self.op_out = kwargs.pop('op_out', None)
+        self.op_out_like = kwargs.pop('op_out_like', None)
+        self.op_sizing = kwargs.pop('op_sizing', 'optimal')
+
+        # alu ops with a constant operand
+        self.const_op_sizing = kwargs.pop('const_op_sizing', 'same')
+
+        # array ops
+        self.array_output_type = kwargs.pop('array_output_type', 'fxp')
+        self.array_op_out = kwargs.pop('array_op_out', None)
+        self.array_op_out_like = kwargs.pop('array_op_out_like', None)
+        self.array_op_method = kwargs.pop('array_op_method', 'repr')
+
+    # ---
+    # properties
+    # ---
+    # region
+
+    # max_error
+    @property
+    def max_error(self):
+        return self._max_error
+    
+    @max_error.setter
+    def max_error(self, val):
+        if val > 0:
+            self._max_error = val
+        else:
+            raise ValueError('max_error must be greater than 0!')
+
+    # n_word_max
+    @property
+    def n_word_max(self):
+        return self._n_word_max
+    
+    @n_word_max.setter
+    def n_word_max(self, val):
+        if isinstance(val, int) and val > 0:
+            self._n_word_max = val
+        else:
+            raise ValueError('n_word_max must be int type greater than 0!')
+
+    # overflow
+    @property
+    def _overflow_list(self):
+        return ['saturate', 'wrap']
+
+    @property
+    def overflow(self):
+        return self._overflow
+    
+    @overflow.setter
+    def overflow(self, val):
+        if isinstance(val, str) and val in self._overflow_list:
+            self._overflow = val
+        else:
+            raise ValueError('overflow must be str type with following valid values: {}'.format(self._overflow_list))
+
+    # rounding
+    @property
+    def _rounding_list(self):
+        return ['around', 'floor', 'ceil', 'fix', 'trunc']
+
+    @property
+    def rounding(self):
+        return self._rounding
+    
+    @rounding.setter
+    def rounding(self, val):
+        if isinstance(val, str) and val in self._rounding_list:
+            self._rounding = val
+        else:
+            raise ValueError('rounding must be str type with following valid values: {}'.format(self._rounding_list))
+
+    # shifting
+    @property
+    def _shifting_list(self):
+        return ['expand', 'trunc', 'keep']
+
+    @property
+    def shifting(self):
+        return self._shifting
+    
+    @shifting.setter
+    def shifting(self, val):
+        if isinstance(val, str) and val in self._shifting_list:
+            self._shifting = val
+        else:
+            raise ValueError('shifting must be str type with following valid values: {}'.format(self._shifting_list))
+
+    # op_out
+    @property
+    def op_out(self):
+        return self._op_out
+    
+    @op_out.setter
+    def op_out(self, val):
+        if val is None or isinstance(val, Fxp):
+            self._op_out = val
+        else:
+            raise ValueError('op_out must be a Fxp object or None!')
+
+    # op_out_like
+    @property
+    def op_out_like(self):
+        return self._op_out_like
+    
+    @op_out_like.setter
+    def op_out_like(self, val):
+        if val is None or isinstance(val, Fxp):
+            self._op_out_like = val
+        else:
+            raise ValueError('op_out_like must be a Fxp object or None!')
+
+    # op_sizing
+    @property
+    def _op_sizing_list(self):
+        return ['optimal', 'same', 'fit', 'largest', 'smallest']
+
+    @property
+    def op_sizing(self):
+        return self._op_sizing
+    
+    @op_sizing.setter
+    def op_sizing(self, val):
+        if isinstance(val, str) and val in self._op_sizing_list:
+            self._op_sizing = val
+        else:
+            raise ValueError('op_sizing must be str type with following valid values: {}'.format(self._op_sizing_list))
+
+    # op_method
+    @property
+    def _op_method_list(self):
+        return ['raw', 'repr']
+
+    @property
+    def op_method(self):
+        return self._op_method
+    
+    @op_method.setter
+    def op_method(self, val):
+        if isinstance(val, str) and val in self._op_method_list:
+            self._op_method = val
+        else:
+            raise ValueError('op_method must be str type with following valid values: {}'.format(self._op_method_list))
+
+    # const_op_sizing
+    @property
+    def _const_op_sizing_list(self):
+        return ['optimal', 'same', 'fit', 'largest', 'smallest']
+
+    @property
+    def const_op_sizing(self):
+        return self._const_op_sizing
+    
+    @const_op_sizing.setter
+    def const_op_sizing(self, val):
+        if isinstance(val, str) and val in self._const_op_sizing_list:
+            self._const_op_sizing = val
+        else:
+            raise ValueError('op_sizing must be str type with following valid values: {}'.format(self._const_op_sizing_list))
+
+    # array_output_type
+    @property
+    def _array_output_type_list(self):
+        return ['fxp', 'array']
+
+    @property
+    def array_output_type(self):
+        return self._array_output_type
+    
+    @array_output_type.setter
+    def array_output_type(self, val):
+        if isinstance(val, str) and val in self._array_output_type_list:
+            self._array_output_type = val
+        else:
+            raise ValueError('array_output_type must be str type with following valid values: {}'.format(self._array_output_type_list))
+
+    # array_op_out
+    @property
+    def array_op_out(self):
+        return self._array_op_out
+    
+    @array_op_out.setter
+    def array_op_out(self, val):
+        if val is None or isinstance(val, Fxp):
+            self._array_op_out = val
+        else:
+            raise ValueError('array_op_out must be a Fxp object or None!')
+
+    # array_op_out_like
+    @property
+    def array_op_out_like(self):
+        return self._array_op_out_like
+    
+    @array_op_out_like.setter
+    def array_op_out_like(self, val):
+        if val is None or isinstance(val, Fxp):
+            self._array_op_out_like = val
+        else:
+            raise ValueError('array_op_out_like must be a Fxp object or None!')
+
+    # array_op_method
+    @property
+    def _array_op_method_list(self):
+        return ['raw', 'repr']
+
+    @property
+    def array_op_method(self):
+        return self._array_op_method
+    
+    @array_op_method.setter
+    def array_op_method(self, val):
+        if isinstance(val, str) and val in self._array_op_method_list:
+            self._array_op_method = val
+        else:
+            raise ValueError('array_op_method must be str type with following valid values: {}'.format(self._array_op_method_list))
+
+    # endregion
+
+    # ---
+    # methods
+    # ---
+    # region
+
+    def print(self):
+        for k, v in self.__dict__.items():
+            print('\t{}:\t{}'.format(k.strip('_'), v))
+
+    # endregion
+
+# ----------------------------------------------------------------------------------------
+# Internal functions
+# ----------------------------------------------------------------------------------------
+def implements(*np_functions):
+   "Register an __array_function__ implementation for Fxp objects."
+   def decorator(fxp_func):
+        for np_func in np_functions:
+            _NUMPY_HANDLED_FUNCTIONS[np_func] = fxp_func
+        return fxp_func
+   return decorator

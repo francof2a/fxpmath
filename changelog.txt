@@ -1,3 +1,33 @@
+version 0.4.0
+--------------------------------------------------
+* Extended precision (beyond 64 bits) in `add`, `sub`, `mult`, `truediv`, `floordiv`, `mod` and `pow` functions and methods (operators).
+* Support new input formats for values: `tuples`, `Decimal` type from `decimal` module.
+* Template functionality added. It allows define default format for new Fxp objects.
+* Config class created to manage low level configuration of Fxp object's behavior.
+    - size limits: `max_error`, `n_word_max`. Parameters to define n_word and n_frac of a new Fxp.
+    - behavior: `op_method` (defines calculation method for ALU operators).
+    - inputs: `op_input_size` (defines sizing of constant conversion to Fxp in math operations).
+    - alu ops outpus: `op_out`, `op_out_like`, `op_sizing` (define the sizing method or type for results of ALU operations).
+    - alu ops with a constant operand: `const_op_sizing` (alternative of `op_sizing` when one of ALU operands is a constant).
+    - array ops: `array_output_type` (defines the object type when use Numpy functions: Numpy Array or Fxp),
+    `array_op_out`, `array_op_out_like` (define the output's size), `array_op_method` (defines calculation method for ALU operators).
+* Several core calculations/methods mirgrated from `float` to `int` to support extended precision.
+* Results of ALU operations with constants keep same size than Fxp object (by default).
+* `like` initialization supports overwrite of size parameters.
+* Numpy functions dispatch. You can use Fxp as arguments (inputs) of Numpy functions and get Fxp as outputs of them.
+* New Fxp properties: size, shape, ndim, T.
+* New Fxp methods: reshape, flatten, raw, uraw.
+* New Fxp methods from Numpy array methods: all, any, argmax, argmin, argpartition, argsort, max, min, mean, std, var, sum, cumsum, cumprod, 
+  ravel, tolist, sort, conjugate, conj, transpose, item, clip, diagonal, trace, prod, dot, nonzero.
+* Support for `bool`, `int`, `float` and `complex` casting.
+* dtype included in Fxp's representation (__repr__).
+* Callbacks (basic) functionality added: `on_value_change`, `on_status_overflow`, `on_status_underflow`, `on_status_inaccuracy`.
+* Some performance improvements.
+
+Note: 
+It is recommended use Numpy version >= 1.17.x to enable functions dispatch by default. If it's not the case, it is recommended
+import fxpmath before numpy or set OS envirnment variable "NUMPY_EXPERIMENTAL_ARRAY_FUNCTION" = "1" before import numpy.
+
 version 0.3.9
 --------------------------------------------------
 * fix wrapping (issue #20).

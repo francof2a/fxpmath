@@ -263,11 +263,48 @@ def test_operations_with_combinations():
             vx, vy = v[i], v[j]
             x = Fxp(vx)
             y = Fxp(vy)
+            assert (vx + vy) == (x + y)()
+            assert (vy + vx) == (y + x)()
+
+            assert (vx - vy) == (x - y)()
+            assert -(vy - vx) == -(y - x)()
+
+            assert (vx * vy) == (x * y)()
+            assert (vy * vx) == (y * x)()
+
+    v = [-256, -64, -16, -4.75, -4.25, -1, -0.75, -0.125, 0.125, 0.75, 1, 1.5, 2.75, 4.0, 8.0, 32, 128]
+    d = [-256, -64, -16, -1, -0.5, -0.125, 0.125, 0.5, 1, 2, 4.0, 8.0, 32, 128]
+    for i in range(len(v)):
+        for j in range(len(d)):
+            vx, vy = v[i], d[j]
+            x = Fxp(vx)
+            y = Fxp(vy)
+
+            assert (vx / vy) == (x / y)()
+
+            assert (vx // vy) == (x // y)()
+
+            assert (vx % vy) == (x % y)()
+
+def test_operations_with_constants_with_combinations():
+    
+    v = [-256, -64, -16, -4.75, -3.75, -3.25, -1, -0.75, -0.125, 0.0, 0.125, 0.75, 1, 1.5, 3.75, 4.0, 8.0, 32, 128]
+    for i in range(len(v)):
+        for j in range(len(v)):
+            vx, vy = v[i], v[j]
+            x = Fxp(vx, True, 16, 3)
+            y = Fxp(vy, True, 16, 3)
             assert (x + vy)() == (vx + vy) == (vx + y)() == (x + y)()
             assert (vy + x)() == (vy + vx) == (y + vx)() == (y + x)()
 
             assert (x - vy)() == (vx - vy) == (vx - y)() == (x - y)()
             assert -(vy - x)() == -(vy - vx) == -(y - vx)() == -(y - x)()
+
+    for i in range(len(v)):
+        for j in range(len(v)):
+            vx, vy = v[i], v[j]
+            x = Fxp(vx, True, 24, 6)
+            y = Fxp(vy, True, 24, 6)
 
             assert (x * vy)() == (vx * vy) == (vx * y)() == (x * y)()
             assert (vy * x)() == (vy * vx) == (y * vx)() == (y * x)()
@@ -277,8 +314,8 @@ def test_operations_with_combinations():
     for i in range(len(v)):
         for j in range(len(d)):
             vx, vy = v[i], d[j]
-            x = Fxp(vx)
-            y = Fxp(vy)
+            x = Fxp(vx, True, 32, 12)
+            y = Fxp(vy, True, 32, 12)
 
             assert (x / vy)() == (vx / vy) == (vx / y)() == (x / y)()
             # assert (vy / x)() == (vy / vx) == (y / vx)() == (y / x)()
@@ -290,39 +327,96 @@ def test_operations_with_combinations():
             # assert (vy % x)() == (vy % vx) == (y % vx)() == (y % x)()
 
 def test_pow():
+    x = Fxp(16, True, n_int=14, n_frac=8)
+    n = Fxp(-1, True, n_int=14, n_frac=8)
+    assert(x**n)() == 1/16
+
     v = 15
     n_vals = [0, 1, 2, 3]
 
-    x = Fxp(v, signed=True)
-    xu = Fxp(v, signed=False)
+    x = Fxp(v, signed=True, n_int=12, n_frac=0)
+    xu = Fxp(v, signed=False, n_int=12, n_frac=0)
     for n in n_vals:
         assert (x**n)() == v**n
         assert (xu**n)() == v**n
     
     v = -16
-    x = Fxp(v, signed=True)
+    x = Fxp(v, signed=True, n_int=12, n_frac=0)
     for n in n_vals:
         assert (x**n)() == v**n
 
-    v = 15.0
+    v = 16.0
     n_vals = [-2, -1, 0, 1, 2, 3]
 
-    x = Fxp(v, signed=True)
-    xu = Fxp(v, signed=False)
+    x = Fxp(v, signed=True, n_int=14, n_frac=8)
+    # xu = Fxp(v, signed=False, n_int=12, n_frac=0)
     for n in n_vals:
         assert (x**n)() == v**n
-        assert (xu**n)() == v**n
+        # assert (xu**n)() == v**n
     
     v = -16.0
-    x = Fxp(v, signed=True)
+    x = Fxp(v, signed=True, n_int=14, n_frac=8)
     for n in n_vals:
-        assert (x**n)() == v**n
+        assert (x**n)() == (v)**n
 
     v = 81
     n_vals = [0, 0.25, 0.5]
 
-    x = Fxp(v, signed=True)
-    xu = Fxp(v, signed=False)
+    x = Fxp(v, signed=True, n_int=14, n_frac=8)
+    xu = Fxp(v, signed=False, n_int=14, n_frac=8)
     for n in n_vals:
         assert (x**n)() == v**n
         assert (xu**n)() == v**n
+
+
+    v = 16.
+    n = 2
+    v_vals = [-4, -2, -1, 0, 1, 2, 4]
+    n_vals = [-2, -1, 0, 1, 2]
+
+    x = Fxp(v, signed=True, n_int=12, n_frac=0)
+    xu = Fxp(v, signed=False, n_int=12, n_frac=0)
+    p = Fxp(n, signed=True, n_int=8, n_frac=0)
+
+    assert ((x**p)() == np.power(v, n)).all()
+    assert ((xu**p)() == np.power(v, n)).all()
+
+    x = Fxp(v, signed=True, n_int=12, n_frac=8)
+    p_vals = Fxp(n_vals, signed=True, n_int=8, n_frac=0)
+    x.config.op_sizing = 'same'
+    assert ((x**p_vals)() == np.power(v, n_vals)).all()
+    p_vals = Fxp(n_vals, signed=True, n_int=8, n_frac=0)
+    assert ((x**p_vals)() == np.power(v, n_vals)).all()
+
+    x_vals = Fxp(v_vals, signed=True, n_int=12, n_frac=8)
+    p = Fxp(n, signed=True, n_int=8, n_frac=0)
+    x_vals.config.op_sizing = 'same'
+    assert ((x_vals**p)() == np.power(v_vals, n)).all()
+    p = Fxp(n, signed=True, n_int=8, n_frac=2)
+    assert ((x_vals**p)() == np.power(v_vals, n)).all()
+
+    v_vals = [-1, 1, 2, 3, 4]
+    n_vals = [-2, -1, 0, 1, 2]
+    x_vals = Fxp(v_vals, signed=True, n_int=12, n_frac=8)
+    p_vals = Fxp(n_vals, signed=True, n_int=8, n_frac=0)
+    x_vals.config.op_sizing = 'same'
+    assert ((x_vals**p_vals)() == np.array([vi**ni for vi, ni in zip(v_vals, n_vals)])).all()
+    p_vals = Fxp(n_vals, signed=True, n_int=8, n_frac=2)
+    assert ((x_vals**p_vals)() == np.array([vi**ni for vi, ni in zip(v_vals, n_vals)])).all()
+
+    v_vals = [[1, 2],[3, 4]]
+    n_vals = [[1, 2],[3, 4]]
+    x_vals = Fxp(v_vals, signed=True, n_int=12, n_frac=8)
+    p_vals = Fxp(n_vals, signed=True, n_int=8, n_frac=0)
+    x_vals.config.op_sizing = 'same'
+    assert ((x_vals**p_vals)() == np.power(v_vals, n_vals)).all()
+
+def test_scaled():
+    x = Fxp(10.5, True, 16, 8, scale=2, bias=1)
+
+    assert x() == 10.5
+    
+    assert x + 2 == 12.5
+    assert x - 2.5 == 8.0
+    assert x * 3 == 31.5
+    assert x / 2 == 5.25

@@ -60,7 +60,7 @@ def test_issue_15_v0_3_7():
 
 def test_issue_17_v0_3_7():
     a = Fxp(15, signed=False)
-    b = a ** 2
+    b = a ** Fxp(2)
 
     assert b() == 15**2
 
@@ -93,3 +93,18 @@ def test_issue_20_v0_3_8():
     assert x(-9) == 7
     assert x(7) == 7
     assert x(8) == -8
+
+def test_issue_21_v0_3_8():
+    a = [1, 2, 3]
+    b = [0, 1, 0]
+    assert (np.inner(a, b) == 2)
+
+    na = np.array([1, 2, 3])
+    nb = np.array([0, 1, 0])
+    assert (np.inner(na, nb) == np.inner(a, b)).all()
+
+    fa = Fxp([1, 2, 3])
+    fb = Fxp([0, 1, 0])
+    z = np.inner(fa, fb)
+    assert (np.inner(fa, fb)() == np.inner(a, b)).all()
+

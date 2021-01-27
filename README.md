@@ -1,18 +1,60 @@
-# fxpmath
 
-A python library for fractional fixed-point (base 2) arithmetic and binary manipulation.
+<img src="./docs/figs/fxpmath_logotipo.png" width="300">
+
+A python library for fractional fixed-point (base 2) arithmetic and binary manipulation with Numpy compatibility.
 
 Some key features:
 
 * Fixed-point signed and unsigned numbers representation.
-* Arbitrary word and fractional sizes. Auto sizing capability.
+* Arbitrary word and fractional sizes. Auto sizing capability. Extended precision capability.
 * Arithmetic and logical (bitwise) operations supported.
-* Input values can be: int, float, complex, list, numpy arrays, strings (bin, hex, dec).
+* Input values can be: int, float, complex, list, numpy arrays, strings (bin, hex, dec), Decimal type.
 * Input rounding methods, overflow and underflow behaviors and flags.
 * Binary, Hexadecimal, and other bases representations (like strings).
 * Indexing supported.
 * Linear scaling: scale and bias.
-* Numpy backend. Fxp returns a numpy array and works internally with Numpy.
+* Numpy backend.
+* Suppport for Numpy functions. They can take and return Fxp objects.
+* Internal behavior configurable: inputs/outputs formating, calculation methods.
+
+visit [documentation](https://francof2a.github.io/fxpmath/) for more information.
+
+---
+
+![GitHub](https://img.shields.io/github/license/francof2a/fxpmath?style=for-the-badge)
+
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/francof2a/fxpmath?style=for-the-badge)
+
+![PyPI](https://img.shields.io/pypi/v/fxpmath?style=for-the-badge)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/fxpmath?style=for-the-badge)
+
+![Conda](https://img.shields.io/conda/v/francof2a/fxpmath?style=for-the-badge)
+![Conda](https://img.shields.io/conda/pn/francof2a/fxpmath?style=for-the-badge)
+
+---
+
+## Table of content
+
+- [install](#install)
+- [quick start](#quick-start)
+  * [creation](#creation)
+  * [Representations](#representations)
+  * [changing values](#changing-values)
+  * [changing size](#changing-size)
+  * [data types supported](#data-types-supported)
+  * [indexing](#indexing)
+- [arithmetic](#arithmetic)
+- [logical (bitwise) operators](#logical--bitwise--operators)
+- [Comparisons](#comparisons)
+- [behaviors](#behaviors)
+  * [overflow / underflow](#overflow---underflow)
+  * [rounding](#rounding)
+  * [inaccuracy](#inaccuracy)
+- [Status flags](#status-flags)
+- [copy](#copy)
+- [Scaling](#scaling)
+
+---
 
 ## install
 
@@ -34,6 +76,13 @@ Or you can clone the repository doing in your console:
 git clone https://github.com/francof2a/fxpmath.git
 ```
 
+and then go to the fxpmath folder and install it:
+
+```bash
+cd fxpmath
+pip install .
+```
+
 ## quick start
 
 ### creation
@@ -45,7 +94,6 @@ from fxpmath import Fxp
 
 x = Fxp(-7.25)      # create fxp variable with value 7.25
 x.info()
-```
 
 > dtype           =       fxp-s6/2  
 > Value           =       -7.25  
@@ -83,7 +131,7 @@ x.info(verbose=3)
 > Word bits       =       16  
 > Fract bits      =       8  
 > Int bits        =       7  
-> Val data type   =       float64  
+> Val data type   =       <class 'float'>  
 >  
 > Upper           =       127.99609375  
 > Lower           =       -128.0  
@@ -100,7 +148,7 @@ We can representate the value stored en `x` in several ways:
 x
 ```
 
-> -7.25  
+> fxp-s16/8(-7.25)  
 
 ```python
 x.get_val()     # return a Numpy array with the val/values in original data type representation
@@ -467,7 +515,7 @@ x.info(3)
 > Word bits       =       12  
 > Fract bits      =       1  
 > Int bits        =       11  
-> Val data type   =       float64  
+> Val data type   =       <class 'float'>  
 >  
 > Upper           =       12047.5  
 > Lower           =       10000.0  

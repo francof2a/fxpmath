@@ -8,8 +8,7 @@ from fxpmath.objects import Fxp
 import numpy as np
 
 def test_temp():
-    x = Fxp(0.5, True, 8, 7)
-    assert x.astype(float) == 0.5
+    pass
 
 def test_instances():
     x = Fxp()
@@ -217,9 +216,9 @@ def test_like():
 
 def test_kwargs():
     x = Fxp(-2.125, True, 16, 4, overflow='wrap')
-    assert x.overflow == 'wrap'
+    assert x.config.overflow == 'wrap'
     y = Fxp(3.2, True, 16, 8, rounding='fix')
-    assert y.rounding == 'fix'
+    assert y.config.rounding == 'fix'
 
 def test_strvals():
     x = Fxp('0b0110')
@@ -353,3 +352,13 @@ def test_wrap():
     assert x() == 3.75
     assert x.status['overflow'] == False
     assert x.status['underflow'] == True
+
+def test_init_by_raw():
+    x = Fxp(16, True, 8, 4, raw=True)
+    assert x() == 1.0
+
+    x = Fxp(16, None, None, 4, raw=True)
+    assert x() == 1.0
+
+    x = Fxp('0b1111', n_frac=1, raw=True) 
+    assert x() == -0.5

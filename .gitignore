@@ -151,6 +151,10 @@ results/*
 todo
 scripts/
 info/
+
+tests/test_temp.py
+docs/figs/*.svg
 temp.py
 dev_*
+
 

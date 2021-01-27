@@ -144,7 +144,7 @@ def strhex2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
         return val
 
 def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=False):
-    if isinstance(x, list):
+    if isinstance(x, (list, tuple)):
         for idx, v in enumerate(x):
             x[idx] = str2num(v, signed, n_word, n_frac, base)
         val = x
@@ -153,7 +153,7 @@ def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=Fals
 
         if base == 2 or 'b' in x[:2]:
             # binary
-            if '.' in x or n_frac is not None:
+            if '.' in x or (n_frac is not None and n_frac > 0):
                 # fractional binary
                 val, signed, n_word, n_frac =  strbin2float(x, signed, n_word, n_frac, return_sizes=True)
             else:
@@ -161,14 +161,14 @@ def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=Fals
                 n_frac = 0
             
         elif base == 16 or 'x' in x[:2]:
-            if n_frac is not None:
+            if n_frac is not None and n_frac > 0:
                 val, signed, n_word, n_frac = strhex2float(x, signed, n_word, n_frac, return_sizes=True)
             else:
                 val, signed, n_word = strhex2int(x, signed, n_word, return_sizes=True)
                 n_frac = 0
 
         elif base == 10:
-            if '.' in x:
+            if '.' in x or (n_frac is not None and n_frac > 0):
                 val = float(x)
             else:
                 val = int(x)
@@ -326,3 +326,15 @@ def get_sizes_from_dtype(dtype):
         raise ValueError('dtype must be a str!')
 
     return signed, n_word, n_frac
+
+
+def int_array(x):
+    x = np.array(x) 
+    int_vectorized = np.vectorize(int)
+
+    if x.dtype != complex:
+        y = np.array(int_vectorized(x))
+    else:
+        y = np.array(int_vectorized(x.real) + 1j*int_vectorized(x.imag))
+    
+    return y
