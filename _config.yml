@@ -1,1 +1,4 @@
+title: fxpmath
+description: A python library for fractional fixed-point (base 2) arithmetic and binary manipulation with Numpy compatibility.
 theme: jekyll-theme-slate
+future: true
