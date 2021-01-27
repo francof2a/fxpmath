@@ -22,7 +22,7 @@ setup(
     author='francof2a',
     author_email='empty@empty.com',
     packages=['fxpmath'],
-    description='A python library for fractional fixed-point (base 2) arithmetic and binary manipulation.',
+    description='A python library for fractional fixed-point (base 2) arithmetic and binary manipulation with Numpy compatibility.',
     url='https://github.com/francof2a/fxpmath',
     download_url = 'https://github.com/francof2a/fxpmath/archive/{}.tar.gz'.format(_version),
     license='MIT',
