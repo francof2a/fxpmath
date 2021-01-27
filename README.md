@@ -119,7 +119,7 @@ or just
 x = Fxp(-7.25, True, 16, 8)
 ```
 Formats can also be specified using a string, either in the fxp `dtype` format,
-or by using `Qm.n` or `UQm.n` notation (or the equivalent `Sm.n`/`Un.m notation). 
+or by using `Qm.n` or `UQm.n` notation (or the equivalent `Sm.n`/`Um.n` notation). 
 
 ```python
 x = Fxp(-7.25, dtype='fxp-s16/8')
