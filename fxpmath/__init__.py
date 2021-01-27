@@ -1,4 +1,4 @@
-__version__ = '0.4.0-alpha.11'
+__version__ = '0.4.0-rc.0'
 
 import sys
 import os
@@ -10,7 +10,7 @@ _INFO_PRINT_ENABLE = False
 _NUMPY_EXPERIMENTAL_ARRAY_FUNCTION_AUTOENABLE = True
 if "NUMPY_EXPERIMENTAL_ARRAY_FUNCTION" in os.environ.keys():
     _NUMPY_EXPERIMENTAL_ARRAY_FUNCTION =  int(os.environ["NUMPY_EXPERIMENTAL_ARRAY_FUNCTION"])
-    if _NUMPY_EXPERIMENTAL_ARRAY_FUNCTION == 0 and _NUMPY_EXPERIMENTAL_ARRAY_FUNCTION_AUTOENABLE:
+    if _NUMPY_EXPERIMENTAL_ARRAY_FUNCTION == "0" and _NUMPY_EXPERIMENTAL_ARRAY_FUNCTION_AUTOENABLE:
         if _INFO_PRINT_ENABLE: print('info: auto enabling NUMPY_EXPERIMENTAL_ARRAY_FUNCTION')
         os.environ["NUMPY_EXPERIMENTAL_ARRAY_FUNCTION"] = "1"
 else:
@@ -39,5 +39,33 @@ except:
 
 from . import objects
 from . import functions
-from .objects import *
-from .functions import *
+from .objects import (
+    Fxp,
+    Config
+)
+
+from .functions import (
+    fxp_like,
+    fxp_sum,
+    fxp_max,
+    fxp_min,
+    add,
+    sub,
+    mul,
+    truediv,
+    floordiv,
+    mod,
+    pow,
+    sum,
+    cumsum,
+    cumprod,
+    sort,
+    conjugate,
+    transpose,
+    clip,
+    diagonal,
+    trace,
+    prod,
+    dot,
+    nonzero
+)
