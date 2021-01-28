@@ -2,6 +2,7 @@ version 0.4.0
 --------------------------------------------------
 * Extended precision (beyond 64 bits) in `add`, `sub`, `mult`, `truediv`, `floordiv`, `mod` and `pow` functions and methods (operators).
 * Support new input formats for values: `tuples`, `Decimal` type from `decimal` module.
+* dtype can be specified at init if `fxp` format or `Q` format (it replaces explicit sizing by signed, n_word, and n_frac parameters).
 * Template functionality added. It allows define default format for new Fxp objects.
 * Config class created to manage low level configuration of Fxp object's behavior.
     - size limits: `max_error`, `n_word_max`. Parameters to define n_word and n_frac of a new Fxp.

@@ -35,24 +35,24 @@ visit [documentation](https://francof2a.github.io/fxpmath/) for more information
 
 ## Table of content
 
-- [install](#install)
-- [quick start](#quick-start)
+* [install](#install)
+* [quick start](#quick-start)
   * [creation](#creation)
   * [Representations](#representations)
   * [changing values](#changing-values)
   * [changing size](#changing-size)
   * [data types supported](#data-types-supported)
   * [indexing](#indexing)
-- [arithmetic](#arithmetic)
-- [logical (bitwise) operators](#logical--bitwise--operators)
-- [Comparisons](#comparisons)
-- [behaviors](#behaviors)
+* [arithmetic](#arithmetic)
+* [logical (bitwise) operators](#logical--bitwise--operators)
+* [Comparisons](#comparisons)
+* [behaviors](#behaviors)
   * [overflow / underflow](#overflow---underflow)
   * [rounding](#rounding)
   * [inaccuracy](#inaccuracy)
-- [Status flags](#status-flags)
-- [copy](#copy)
-- [Scaling](#scaling)
+* [Status flags](#status-flags)
+* [copy](#copy)
+* [Scaling](#scaling)
 
 ---
 
@@ -530,7 +530,7 @@ x.info(3)
 > Word bits       =       12  
 > Fract bits      =       1  
 > Int bits        =       11  
-> Val data type   =       `<class 'float'>` 
+> Val data type   =       `<class 'float'>`
 >  
 > Upper           =       12047.5  
 > Lower           =       10000.0  
