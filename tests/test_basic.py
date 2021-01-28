@@ -44,6 +44,34 @@ def test_instances():
     assert x.n_int == 4
     assert x.n_word == 8
 
+    x = Fxp(7.5, dtype='UQ4.4')
+    assert x() == 7.5
+    assert x.signed == False
+    assert x.n_frac == 4
+    assert x.n_int == 4
+    assert x.n_word == 8
+    
+    x = Fxp(7.5, dtype='U4.4')
+    assert x() == 7.5
+    assert x.signed == False
+    assert x.n_frac == 4
+    assert x.n_int == 4
+    assert x.n_word == 8
+    
+    x = Fxp(7.5, dtype='fxp-u8/4')
+    assert x() == 7.5
+    assert x.signed == False
+    assert x.n_frac == 4
+    assert x.n_int == 4
+    assert x.n_word == 8
+    
+    x = Fxp(7.5, False, 8, 4)
+    assert x() == 7.5
+    assert x.signed == False
+    assert x.n_frac == 4
+    assert x.n_int == 4
+    assert x.n_word == 8
+    
     x = Fxp(7.5, True, n_frac=4, n_int=6)
     assert x() == 7.5
     assert x.signed == True
@@ -51,6 +79,27 @@ def test_instances():
     assert x.n_int == 6
     assert x.n_word == 11
 
+    x = Fxp(7.5, dtype='Q7.4')
+    assert x() == 7.5
+    assert x.signed == True
+    assert x.n_frac == 4
+    assert x.n_int == 6
+    assert x.n_word == 11
+
+    x = Fxp(7.5, dtype='S7.4')
+    assert x() == 7.5
+    assert x.signed == True
+    assert x.n_frac == 4
+    assert x.n_int == 6
+    assert x.n_word == 11
+
+    x = Fxp(7.5, dtype='fxp-s11/4')
+    assert x() == 7.5
+    assert x.signed == True
+    assert x.n_frac == 4
+    assert x.n_int == 6
+    assert x.n_word == 11
+    
     x = Fxp(3, False)
     assert x() == 3
     assert x.signed == False

@@ -35,6 +35,7 @@ SOFTWARE.
 #%% 
 import numpy as np 
 import copy
+import re
 
 from . import utils
 from . import _n_word_max, _max_error
@@ -74,13 +75,16 @@ class Fxp():
 
     like : Fxp, optional, default=None
         Init new Fxp object using all parameters of `like` Fxp object, except its value.
+        
+    dtype : str, optional, default=None
+        String describing the desired fixed-point format in either Q/UQ, S/U, or fxp dtype format.
 
     **kwargs : alternative keywords parameters.
     '''
 
     template = None
 
-    def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, like=None, **kwargs):
+    def __init__(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, like=None, dtype=None, **kwargs):
 
         # Init all properties in None
         self._dtype = 'fxp' # fxp-<sign><n_word>/<n_frac>-{complex}. i.e.: fxp-s16/15, fxp-u8/1, fxp-s32/24-complex
@@ -152,6 +156,10 @@ class Fxp():
         # check if val is a raw value
         if raw is None: raw = kwargs.pop('raw', False)
 
+        # check if a string-based format has been provided
+        if dtype is not None:
+            signed, n_word, n_frac = self._parseformatstr(dtype)
+
         # size
         if not _initialized:
             self._init_size(val, signed, n_word, n_frac, n_int, max_error=self.config.max_error, n_word_max=self.config.n_word_max, raw=raw)
@@ -219,6 +227,33 @@ class Fxp():
     # region
 
     # methods about size
+    
+    _qfmt   = re.compile(r'(s|u|q|uq|qu)(\d+)(\.\d+)?')
+    _fxpfmt = re.compile(r'fxp-(s|u)(\d+)/(\d+)(-complex)?')
+    
+    def _parseformatstr(self, fmt):
+        fmt = fmt.casefold()
+        mo = self._qfmt.match(fmt)
+        if mo:
+            # Q/S notation counts the sign bit as an integer bit, such that
+            # the total number of bits is always int+frac
+            signed = mo.group(1) in 'sq'
+            n_int = int(mo.group(2))
+            if mo.group(3) is None:
+                n_frac = 0
+            else:
+                n_frac = int(mo.group(3)[1:])
+            n_word = n_frac + n_int
+        else:
+            mo = self._fxpfmt.match(fmt)
+            if mo:
+                signed = mo.group(1) == 's'
+                n_word = int(mo.group(2))
+                n_frac = int(mo.group(3))
+            else:
+                raise ValueError('unrecognized format string')
+        return signed, n_word, n_frac
+    
     def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=_max_error, n_word_max=_n_word_max, raw=False):
         # sign by default
         if signed is None:
