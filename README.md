@@ -94,9 +94,10 @@ from fxpmath import Fxp
 
 x = Fxp(-7.25)      # create fxp variable with value 7.25
 x.info()
+```
 
 > dtype           =       fxp-s6/2  
-> Value           =       -7.25  
+> Value           =       -7.25
 
 We have created a variable of 6 bits, where 1 bit has been reserved for sign, 2 bits for fractional part, and 3 remains for integer part. Here, bit sizes had been calculated to just satisfy the value you want to save.
 
@@ -116,6 +117,13 @@ or just
 
 ```python
 x = Fxp(-7.25, True, 16, 8)
+```
+Formats can also be specified using a string, either in the fxp `dtype` format,
+or by using `Qm.n` or `UQm.n` notation (or the equivalent `Sm.n`/`Um.n` notation). 
+
+```python
+x = Fxp(-7.25, dtype='fxp-s16/8')
+x = Fxp(-7.25, dtype='S8.8')
 ```
 
 You can print more information only changing the verbosity of *info* method.
@@ -209,6 +217,12 @@ x = 10.75           # wrong
 ```
 
 because you are just modifying `x` type... it isn't a *Fxp* anymore, just a simple *float* right now.
+
+The same as `x.val` gives you the raw underlying value, you can set that value with
+
+```python
+x.set_val(43, raw=True)
+```
 
 ### changing size
 
