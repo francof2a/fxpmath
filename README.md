@@ -118,8 +118,9 @@ or just
 ```python
 x = Fxp(-7.25, True, 16, 8)
 ```
+
 Formats can also be specified using a string, either in the fxp `dtype` format,
-or by using `Qm.n` or `UQm.n` notation (or the equivalent `Sm.n`/`Um.n` notation). 
+or by using `Qm.n` or `UQm.n` notation (or the equivalent `Sm.n`/`Um.n` notation).
 
 ```python
 x = Fxp(-7.25, dtype='fxp-s16/8')
@@ -139,7 +140,7 @@ x.info(verbose=3)
 > Word bits       =       16  
 > Fract bits      =       8  
 > Int bits        =       7  
-> Val data type   =       <class 'float'>  
+> Val data type   =       `<class 'float'>`
 >  
 > Upper           =       127.99609375  
 > Lower           =       -128.0  
@@ -529,7 +530,7 @@ x.info(3)
 > Word bits       =       12  
 > Fract bits      =       1  
 > Int bits        =       11  
-> Val data type   =       <class 'float'>  
+> Val data type   =       `<class 'float'>` 
 >  
 > Upper           =       12047.5  
 > Lower           =       10000.0  

@@ -167,6 +167,9 @@ class Fxp():
             # overwrite with other sizes if some are not None
             self.resize(signed, n_word, n_frac, n_int)
 
+        # update dtype
+        self._update_dtype()
+
         # store the value
         self.set_val(val, raw=raw)
 
@@ -176,7 +179,8 @@ class Fxp():
     # region
 
     @property
-    def dtype(self):
+    def dtype(self, notation=None):
+        self._update_dtype(notation)    # update dtype
         return self._dtype
 
     # overflow (mirror of config for compatibility)
@@ -326,6 +330,9 @@ class Fxp():
                 self.set_val(_old_val * 2**(self.n_frac - _old_n_frac), raw=True)
         else:
             self.set_val(_old_val, raw=True)
+
+        # update dtype
+        self._update_dtype()
     
     def set_best_sizes(self, val=None, n_word=None, n_frac=None, max_error=1.0e-6, n_word_max=64, raw=False):
 
@@ -494,6 +501,29 @@ class Fxp():
 
         return conv_factor
 
+    def _update_dtype(self, notation=None):
+        if notation is None:
+            notation = self.config.dtype_notation
+        else:
+            notation = 'fxp'
+
+        if self.signed is not None and self.n_word is not None and self.n_frac is not None:
+            if notation == 'Q':
+                self._dtype = '{Q}{nint}.{nfrac}'.format(Q='Q' if self.signed else 'UQ',
+                                                        nint=self.n_word-self.n_frac,
+                                                        nfrac=self.n_frac)
+            elif self.val is not None:
+                self._dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
+                                                                    nword=self.n_word, 
+                                                                    nfrac=self.n_frac, 
+                                                                    comp='-complex' if self.val.dtype == complex else '')
+            else:
+                self._dtype = 'fxp-{sign}{nword}/{nfrac}'.format(sign='s' if self.signed else 'u', 
+                                                                    nword=self.n_word, 
+                                                                    nfrac=self.n_frac)                
+        else:
+            self._dtype = 'fxp'
+
     def set_val(self, val, raw=False, vdtype=None, index=None):
         # convert input value to valid format
         val, original_vdtype, raw = self._format_inupt_val(val, raw=raw)
@@ -549,11 +579,8 @@ class Fxp():
             self.real = self.astype(complex).real
             self.imag = self.astype(complex).imag
 
-        # dtype
-        self._dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
-                                                             nword=self.n_word, 
-                                                             nfrac=self.n_frac, 
-                                                             comp='-complex' if val.dtype == complex else '')
+        # update dtype
+        self._update_dtype()
 
         # vdtype
         if raw:
@@ -699,7 +726,10 @@ class Fxp():
     # representation
     
     def __repr__(self):
-        return '{}({})'.format(self.dtype, str(self.get_val()))
+        dtype_str = self.dtype
+        data_str = str(self.get_val()).replace('\n', '\n '+' '*(len(dtype_str)))
+
+        return '{}({})'.format(self.dtype, data_str)
 
     def __str__(self):
         return str(self.get_val())
@@ -1469,6 +1499,9 @@ class Config():
         self.array_op_out_like = kwargs.pop('array_op_out_like', None)
         self.array_op_method = kwargs.pop('array_op_method', 'repr')
 
+        # notation
+        self.dtype_notation = kwargs.pop('dtype_notation', 'fxp')
+
     # ---
     # properties
     # ---
@@ -1673,6 +1706,22 @@ class Config():
             self._array_op_method = val
         else:
             raise ValueError('array_op_method must be str type with following valid values: {}'.format(self._array_op_method_list))
+
+    # dtype_notation
+    @property
+    def _dtype_notation_list(self):
+        return ['fxp', 'Q']
+
+    @property
+    def dtype_notation(self):
+        return self._dtype_notation
+    
+    @dtype_notation.setter
+    def dtype_notation(self, val):
+        if isinstance(val, str) and val in self._dtype_notation_list:
+            self._dtype_notation = val
+        else:
+            raise ValueError('dtype_notation must be str type with following valid values: {}'.format(self._dtype_notation_list))
 
     # endregion
 
