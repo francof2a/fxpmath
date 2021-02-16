@@ -34,6 +34,7 @@ SOFTWARE.
 
 #%% 
 import numpy as np 
+import math
 import copy
 import re
 
@@ -44,6 +45,7 @@ _NUMPY_HANDLED_FUNCTIONS = {}
 
 try:
     from decimal import Decimal
+    from decimal import getcontext
 except:
     Decimal = type(None)
 
@@ -141,7 +143,8 @@ class Fxp():
         self.status = {
             'overflow': False,
             'underflow': False,
-            'inaccuracy': False}
+            'inaccuracy': False,
+            'extended_prec': False}
 
         # callbacks
         if self.callbacks is None: self.callbacks = kwargs.pop('callbacks', [])
@@ -300,6 +303,13 @@ class Fxp():
         # n_int    
         self.n_int = self.n_word - self.n_frac - (1 if self.signed else 0)
 
+        # status extended precision
+        if self.n_word >= _n_word_max:
+            self.status['extended_prec'] = True
+        else:
+            self.status['extended_prec'] = False
+
+        # upper and lower limits
         if self.signed:
             upper_val = (1 << (self.n_word-1)) - 1
             lower_val = -upper_val - 1
@@ -359,16 +369,16 @@ class Fxp():
             val, _, raw, signed, n_word, n_frac = self._format_inupt_val(val, return_sizes=True, raw=raw)
             val = np.array([val])
 
+            # check if val is complex, if it is: convert to array of float/int
+            if np.iscomplexobj(val):
+                val = np.array([val.real, val.imag])
+            
             # if val is raw
             if raw:
                 if self.n_frac is not None:
                     val = val / self._get_conv_factor()
                 else:
                     raise ValueError('for raw value, `n_frac` must be defined!')
-
-            # check if val is complex, if it is: convert to array of float/int
-            if np.iscomplexobj(val):
-                val = np.array([val.real, val.imag])
 
             # define numpy integer type
             if self.signed:
@@ -447,7 +457,11 @@ class Fxp():
             vdtype = type(val)
 
         elif isinstance(val, (np.ndarray, np.generic)):
-            vdtype = val.dtype
+            if isinstance(val, object):
+                vdtype = type(val.item(0))
+            else:
+                vdtype = val.dtype
+            
             try:
                 if isinstance(val, np.float128):
                     val = np.array(float(val))
@@ -466,9 +480,14 @@ class Fxp():
         elif isinstance(val, Decimal):
             vdtype = float            # assuming float format
 
+            if self.n_frac is None:
+                # estimate n_frac from decimal precision
+                self.n_frac = n_frac = int(np.ceil(math.log2(10**int(getcontext().prec))))
+
             # force return raw value for better precision
             val = int(val * 2**(self.n_frac))
-            raw = True            
+            raw = True
+
 
         else:
             raise ValueError('Not supported input type: {}'.format(type(val)))
@@ -492,10 +511,12 @@ class Fxp():
             return val, vdtype, raw
 
     def _get_conv_factor(self, raw=False):
+        # precision_cast = (lambda m: np.array(m, dtype=object)) if self.status['extended_prec'] else (lambda m: m)
+
         if raw:
             conv_factor = 1
         elif self.n_frac >= 0:
-            conv_factor = 1<<self.n_frac
+            conv_factor = (1<<self.n_frac)
         else:
             conv_factor = 1/(1<<-self.n_frac)
 
@@ -537,14 +558,15 @@ class Fxp():
             val_min = 0
             val_dtype = np.uint64
 
-        if self.n_word > _n_word_max:
-            val_dtype = np.array(1<<_n_word_max).dtype
+        if self.n_word >= _n_word_max:
+            # val_dtype = np.array(1<<_n_word_max).dtype
+            val_dtype = object
 
         # conversion factor
         conv_factor = self._get_conv_factor(raw)
 
         # round, saturate and store
-        if val.dtype != complex:
+        if original_vdtype != complex and not np.issubdtype(original_vdtype, np.complex):
             new_val = self._round(val * conv_factor , method=self.config.rounding)
             new_val = self._overflow_action(new_val, val_min, val_max)
 
@@ -560,8 +582,10 @@ class Fxp():
             self.imag = 0
 
         else:
-            new_val_real = self._round(val.real * conv_factor, method=self.config.rounding)
-            new_val_imag = self._round(val.imag * conv_factor, method=self.config.rounding)
+            new_val_real = np.vectorize(lambda v: v.real)(val)
+            new_val_imag = np.vectorize(lambda v: v.imag)(val)
+            new_val_real = self._round(new_val_real * conv_factor, method=self.config.rounding)
+            new_val_imag = self._round(new_val_imag * conv_factor, method=self.config.rounding)
             new_val_real = self._overflow_action(new_val_real, val_min, val_max)
             new_val_imag = self._overflow_action(new_val_imag, val_min, val_max)
 
@@ -659,7 +683,11 @@ class Fxp():
             self._run_callbacks('on_status_underflow')
         
         if self.config.overflow == 'saturate':
-            val = utils.clip(new_val, val_min, val_max)
+            if isinstance(new_val, np.ndarray) and new_val.dtype == object:
+                val = np.clip(new_val, val_min, val_max)
+            else:
+                val = utils.clip(new_val, val_min, val_max)
+
         elif self.config.overflow == 'wrap':
             val = utils.wrap(new_val, self.signed, self.n_word)
         else:
@@ -1252,11 +1280,17 @@ class Fxp():
                 out_like = None
                 kwargs.pop('out_like')
 
-        # calculate (call original numpy function)
+        # get function if a method is specified
         if 'method' in kwargs  and isinstance (kwargs['method'], str):
             method = kwargs.pop('method')
-            val = getattr(func, method)(*args, **kwargs)
-        else:
+            func = getattr(func, method)
+            
+        # calculate (call original numpy function)
+        try:
+            val = func(*args, **kwargs)
+        except TypeError:
+            # call function converting args to float type (this is because numpy issue about pass object type to ufunc)
+            args = [arg.astype(float) if isinstance(arg, np.ndarray) else arg for arg in args]
             val = func(*args, **kwargs)
 
         if out is not None:

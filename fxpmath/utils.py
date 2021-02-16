@@ -292,6 +292,11 @@ def clip(x, val_min, val_max):
     x_clipped = np.array(max(val_min, min(val_max, x)))
     return x_clipped
 
+@np.vectorize
+def int_clip(x, val_min, val_max):
+    x_clipped = np.array(max(val_min, min(val_max, int(x))))
+    return x_clipped
+
 def wrap(x, signed, n_word): 
     m = (1 << n_word)
     if signed: 
