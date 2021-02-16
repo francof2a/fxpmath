@@ -566,7 +566,7 @@ class Fxp():
         conv_factor = self._get_conv_factor(raw)
 
         # round, saturate and store
-        if original_vdtype != complex and not np.issubdtype(original_vdtype, np.complex):
+        if original_vdtype != complex and not np.issubdtype(original_vdtype, complex):
             new_val = self._round(val * conv_factor , method=self.config.rounding)
             new_val = self._overflow_action(new_val, val_min, val_max)
 
@@ -613,7 +613,7 @@ class Fxp():
         else:
             self.vdtype = original_vdtype
             if np.issubdtype(self.vdtype, np.integer) and self.n_frac > 0:
-                self.vdtype = np.float  # change to float type if Fxp has fractional part
+                self.vdtype = float  # change to float type if Fxp has fractional part
 
         # check inaccuracy
         if not np.equal(val, new_val/conv_factor).all() :
