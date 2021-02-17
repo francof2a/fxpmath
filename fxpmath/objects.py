@@ -370,8 +370,10 @@ class Fxp():
             val = np.array([val])
 
             # check if val is complex, if it is: convert to array of float/int
-            if np.iscomplexobj(val):
-                val = np.array([val.real, val.imag])
+            if np.iscomplexobj(val) or isinstance(val.item(0), complex):
+                val_real = np.vectorize(lambda v: v.real)(val)
+                val_imag = np.vectorize(lambda v: v.imag)(val)
+                val = np.array([val_real, val_imag])
             
             # if val is raw
             if raw:
@@ -407,7 +409,20 @@ class Fxp():
                 n_frac = int(max(n_frac_calcs))
 
             # max raw value (integer) estimation
-            n_int = max( np.ceil(np.log2(np.max(np.abs( val*(1 << n_frac) + 0.5 )))).astype(int_dtype) - n_frac, 0)
+            # n_int = max( np.ceil(np.log2(np.max(np.abs( val*(1 << n_frac) + 0.5 )))).astype(int_dtype) - n_frac, 0)
+            
+            val_max = int(np.max(val)*(1 << n_frac))
+            val_min = int(np.min(val)*(1 << n_frac))
+            n_int = 0
+            while n_int < n_word_max - sign:
+                msb_max = (val_max >> n_int) + (1 if val_max < 0 else 0)
+                msb_min = (val_min >> n_int) + (1 if val_min < 0 else 0)
+
+                if msb_max == msb_min == 0:
+                    break
+                n_int += 1
+
+            n_int = max(n_int - n_frac, 0)
 
             # size assignement
             if n_word is None:
@@ -549,29 +564,36 @@ class Fxp():
         # convert input value to valid format
         val, original_vdtype, raw = self._format_inupt_val(val, raw=raw)
 
+        # val limits according word size
         if self.signed:
             val_max = (1 << (self.n_word-1)) - 1
             val_min = -val_max - 1
-            val_dtype = np.int64
         else:
             val_max =  (1 << self.n_word) - 1
             val_min = 0
-            val_dtype = np.uint64
-
-        if self.n_word >= _n_word_max:
-            # val_dtype = np.array(1<<_n_word_max).dtype
-            val_dtype = object
 
         # conversion factor
         conv_factor = self._get_conv_factor(raw)
 
         # round, saturate and store
         if original_vdtype != complex and not np.issubdtype(original_vdtype, complex):
+            # val_dtype determination
+            _n_word_max_ = min(_n_word_max, 64)
+            if np.max(val) >= 2**_n_word_max_ or np.min(val) < -2**_n_word_max_ or self.n_word >= _n_word_max_:
+                val_dtype = object
+            else:
+                val_dtype = np.int64 if self.signed else np.uint64
+
+            # rounding and overflowing
             new_val = self._round(val * conv_factor , method=self.config.rounding)
             new_val = self._overflow_action(new_val, val_min, val_max)
 
-            if np.issubdtype(val_dtype, np.integer):
-                new_val = new_val.astype(val_dtype)
+            # convert to array of val_dtype
+            new_val = new_val.astype(val_dtype)
+
+            if val_dtype == object:       
+                # convert each element to int
+                new_val = np.array(list(map(int, new_val.flatten()))).reshape(new_val.shape)
             
             if index is not None:
                 self.val[index] = new_val
@@ -582,17 +604,33 @@ class Fxp():
             self.imag = 0
 
         else:
+            # extract real and imaginary parts
             new_val_real = np.vectorize(lambda v: v.real)(val)
             new_val_imag = np.vectorize(lambda v: v.imag)(val)
+            
+            # val_dtype determination
+            _n_word_max_ = min(_n_word_max, 64)
+            if np.max(new_val_real) >= 2**_n_word_max_ or np.min(new_val_real) < -2**_n_word_max_ or self.n_word >= _n_word_max_:
+                val_dtype = object
+            else:
+                val_dtype = np.int64 if self.signed else np.uint64
+            
+            # rounding and overflowing
             new_val_real = self._round(new_val_real * conv_factor, method=self.config.rounding)
             new_val_imag = self._round(new_val_imag * conv_factor, method=self.config.rounding)
             new_val_real = self._overflow_action(new_val_real, val_min, val_max)
             new_val_imag = self._overflow_action(new_val_imag, val_min, val_max)
 
-            if np.issubdtype(val_dtype, np.integer):
-                new_val_real = new_val_real.astype(val_dtype)
-                new_val_imag = new_val_imag.astype(val_dtype)
-                
+            # convert to array of val_dtype
+            new_val_real = new_val_real.astype(val_dtype)
+            new_val_imag = new_val_imag.astype(val_dtype)
+
+            if val_dtype == object:       
+                # convert each element to int
+                new_val_real = np.array(list(map(int, new_val_real.flatten()))).reshape(new_val_real.shape)
+                new_val_imag = np.array(list(map(int, new_val_imag.flatten()))).reshape(new_val_imag.shape)
+            
+            # rebuild complex
             new_val = new_val_real + 1j * new_val_imag
 
             if index is not None:
@@ -1226,7 +1264,7 @@ class Fxp():
         if method == '__call__':
             if ufunc in _NUMPY_HANDLED_FUNCTIONS:
                 # dispatch function to implemented in fxpmath
-                return _NUMPY_HANDLED_FUNCTIONS[ufunc](*inputs, **kwargs)
+                return self._set_array_output_type(_NUMPY_HANDLED_FUNCTIONS[ufunc](*inputs, **kwargs))
 
             # call original numpy function and return wrapped result
             kwargs['method'] = method
@@ -1252,7 +1290,7 @@ class Fxp():
             pass    # delegates to implemented functions deal with conversion
 
         # dispatch function to implemented in fxpmath
-        return _NUMPY_HANDLED_FUNCTIONS[func](*args, **kwargs) 
+        return self._set_array_output_type(_NUMPY_HANDLED_FUNCTIONS[func](*args, **kwargs))
 
     def _wrapped_numpy_func(self, func, *args, **kwargs):
         # convert func inputs to numpy arrays
@@ -1290,8 +1328,19 @@ class Fxp():
             val = func(*args, **kwargs)
         except TypeError:
             # call function converting args to float type (this is because numpy issue about pass object type to ufunc)
-            args = [arg.astype(float) if isinstance(arg, np.ndarray) else arg for arg in args]
-            val = func(*args, **kwargs)
+            # args = [arg.astype(float) if isinstance(arg, np.ndarray) else arg for arg in args]
+
+            args_converted = []
+            for arg in args:
+                if isinstance(arg, np.ndarray):
+                    if isinstance(arg.item(0), complex):
+                        args_converted.append(arg.astype(complex))
+                    else:
+                        args_converted.append(arg.astype(float))
+                else:
+                    args_converted.append(arg)
+            # call func
+            val = func(*args_converted, **kwargs)
 
         if out is not None:
             return out(val)
@@ -1300,6 +1349,23 @@ class Fxp():
         else:
             # return wrapped result
             return self.__array_wrap__(val)
+
+    def _set_array_output_type(self, out_arr):
+        if self.config._array_output_type == 'fxp':
+            raw = True if self.config.array_op_method == 'raw' else False
+
+            if self.config.array_op_out is not None:
+                return self.config.array_op_out.set_val(out_arr, raw=raw)
+            elif self.config.array_op_out_like is not None:
+                return self.__class__(out_arr, like=self.config.array_op_out_like, raw=raw)
+            elif not isinstance(out_arr, self.__class__):
+                return self.__class__(out_arr)
+
+        elif self.config._array_output_type == 'array' and isinstance(out_arr, self.__class__):
+            return np.asarray(out_arr.get_val())
+        
+        return out_arr
+
 
     # methods derived from Numpy ndarray
 
@@ -1613,6 +1679,23 @@ class Config():
         else:
             raise ValueError('shifting must be str type with following valid values: {}'.format(self._shifting_list))
 
+    # op_input_size
+    @property
+    def _op_input_size_list(self):
+        return ['same', 'best']
+
+    @property
+    def op_input_size(self):
+        return self._op_input_size
+    
+    @op_input_size.setter
+    def op_input_size(self, val):
+        if isinstance(val, str) and val in self._op_input_size_list:
+            self._op_input_size = val
+        else:
+            raise ValueError('op_input_size must be str type with following valid values: {}'.format(self._op_input_size_list))
+    
+
     # op_out
     @property
     def op_out(self):
@@ -1766,7 +1849,7 @@ class Config():
 
     def print(self):
         for k, v in self.__dict__.items():
-            print('\t{}:\t{}'.format(k.strip('_'), v))
+            print('\t{: <24}:\t{}'.format(k.strip('_'), v))
 
     # endregion
 

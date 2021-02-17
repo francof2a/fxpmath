@@ -13,6 +13,7 @@ version 0.4.0
     - array ops: `array_output_type` (defines the object type when use Numpy functions: Numpy Array or Fxp),
     `array_op_out`, `array_op_out_like` (define the output's size), `array_op_method` (defines calculation method for ALU operators).
 * Several core calculations/methods mirgrated from `float` to `int` to support extended precision.
+* Extended precision flag in status (extended_prec).
 * Results of ALU operations with constants keep same size than Fxp object (by default).
 * `like` initialization supports overwrite of size parameters.
 * Numpy functions dispatch. You can use Fxp as arguments (inputs) of Numpy functions and get Fxp as outputs of them.

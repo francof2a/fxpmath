@@ -19,6 +19,8 @@ Some key features:
 
 visit [documentation](https://francof2a.github.io/fxpmath/) for more information.
 
+See some examples in the [examples folder](https://github.com/francof2a/fxpmath/tree/master/examples).
+
 ---
 
 ![GitHub](https://img.shields.io/github/license/francof2a/fxpmath?style=for-the-badge)

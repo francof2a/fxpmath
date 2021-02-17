@@ -191,6 +191,11 @@ def test_misc_values():
     x = Fxp(2.0**32  - 1, signed=False, n_word=128, n_frac=96)
     assert x() == 2.0**32 - 1
 
+    x = Fxp([2**-64, -2**96, 2**32], True, 256, 128)
+    assert np.isclose(x()[0], 2**-64, rtol=2**-64)
+    assert x()[1] == -2**96
+    assert x()[2] == 2**32
+
 def test_base_representations():
     x = Fxp(0.0, True, 8, 4)
 

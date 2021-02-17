@@ -33,7 +33,7 @@ SOFTWARE.
 """
 
 #%%
-import numpy as np 
+import numpy as np
 
 #%% 
 def array_support(func):
@@ -333,13 +333,27 @@ def get_sizes_from_dtype(dtype):
     return signed, n_word, n_frac
 
 
+# def int_array(x):
+#     x = np.array(x) 
+#     int_vectorized = np.vectorize(int)
+
+#     if x.dtype != complex:
+#         y = np.array(int_vectorized(x))
+#     else:
+#         y = np.array(int_vectorized(x.real) + 1j*int_vectorized(x.imag))
+    
+#     return y
+
 def int_array(x):
-    x = np.array(x) 
-    int_vectorized = np.vectorize(int)
+    if not isinstance(x, np.ndarray):
+        x = np.array(x)
 
     if x.dtype != complex:
-        y = np.array(int_vectorized(x))
+        x = np.array(list(map(int, x.flatten()))).reshape(x.shape)
     else:
-        y = np.array(int_vectorized(x.real) + 1j*int_vectorized(x.imag))
-    
-    return y
+        x_real = np.vectorize(lambda v: v.real)(x)
+        x_imag = np.vectorize(lambda v: v.imag)(x)
+        x_real = np.array(list(map(int, x_real.flatten()))).reshape(x_real.shape)
+        x_imag = np.array(list(map(int, x_imag.flatten()))).reshape(x_imag.shape)
+        x = np.array(x_real + 1j*x_imag)
+    return x

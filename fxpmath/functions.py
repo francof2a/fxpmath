@@ -78,7 +78,7 @@ def _get_sizing(vars, sizing, method, optimal_size=None):
         else:
             raise ValueError('{} is a wrong value for `sizing`. Valid values: optimal, same, fit, largest or smallest'.format(sizing))
 
-        if n_frac is None or n_frac is None:
+        if n_frac is None or n_frac is None or n_int is None:
             n_word = None
         else:
             n_word = int(signed) + n_int + n_frac
@@ -98,6 +98,7 @@ def _function_over_one_var(repr_func, raw_func, x, out=None, out_like=None, sizi
             raise TypeError('`out` must be a Fxp object!')
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
+        n_frac = out.n_frac
     elif out_like is not None:
         if not isinstance(out_like, Fxp):
             raise TypeError('`out_like` must be a Fxp object!')
@@ -139,6 +140,7 @@ def _function_over_two_vars(repr_func, raw_func, x, y, out=None, out_like=None, 
             raise TypeError('`out` must be a Fxp object!')
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
+        n_frac = out.n_frac
     elif out_like is not None:
         if not isinstance(out_like, Fxp):
             raise TypeError('`out_like` must be a Fxp object!')
@@ -291,7 +293,7 @@ def add(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     """
     def _add_raw(x, y, n_frac):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return utils.int_array(x.val) * precision_cast(2**(n_frac - x.n_frac)) + utils.int_array(y.val) * precision_cast(2**(n_frac - y.n_frac))
+        return x.val * precision_cast(2**(n_frac - x.n_frac)) + y.val * precision_cast(2**(n_frac - y.n_frac))
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -312,7 +314,7 @@ def sub(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     """
     def _sub_raw(x, y, n_frac):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return utils.int_array(x.val) * precision_cast(2**(n_frac - x.n_frac)) - utils.int_array(y.val) * precision_cast(2**(n_frac - y.n_frac))
+        return x.val * precision_cast(2**(n_frac - x.n_frac)) - y.val * precision_cast(2**(n_frac - y.n_frac))
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -333,7 +335,7 @@ def mul(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     """
     def _mul_raw(x, y, n_frac):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return utils.int_array(x.val) * utils.int_array(y.val) * precision_cast(2**(n_frac - x.n_frac - y.n_frac))
+        return x.val * y.val * precision_cast(2**(n_frac - x.n_frac - y.n_frac))
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -356,7 +358,7 @@ def floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kw
         return x // y
     def _floordiv_raw(x, y, n_frac):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return ((utils.int_array(x.val) * precision_cast(2**(n_frac - x.n_frac))) // (utils.int_array(y.val) * precision_cast(2**(n_frac - y.n_frac)))) * precision_cast(2**n_frac)
+        return ((x.val * precision_cast(2**(n_frac - x.n_frac))) // (y.val * precision_cast(2**(n_frac - y.n_frac)))) * precision_cast(2**n_frac)
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -379,8 +381,8 @@ def truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwa
         return x / y
     def _truediv_raw(x, y, n_frac):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        # return (utils.int_array(x.val) * 2**(n_frac - x.n_frac + y.n_frac)) // utils.int_array(y.val)
-        return np.floor_divide(np.multiply(x.val, precision_cast(2**(n_frac - x.n_frac + y.n_frac))), y.val)
+        return (x.val * precision_cast(2**(n_frac - x.n_frac + y.n_frac))) // y.val
+        # return np.floor_divide(np.multiply(x.val, precision_cast(2**(n_frac - x.n_frac + y.n_frac))), y.val)
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -403,7 +405,7 @@ def mod(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
         return x % y
     def _mod_raw(x, y, n_frac):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return (utils.int_array(x.val) * precision_cast(2**(n_frac - x.n_frac))) % (utils.int_array(y.val) * precision_cast(2**(n_frac - y.n_frac)))
+        return (x.val * precision_cast(2**(n_frac - x.n_frac))) % (y.val * precision_cast(2**(n_frac - y.n_frac)))
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -561,7 +563,9 @@ def conjugate(x, out=None, out_like=None, sizing='optimal', method='raw', **kwar
     """
     def _conjugate_raw(x, n_frac, **kwargs):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return (x.val.real -1j*x.val.imag) * precision_cast(2**(n_frac - x.n_frac))
+        val_real = np.vectorize(lambda v: v.real)(x.val)
+        val_imag = np.vectorize(lambda v: v.imag)(x.val)
+        return (val_real -1j*val_imag) * precision_cast(2**(n_frac - x.n_frac))
 
     return _function_over_one_var(repr_func=np.conjugate, raw_func=_conjugate_raw, x=x, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
 
@@ -657,7 +661,7 @@ def dot(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     """
     def _dot_raw(x, y, n_frac, **kwargs):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return np.dot(utils.int_array(x.val), utils.int_array(y.val), **kwargs) * precision_cast(2**(n_frac - x.n_frac - y.n_frac))
+        return np.dot(x.val, y.val, **kwargs) * precision_cast(2**(n_frac - x.n_frac - y.n_frac))
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
