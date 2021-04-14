@@ -484,6 +484,21 @@ class Fxp():
                 # by now it is just an extra test, not critical
                 pass
 
+            if np.issubdtype(val.dtype, str):
+                # if val is a str(s), convert to number(s)
+                val = val.tolist()
+
+                if not raw:
+                    val, signed, n_word, n_frac = utils.str2num(val, self.signed, self.n_word, self.n_frac, return_sizes=True)
+                else:
+                    val, signed, n_word, _ = utils.str2num(val, self.signed, self.n_word, None, return_sizes=True)
+                    n_frac = self.n_frac
+
+                if n_frac is not None and n_frac == 0:
+                    vdtype = int
+                else:
+                    vdtype = float
+
         elif isinstance(val, (list, tuple, str)):
             # if val is a str(s), convert to number(s)
             if not raw:
@@ -678,7 +693,12 @@ class Fxp():
             if dtype == float or np.issubdtype(dtype, np.floating):
                 val = raw_val / self._get_conv_factor()
             elif dtype == int or dtype == 'uint' or dtype == 'int' or np.issubdtype(dtype, np.integer):
-                val = raw_val // self._get_conv_factor()
+                if self.n_frac == 0:
+                    val = raw_val
+                else:
+                    val = raw_val // self._get_conv_factor()
+                    val = np.array(list(map(int, val.flatten()))).reshape(val.shape)
+                
             elif dtype == complex or np.issubdtype(dtype, np.complexfloating):
                 val = (raw_val.real + 1j * raw_val.imag) / self._get_conv_factor()
             else:

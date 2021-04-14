@@ -145,9 +145,24 @@ def strhex2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
 
 def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=False):
     if isinstance(x, (list, tuple)):
+        _signed_max = False
+        _n_word_max = None
+        _n_frac_max = None
+
         for idx, v in enumerate(x):
-            x[idx] = str2num(v, signed, n_word, n_frac, base)
+            x[idx], _signed, _n_word, _n_frac = str2num(v, signed, n_word, n_frac, base, return_sizes=True)
+
+            _signed = _signed_max or _signed
+            if _n_word is not None:
+                _n_word_max = _n_word if _n_word_max is None else max(_n_word_max, _n_word)
+            if _n_frac is not None:
+                _n_frac_max = _n_frac if _n_frac_max is None else max(_n_frac_max, _n_frac)
+
         val = x
+        signed = signed or _signed
+        n_word = _n_word_max if n_word is None else n_word
+        n_frac = _n_frac_max if n_frac is None else n_frac
+
     elif isinstance(x, str):
         x = x.replace('h', 'x')     # for hex numbers: h -> x
 

@@ -108,3 +108,15 @@ def test_issue_21_v0_3_8():
     z = np.inner(fa, fb)
     assert (np.inner(fa, fb)() == np.inner(a, b)).all()
 
+def test_issue_26_v0_4_0():
+    sig = np.array(['0xff864d8f', '0xff86b76d', '0xff880f87'])
+
+    fxp_sig = Fxp(sig)
+    assert fxp_sig[0] == -7975537
+    assert fxp_sig[1] == -7948435
+    assert fxp_sig[2] == -7860345
+
+    fxp_sig = Fxp(sig, signed=False)
+    assert fxp_sig[0] == int('0xff864d8f', 16)
+    assert fxp_sig[1] == int('0xff86b76d', 16)
+    assert fxp_sig[2] == int('0xff880f87', 16)
