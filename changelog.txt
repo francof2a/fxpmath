@@ -1,3 +1,17 @@
+version 0.4.1.rc1
+--------------------------------------------------
+* Fix casting to object in extended precision multiply.
+* Fix casting to object inside constructor.
+
+Issues fixed: #31
+
+version 0.4.1.rc0
+--------------------------------------------------
+* fix integer repr
+* support numpy array of strings
+
+Issues fixed: #26
+
 version 0.4.0
 --------------------------------------------------
 * Extended precision (beyond 64 bits) in `add`, `sub`, `mult`, `truediv`, `floordiv`, `mod` and `pow` functions and methods (operators).

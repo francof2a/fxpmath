@@ -120,3 +120,29 @@ def test_issue_26_v0_4_0():
     assert fxp_sig[0] == int('0xff864d8f', 16)
     assert fxp_sig[1] == int('0xff86b76d', 16)
     assert fxp_sig[2] == int('0xff880f87', 16)
+
+def test_issue_31_v0_4_0():
+    t = Fxp(2**32, dtype="u32.32", shifting="trunc")
+    assert t.status['extended_prec'] == True
+    assert t.val.dtype == object
+    assert t.val == 2**64 - 1
+
+
+    s = t(0.125)
+    assert s.val.dtype == object
+    assert t() == 0.125
+
+
+    q = t(0.125)<<3
+    assert q.val.dtype == object
+    assert q() == 1.0
+
+
+    q2 = t(0.125)*2**3
+    assert q2.val.dtype == object
+    assert q2() == 1.0
+
+
+    q3 = t(0.125*2**3)
+    assert q3.val.dtype == object
+    assert q3() == 1.0

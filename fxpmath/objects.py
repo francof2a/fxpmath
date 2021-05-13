@@ -596,6 +596,7 @@ class Fxp():
             _n_word_max_ = min(_n_word_max, 64)
             if np.max(val) >= 2**_n_word_max_ or np.min(val) < -2**_n_word_max_ or self.n_word >= _n_word_max_:
                 val_dtype = object
+                val = val.astype(object)
             else:
                 val_dtype = np.int64 if self.signed else np.uint64
 
@@ -608,7 +609,7 @@ class Fxp():
 
             if val_dtype == object:       
                 # convert each element to int
-                new_val = np.array(list(map(int, new_val.flatten()))).reshape(new_val.shape)
+                new_val = np.array(list(map(int, new_val.flatten()))).reshape(new_val.shape).astype(val_dtype)
             
             if index is not None:
                 self.val[index] = new_val

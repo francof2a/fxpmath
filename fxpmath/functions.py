@@ -335,7 +335,8 @@ def mul(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     """
     def _mul_raw(x, y, n_frac):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return x.val * y.val * precision_cast(2**(n_frac - x.n_frac - y.n_frac))
+        raw_cast = (lambda m: np.array(m, dtype=object)) if (x.n_word + y.n_word) >= _n_word_max else (lambda m: m)
+        return raw_cast(x.val) * raw_cast(y.val) * precision_cast(2**(n_frac - x.n_frac - y.n_frac))
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
