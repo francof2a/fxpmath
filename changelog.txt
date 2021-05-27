@@ -1,22 +1,18 @@
-version 0.4.1.rc2
+version 0.4.1.rc3
 --------------------------------------------------
+* Test Numpy precision at init.
 * Independent definition of n_word_max and error for config.
 * Fix astype casting when dtype and vdtype is None.
 * Fix casting to object in extended cumprod function.
-
-version 0.4.1.rc1
---------------------------------------------------
+* Independent definition of n_word_max and error for config.
+* Fix astype casting when dtype and vdtype is None.
+* Fix casting to object in extended cumprod function.
 * Fix casting to object in extended precision multiply.
 * Fix casting to object inside constructor.
-
-Issues fixed: #31
-
-version 0.4.1.rc0
---------------------------------------------------
 * fix integer repr
 * support numpy array of strings
 
-Issues fixed: #26
+Issues fixed: #26, #31
 
 version 0.4.0
 --------------------------------------------------

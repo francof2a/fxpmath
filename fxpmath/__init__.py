@@ -1,4 +1,4 @@
-__version__ = '0.4.1-rc.2'
+__version__ = '0.4.1-rc.3'
 
 import sys
 import os
@@ -27,6 +27,17 @@ try:
     import numpy as np
     __maxsize__ = sys.maxsize
     _n_word_max = int(np.log2(__maxsize__)) + 1
+
+    _test_precision = lambda prec_bits: abs(int(2**np.array(prec_bits-1))) == abs(2**(prec_bits-1))
+
+    if not _test_precision(_n_word_max):
+        # Numpy kernel is not supporting that precision
+        if _test_precision(64):
+            _n_word_max = 64    # 64 bits
+        elif _test_precision(32):
+            _n_word_max = 32    # 32 bits
+        else:
+            _n_word_max = 64    # default by fail = 64 bits
 except:
     # print("Max size for integer couldn't be found for this computer. n_word max = 64 bits.")
     _n_word_max = 64
