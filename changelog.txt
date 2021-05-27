@@ -1,3 +1,9 @@
+version 0.4.1.rc2
+--------------------------------------------------
+* Independent definition of n_word_max and error for config.
+* Fix astype casting when dtype and vdtype is None.
+* Fix casting to object in extended cumprod function.
+
 version 0.4.1.rc1
 --------------------------------------------------
 * Fix casting to object in extended precision multiply.

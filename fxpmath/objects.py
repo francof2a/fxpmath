@@ -691,8 +691,12 @@ class Fxp():
             else:
                 raw_val = self.val
 
-            if dtype == float or np.issubdtype(dtype, np.floating):
+            if dtype is None:
                 val = raw_val / self._get_conv_factor()
+            elif dtype == float or np.issubdtype(dtype, np.floating):
+                val = raw_val / self._get_conv_factor()
+                if isinstance(val, np.ndarray):
+                    val = val.astype(dtype)
             elif dtype == int or dtype == 'uint' or dtype == 'int' or np.issubdtype(dtype, np.integer):
                 if self.n_frac == 0:
                     val = raw_val
@@ -1594,8 +1598,8 @@ class Fxp():
 class Config():
     def __init__(self, **kwargs):
         # size limits
-        self.max_error = kwargs.pop('max_error', _max_error)
-        self.n_word_max = kwargs.pop('n_word_max', _n_word_max)
+        self.max_error = kwargs.pop('max_error', 1 / 2**63)
+        self.n_word_max = kwargs.pop('n_word_max', 64)
 
         # behavior
         self.overflow = kwargs.pop('overflow', 'saturate')

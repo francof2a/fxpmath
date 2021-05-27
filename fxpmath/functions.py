@@ -531,8 +531,9 @@ def cumprod(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw
     """
     def _cumprod_raw(x, n_frac, **kwargs):
         axis = kwargs['axis'] if 'axis' in kwargs else None
+        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
         pow_vals = n_frac - np.cumsum(np.ones_like(np.array(x)), axis=axis).astype(int)  * x.n_frac
-        conv_factors = utils.int_array([2**pow_val for pow_val in pow_vals])
+        conv_factors = utils.int_array([2**pow_val for pow_val in precision_cast(pow_vals)])
         return np.cumprod(x.val, **kwargs) * conv_factors
 
     if not isinstance(x, Fxp):

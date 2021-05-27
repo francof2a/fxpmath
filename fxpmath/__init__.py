@@ -1,4 +1,4 @@
-__version__ = '0.4.1-rc.1'
+__version__ = '0.4.1-rc.2'
 
 import sys
 import os
@@ -34,7 +34,7 @@ except:
 try:
     _max_error = 1 / (1 << (_n_word_max - 1))
 except:
-    _max_error = 1 / 2**63
+    _max_error = 1 / 2**(_n_word_max - 1)
 
 
 from . import objects
