@@ -9,9 +9,10 @@ from fxpmath import Fxp
 
 x = Fxp(-7.25)      # create fxp variable with value 7.25
 x.info()
+```
 
 > dtype           =       fxp-s6/2  
-> Value           =       -7.25  
+> Value           =       -7.25
 
 We have created a variable of 6 bits, where 1 bit has been reserved for sign, 2 bits for fractional part, and 3 remains for integer part. Here, bit sizes had been calculated to just satisfy the value you want to save.
 
@@ -33,6 +34,14 @@ or just
 x = Fxp(-7.25, True, 16, 8)
 ```
 
+Formats can also be specified using a string, either in the fxp `dtype` format,
+or by using `Qm.n` or `UQm.n` notation (or the equivalent `Sm.n`/`Um.n` notation).
+
+```python
+x = Fxp(-7.25, dtype='fxp-s16/8')
+x = Fxp(-7.25, dtype='S8.8')
+```
+
 You can print more information only changing the verbosity of *info* method.
 
 ```python
@@ -46,7 +55,7 @@ x.info(verbose=3)
 > Word bits       =       16  
 > Fract bits      =       8  
 > Int bits        =       7  
-> Val data type   =       <class 'float'>  
+> Val data type   =       `<class 'float'>`
 >  
 > Upper           =       127.99609375  
 > Lower           =       -128.0  
@@ -124,6 +133,12 @@ x = 10.75           # wrong
 ```
 
 because you are just modifying `x` type... it isn't a *Fxp* anymore, just a simple *float* right now.
+
+The same as `x.val` gives you the raw underlying value, you can set that value with
+
+```python
+x.set_val(43, raw=True)
+```
 
 ## changing size
 
@@ -237,7 +252,7 @@ n = Fxp( list(range(N)) )                       # sample indices
 y( 0.5 * np.sin(2 * np.pi * f * n() / fs) )     # a sin wave with 5.0 Hz of frequecy sampled at 400 samples per second
 ```
 
-## logical (bitwise) operators
+### logical (bitwise) operators
 
 *Fxp* supports logical (bitwise) operations like *not* (*inverse*), *and*, *or*, *xor* with constants or others Fxp variables. It also supports bits *shifting* to the right and left.
 
@@ -256,7 +271,7 @@ x >> 3  # x shifted 3 bits to the right (filled with sign bit)
 
 When logical operations are performed with a constant, this constant is converted to a Fxp with de same characteristics of Fxp operand.
 
-## Comparisons
+### Comparisons
 
 *Fxp* supoorts comparison operators with constants, other variables, or another Fxp.
 
@@ -272,7 +287,7 @@ x == y
 
 Fxp has embedded some behaviors to process the value to store.
 
-### overflow / underflow
+## overflow / underflow
 
 A Fxp has upper and lower limits to representate a fixed point value, those limits are define by fractional format (bit sizes). When we want to store a value that is outside those limits, Fxp has an **overflow** y process the value depending the behavior configured for this situation. The options are:
 
@@ -300,7 +315,7 @@ print(x.lower)
 
 It is important to know the Fxp doesn't raise a warning if *overflow* or *underflow* happens. The way to know that is checking field `status['overflow']` and `status['underflow']` of each Fxp.
 
-### rounding
+## rounding
 
 Until now we had been storing values in our Fxp that were represented without loss of precision, and that was because we defined enough amount of bit for word and fractional part. In other words, if we want to save the value -7.25, we need 1 bit for sign, at least 3 bits for integer (2^**3** = 8), and at least 2 bits for fractional (2^-**2** = 0.25). In this case our Fxp would have `fxp-s6/2` format.
 
@@ -336,7 +351,7 @@ print(x.precision)              # print the precision of x
 print(Fxp(n_frac=7).precision)  # print the precision of a fxp with 7 bits for fractional part.
 ```
 
-### inaccuracy
+## inaccuracy
 
 When the input value couldn't be represented exactly as a fixed-point, a **inaccuracy** flag is raised in the status of Fxp variable. You can check this flag to know if you are carrying a precision error.
 
@@ -436,7 +451,7 @@ x.info(3)
 > Word bits       =       12  
 > Fract bits      =       1  
 > Int bits        =       11  
-> Val data type   =       <class 'float'>  
+> Val data type   =       `<class 'float'>`
 >  
 > Upper           =       12047.5  
 > Lower           =       10000.0  
