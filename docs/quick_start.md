@@ -183,13 +183,19 @@ x % 2       # modulo
 x ** 3      # power
 ```
 
-This math operations returns a **new Fxp** object with automatic precision enough to represent the result. So, in all these cases we can assign the result to a (Fxp) variable, or to the same (overwritting the old Fxp object).
+This math operations using a Fxp and a constant returns a **new Fxp** object with a precision that depends of configuration of Fxp object, `x.config` for examples above.
+
+The constant is converted into a new Fxp object before math operation, where the Fxp size for the constant operand is defined by `x.config.op_input_size` in examples above. The default value for `op_input_size` is 'best' (best enoguh precision to represent the constant value), but it could be used 'same' to force the constant's size equals to Fxp object size (x in the examples).
+
+The result of math operation is returned as a new Fxp object with a precision defined according to `x.config.const_op_sizing`. This parameter could be configured with following options: 'optimal', 'same' (default), 'fit', 'largest', 'smallest'. For math operations with constants, by default (`config.const_op_sizing = 'same'`), a Fxp with same size is returned.
+
+In all these cases we can assign the result to a (Fxp) variable, or to the same (overwritting the old Fxp object).
 
 ```python
 y = 3.25 * (x - 0.5)    # y is a new Fxp object
 ```
 
-Math operations using **two or more Fxp** variables is also supported, returning a new Fxp object like before cases. If we add two Fxp, the numbers of bits of resulting Fxp is a 1 more bit; if we multiply two Fxp, the numbers of bits of resulting Fxp is a the sum of the bits of operands. In case of division is different, because the resulting number of bits is calculated to get the enough precision to represent the result.
+Math operations using **two or more Fxp** variables is also supported, returning a new Fxp object like before cases. The size of returned Fxp object depends of both Fxp operand's sizes and the `config.op_sizing` parameter of the first (left) Fxp object. By default, `config.op_sizing = 'optimal'`, so, the returned size depends also of the math operation type. For example, in the addition case, the integer size of returned Fxp is 1 bit larger than largest integer size of operands, and size of fractional part of returned Fxp is equal to largest fractional size of operands.
 
 ```python
 # Fxp as operands
@@ -300,8 +306,8 @@ Until now we had been storing values in our Fxp that were represented without lo
 
 But, if we want to change the value of our Fxp to -7.3, the precision is not enough and Fxp will store -7.25 again. That is because Fxp is **rounding** the value before storing as a fractional fixed point value. Fxp allows different types of rounding methods:
 
-* *trunc* (default): The truncated value of the scalar (let's say `x`) will be the nearest fractional supported value which is closer to zero than `x` is. In short, the fractional part of the signed number `x` that is not supported, is discarded.
-* *around* : Evenly round of the given value to the nearest fractional supported value.
+* *trunc* (default): The truncated value of the scalar (let's say `x`) will be the nearest fractional supported value which is closer to zero than `x` is. In short, the fractional part of the signed number `x` that is not supported, is discarded. Round to nearest fractional supported value towards zero.
+* *around* : Evenly round of the given value to the nearest fractional supported value, for example: 1.5 is rounded to 2.0.
 * *floor* : The floor of the scalar `x` is the largest fractional supported value `i`, such that i <= x. It is often denoted as $\lfloor x \rfloor$.
 * *ceil* :  The ceil of the scalar `x` is the smallest fractional supported value `i`, such that i >= x. It is often denoted as \lceil x \rceil.
 * *fix* : Round to nearest fractional supported value towards zero.
