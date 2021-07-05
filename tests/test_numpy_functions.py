@@ -1,7 +1,7 @@
 import os
 import sys
+from packaging import version
 
-from numpy.lib.arraysetops import isin
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
@@ -183,12 +183,19 @@ def test_ndarray_methods():
             assert (r == ra).all()   
 
 def test_outputs_formats():
+    
     values = [[1, 2, 3], [-1, 0, 1]]
     w = Fxp(values, True, 16, 8)
     like_ref = Fxp(None, True, 24, 12)
     out_ref = Fxp(None, True, 24, 8)
 
-    z = np.add(w, 2, out_like=like_ref)
+    if version.parse(np.__version__) >= version.parse('1.21'):
+        # since numpy 1.21 unknown arguments raise an error
+        # by now only test the fxpmath.functions.add instead of numpy dispatched add function
+        from fxpmath.functions import add
+        z = add(w, 2, out_like=like_ref)
+    else:
+        z = np.add(w, 2, out_like=like_ref)
 
     assert isinstance(z, Fxp)
     assert z.n_frac == like_ref.n_frac
