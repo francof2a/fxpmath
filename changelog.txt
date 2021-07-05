@@ -1,4 +1,4 @@
-version 0.4.1.rc3
+version 0.4.1
 --------------------------------------------------
 * Test Numpy precision at init.
 * Independent definition of n_word_max and error for config.
