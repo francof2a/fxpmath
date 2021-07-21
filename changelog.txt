@@ -1,3 +1,8 @@
+version 0.4.2
+--------------------------------------------------
+* Add template to Config object.
+* Fix config update from Fxp's template.
+
 version 0.4.1
 --------------------------------------------------
 * Test Numpy precision at init.
