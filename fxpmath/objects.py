@@ -118,6 +118,9 @@ class Fxp():
         _initialized = False
         # ---
 
+        # init config
+        self.config = Config()
+
         # if `template` is in kwarg, the reference template is updated
         if 'template' in kwargs: self.template = kwargs.pop('template')
 
@@ -146,11 +149,11 @@ class Fxp():
             'inaccuracy': False,
             'extended_prec': False}
 
+        # update config from kwargs
+        self.config.update(**kwargs)
+
         # callbacks
         if self.callbacks is None: self.callbacks = kwargs.pop('callbacks', [])
-        
-        # config
-        self.config = Config(**kwargs)
 
         # scaling
         if self.scale is None: self.scale = kwargs.pop('scale', 1)
@@ -1596,6 +1599,8 @@ class Fxp():
         return dot(self, x, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs) 
 
 class Config():
+    template = None
+
     def __init__(self, **kwargs):
         # size limits
         self.max_error = kwargs.pop('max_error', 1 / 2**63)
@@ -1626,6 +1631,14 @@ class Config():
 
         # notation
         self.dtype_notation = kwargs.pop('dtype_notation', 'fxp')
+
+        # update from template
+        # if `template` is in kwarg, the reference template is updated
+        if 'template' in kwargs: self.template = kwargs.pop('template')
+
+        if self.template is not None:
+            if isinstance(self.template, Config):
+                self.__dict__ = copy.deepcopy(self.template.__dict__)
 
     # ---
     # properties
@@ -1875,6 +1888,12 @@ class Config():
     def print(self):
         for k, v in self.__dict__.items():
             print('\t{: <24}:\t{}'.format(k.strip('_'), v))
+
+    def update(self, **kwargs):
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+
 
     # endregion
 
