@@ -38,6 +38,7 @@ See some examples in the [examples folder](https://github.com/francof2a/fxpmath/
 ## Table of content
 
 * [install](#install)
+* [citation](#citation)
 * [quick start](#quick-start)
   * [creation](#creation)
   * [Representations](#representations)
@@ -83,6 +84,24 @@ and then go to the fxpmath folder and install it:
 ```bash
 cd fxpmath
 pip install .
+```
+
+## citation
+
+```
+Alcaraz, F., 2020. Fxpmath. Available at: https://github.com/francof2a/fxpmath.
+```
+
+**BibTex format**:
+
+```
+@online{alcaraz2020fxpmath,
+  title={fxpmath},
+  author={Alcaraz, Franco},
+  year={2020},
+  publisher={GitHub},
+  url={https://github.com/francof2a/fxpmath},
+}
 ```
 
 ## quick start
