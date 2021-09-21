@@ -1,3 +1,14 @@
+version 0.4.3
+--------------------------------------------------
+* Fxp adds `config` as optional init parameter (kwarg).
+* Functions (operators) over one and two variables copy first operator configuration by default.
+* Changes above fixed wrap overflowing bug after operation (issue #42 solved).
+* Wrap function of utils fix bug when data has more than n_word_max (64 bits in the most of cases) (issue #41 soved).
+* Config new methods: copy, deepcopy.
+* Fix warning about internal complex check (issue #39).
+* Add link implementation between `functions.truediv` with `numpy.divide`.
+* Add `axes` parameter to `transpose` method.
+
 version 0.4.2
 --------------------------------------------------
 * Add template to Config object.

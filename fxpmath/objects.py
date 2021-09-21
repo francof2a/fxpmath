@@ -149,6 +149,14 @@ class Fxp():
             'inaccuracy': False,
             'extended_prec': False}
 
+        # update config as argument
+        _config = kwargs.pop('config', None)
+        if _config is not None:
+            if isinstance(_config, Config):
+                self.config = _config.deepcopy()
+            else:
+                raise TypeError('config parameter must be Config class type!')
+
         # update config from kwargs
         self.config.update(**kwargs)
 
@@ -594,7 +602,7 @@ class Fxp():
         conv_factor = self._get_conv_factor(raw)
 
         # round, saturate and store
-        if original_vdtype != complex and not np.issubdtype(original_vdtype, complex):
+        if original_vdtype != complex and not np.issubdtype(original_vdtype, np.complexfloating):
             # val_dtype determination
             _n_word_max_ = min(_n_word_max, 64)
             if np.max(val) >= 2**_n_word_max_ or np.min(val) < -2**_n_word_max_ or self.n_word >= _n_word_max_:
@@ -1522,7 +1530,7 @@ class Fxp():
         x.val = x.val.T
         return x    
     
-    def transpose(self, **kwargs):
+    def transpose(self, axes=None, **kwargs):
         from .functions import transpose
 
         out = kwargs.pop('out', self.config.op_out)
@@ -1530,7 +1538,7 @@ class Fxp():
         sizing = kwargs.pop('sizing', self.config.op_sizing)
         method = kwargs.pop('method', self.config.op_method)
 
-        return transpose(self, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
+        return transpose(self, axes=axes, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
 
     def item(self, *args):
         if len(args) > 1:
@@ -1894,7 +1902,12 @@ class Config():
             if hasattr(self, k):
                 setattr(self, k, v)
 
+    # copy
+    def copy(self):
+        return copy.copy(self)
 
+    def deepcopy(self):
+        return copy.deepcopy(self)
     # endregion
 
 # ----------------------------------------------------------------------------------------

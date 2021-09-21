@@ -146,3 +146,15 @@ def test_issue_31_v0_4_0():
     q3 = t(0.125*2**3)
     assert q3.val.dtype == object
     assert q3() == 1.0
+
+def test_issue_41_v0_4_2():
+    x = Fxp(2, False, 63, 0, overflow='wrap')
+    y = Fxp(2, False, 64, 0, overflow='wrap')
+
+    assert x() == 2
+    assert y() == 2
+
+def test_issue_42_v0_4_2():
+    b = Fxp(2, True, 4, 0, overflow='wrap')
+    assert (b + 8)() == -6.0
+    assert (b - 8)() == -6.0

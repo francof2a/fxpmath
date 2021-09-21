@@ -34,6 +34,7 @@ SOFTWARE.
 
 #%%
 import numpy as np
+from . import _n_word_max
 
 #%% 
 def array_support(func):
@@ -312,13 +313,20 @@ def int_clip(x, val_min, val_max):
     x_clipped = np.array(max(val_min, min(val_max, int(x))))
     return x_clipped
 
-def wrap(x, signed, n_word): 
+def wrap(x, signed, n_word):
+    if n_word >= _n_word_max:
+        dtype = object
+    else:
+        dtype = int
+
     m = (1 << n_word)
     if signed: 
-        x = np.array(x).astype(int) & (m - 1) 
+        x = np.array(x).astype(dtype) & (m - 1)
+        x = np.asarray(x).astype(dtype)
         x = np.where(x < (1 << (n_word-1)), x, x | (-m)) 
     else: 
-        x = np.array(x).astype(int) & (m - 1) 
+        x = np.array(x).astype(dtype) & (m - 1) 
+        x = np.asarray(x).astype(dtype)
     return x
 
 def get_sizes_from_dtype(dtype):

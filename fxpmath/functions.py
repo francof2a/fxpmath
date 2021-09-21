@@ -99,6 +99,8 @@ def _function_over_one_var(repr_func, raw_func, x, out=None, out_like=None, sizi
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
         n_frac = out.n_frac
+        config = None
+
     elif out_like is not None:
         if not isinstance(out_like, Fxp):
             raise TypeError('`out_like` must be a Fxp object!')
@@ -107,6 +109,10 @@ def _function_over_one_var(repr_func, raw_func, x, out=None, out_like=None, sizi
         signed = None
         n_frac = None
         n_int = None
+        config = None
+    
+    else:
+        config = x.config
 
     if method == 'repr' or x.scaled or n_frac is None:
         raw = False
@@ -141,6 +147,8 @@ def _function_over_two_vars(repr_func, raw_func, x, y, out=None, out_like=None, 
         if not out.signed and signed:
             raise ValueError('Signed addition can not be stored in unsigned `out` object!')
         n_frac = out.n_frac
+        config = None
+
     elif out_like is not None:
         if not isinstance(out_like, Fxp):
             raise TypeError('`out_like` must be a Fxp object!')
@@ -149,6 +157,10 @@ def _function_over_two_vars(repr_func, raw_func, x, y, out=None, out_like=None, 
         signed = None
         n_frac = None
         n_int = None
+        config = None
+
+    else:
+        config = x.config
 
     if method == 'repr' or x.scaled or n_frac is None:
         raw = False
@@ -163,7 +175,7 @@ def _function_over_two_vars(repr_func, raw_func, x, y, out=None, out_like=None, 
     if out is not None:
         z = out.set_val(val, raw=raw)
     else:
-        z = Fxp(val, signed=signed, n_int=n_int, n_frac=n_frac, like=out_like, raw=raw)
+        z = Fxp(val, signed=signed, n_int=n_int, n_frac=n_frac, like=out_like, raw=raw, config=config)
 
     return z   
 
@@ -374,7 +386,7 @@ def floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kw
 
     return _function_over_two_vars(repr_func=_floordiv_repr, raw_func=_floordiv_raw, x=x, y=y, out=out, out_like=out_like, sizing=sizing, method=method, optimal_size=optimal_size, **kwargs)
 
-@implements(np.true_divide)
+@implements(np.true_divide, np.divide)
 def truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs):
     """
     """
@@ -572,13 +584,14 @@ def conjugate(x, out=None, out_like=None, sizing='optimal', method='raw', **kwar
     return _function_over_one_var(repr_func=np.conjugate, raw_func=_conjugate_raw, x=x, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
 
 @implements(np.transpose)
-def transpose(x, out=None, out_like=None, sizing='optimal', method='raw', **kwargs):
+def transpose(x, axes=None, out=None, out_like=None, sizing='optimal', method='raw', **kwargs):
     """
     """
     def _transpose_raw(x, n_frac, **kwargs):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
         return (x.val.T) * precision_cast(2**(n_frac - x.n_frac))
 
+    kwargs['axes'] = axes
     return _function_over_one_var(repr_func=np.transpose, raw_func=_transpose_raw, x=x, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
 
 @implements(np.clip)
