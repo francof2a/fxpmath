@@ -166,6 +166,7 @@ class Fxp():
         # scaling
         if self.scale is None: self.scale = kwargs.pop('scale', 1)
         if self.bias is None: self.bias = kwargs.pop('bias', 0)
+        self.scaled = True if self.scale != 1 or self.bias != 0 else False
 
         # check if val is a raw value
         if raw is None: raw = kwargs.pop('raw', False)
@@ -542,9 +543,15 @@ class Fxp():
         # scaling conversion
         self.scaled = False
         if self.scale is not None and self.bias is not None and not raw:
-            if self.scale != 1 or self.bias != 0:
+            if self.bias != 0:
                 self.scaled = True
-                val = (val - self.bias) / self.scale
+                val = val - self.bias
+            if self.scale != 1:
+                self.scaled = True
+                val = val / self.scale
+            # check if it is a numpy array
+            if not isinstance(val, (np.ndarray, np.generic)):
+                val = np.array(val)
 
         if return_sizes:
             return val, vdtype, raw, signed, n_word, n_frac

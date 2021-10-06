@@ -52,11 +52,9 @@ def test_issue_14_v0_3_7():
             True, n_word=128, n_frac=125, rounding='around', raw=True)
     assert d.bin() == '00000000000000000000001011101010110101011101010101010101010101010101010101010101001010101010101010101001010101001010101010101010'
  
-
 def test_issue_15_v0_3_7():
     x = Fxp('0xb', True, 10, 4)
     assert x.hex() == '0x00B'
-
 
 def test_issue_17_v0_3_7():
     a = Fxp(15, signed=False)
@@ -158,3 +156,35 @@ def test_issue_42_v0_4_2():
     b = Fxp(2, True, 4, 0, overflow='wrap')
     assert (b + 8)() == -6.0
     assert (b - 8)() == -6.0
+
+def test_issue_44_v0_4_3():
+    # 1a
+    b = Fxp(20.5, False, n_word=5, scaling=1, bias=8)
+    assert b() == 20.5
+
+    # 1b
+    b = Fxp(20.5, False, n_word=4, scaling=1, bias=8)
+    assert b() == 20
+    b = Fxp(20.5, False, n_word=4, n_frac=1, scaling=1, bias=8)
+    assert b() == 15.5
+
+    # 2
+    zero = Fxp(0.0, False, n_word=5, overflow='wrap', scaling=1, bias=8)
+    assert zero() == 32
+    zero = Fxp(0.0, False, n_word=5, n_frac=1, overflow='wrap', scaling=1, bias=8)
+    assert zero() == 16.0
+    assert zero.upper == 23.5
+    assert zero.lower == 8.0
+
+    # 3
+    b = Fxp(0, False, 64, 0, overflow='wrap', bias=8)
+    assert b() == 2**64
+    b = Fxp(8, False, 64, 0, overflow='wrap', bias=8)
+    assert b() == 8
+    b = Fxp(2**64 + 7, False, 64, 0, overflow='wrap', bias=8)
+    assert b() == 2**64 + 7
+    b = Fxp(2**64 + 8, False, 64, 0, overflow='wrap', bias=8)
+    assert b() == 8
+
+    b = Fxp(2**64+6, False, 64, 0, overflow='wrap', scaling=2, bias=8)
+    assert b() == 2**64+6
