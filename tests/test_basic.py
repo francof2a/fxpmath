@@ -416,3 +416,70 @@ def test_init_by_raw():
 
     x = Fxp('0b1111', n_frac=1, raw=True) 
     assert x() == -0.5
+
+def test_resize():
+    x = Fxp(12.5, True, 16, 4)
+    assert x() == 12.5
+
+    # same sizes
+    x.resize(n_word=16)
+    assert x() == 12.5
+    assert x.signed == True
+    assert x.n_word == 16
+    assert x.n_frac == 4
+
+    x.resize(n_frac=4)
+    assert x() == 12.5
+    assert x.signed == True
+    assert x.n_word == 16
+    assert x.n_frac == 4
+
+    # smaller sizes
+    x.resize(n_word=12)
+    assert x() == 12.5
+    assert x.signed == True
+    assert x.n_word == 12
+    assert x.n_frac == 4   
+
+    x.resize(n_frac=2)
+    assert x() == 12.5
+    assert x.signed == True
+    assert x.n_word == 12
+    assert x.n_frac == 2
+
+    # return to original size
+    x.resize(dtype='S12.4')
+    assert x() == 12.5
+    assert x.signed == True
+    assert x.n_word == 16
+    assert x.n_frac == 4
+
+    # bigger sizes
+    x.resize(n_word=24, n_frac=8)
+    assert x() == 12.5
+    assert x.signed == True
+    assert x.n_word == 24
+    assert x.n_frac == 8
+
+    # to unsigned
+    x.resize(dtype='U12.4')
+    assert x() == 12.5
+    assert x.signed == False
+    assert x.n_word == 16
+    assert x.n_frac == 4
+
+    # force truncation
+    x.resize(dtype='S12.4') # return to original size
+
+    x.resize(dtype='S4.2')
+    assert x() == x.upper
+    assert x() == 7.75
+
+    # force wrapping by overflow
+    x = Fxp(12.5, True, 16, 4)
+
+    x.overflow = 'wrap'
+    x.resize(dtype='S4.1')
+    assert x() == 12.5 - x.upper - x.precision + x.lower 
+    assert x() == -3.5
+        

@@ -1,6 +1,7 @@
 version 0.4.5
 --------------------------------------------------
-* Fix FutureWarning in subdtype 'str' comparison (issue #45) 
+* Fix FutureWarning in subdtype 'str' comparison (issue #45).
+* dtype argument added to `resize` method.
 
 version 0.4.4
 --------------------------------------------------

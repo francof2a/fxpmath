@@ -292,9 +292,15 @@ class Fxp():
         else:
             self.resize(self.signed, n_word, n_frac, n_int)
 
-    def resize(self, signed=None, n_word=None, n_frac=None, n_int=None, restore_val=True):
+    def resize(self, signed=None, n_word=None, n_frac=None, n_int=None, restore_val=True, dtype=None):
         _old_val = self.val
         _old_n_frac = self.n_frac
+
+        # check if a string-based format has been provided
+        if dtype is not None:
+            if signed is not None or n_word is not None or n_frac is not None or n_int is not None:
+                raise ValueError('If dtype is specified, other sizing parameters must be `None`!')
+            signed, n_word, n_frac = self._parseformatstr(dtype)
 
         # n_int defined:
         if n_word is None and n_frac is not None and n_int is not None:
