@@ -496,7 +496,7 @@ class Fxp():
                 # by now it is just an extra test, not critical
                 pass
 
-            if np.issubdtype(val.dtype, str):
+            if np.issubdtype(val.dtype, np.str_):
                 # if val is a str(s), convert to number(s)
                 val = val.tolist()
 
