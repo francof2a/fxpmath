@@ -2,6 +2,9 @@ version 0.4.5
 --------------------------------------------------
 * Fix FutureWarning in subdtype 'str' comparison (issue #45).
 * dtype argument added to `resize` method.
+* new method `get_dtype` to get dtype using argument `notation`.
+* Docstring of `get_dtype`, `resize`, `reshape`, `flatten`, `set_val`, `astype`, `get_val`, `raw`, `uraw`, `equal`
+* Order parameter for `reshape` and flatten methods.
 
 version 0.4.4
 --------------------------------------------------
