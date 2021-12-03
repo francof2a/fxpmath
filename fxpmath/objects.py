@@ -82,6 +82,52 @@ class Fxp():
         String describing the desired fixed-point format in either Q/UQ, S/U, or fxp dtype format.
 
     **kwargs : alternative keywords parameters.
+
+    Attributes
+    ---
+
+    dtype : str, read only.
+        String describing the fixed-point format in either Q/UQ, S/U, or fxp dtype format (default).
+        Set config.dtype_notation to change format.
+
+    vdtype : type.
+        Data type of the original value.
+
+    val : number or array
+        Value represented in original format (not binary).
+
+    real : number or array
+        Value represented in original format (not binary).
+        Real part when Fxp is a complex value.
+
+    imag : number or array
+        Imaginary part when Fxp is a complex value.
+        Equal to zero when Fxp is a real value.
+
+    upper : number
+        Maximum value that can be represented by this Fxp.
+
+    lower : number
+        Minimum value that can be represented by this Fxp.
+
+    precision : number
+        Resolution of the values that can be represented by this Fxp.
+
+    shape : tuple
+        Shape of the array of values. Empty if Fxp is a single value.
+
+    ndim : int
+        Number of dimensions of the array of values. It's equal to 0 if Fxp is a single value.
+
+    size : int
+        Number of values in this Fxp object.
+
+    config : Config class
+        Class where configurations parameters of this Fxp object are stored.
+
+    callbacks : list
+        List of callbacks.
+
     '''
 
     template = None
@@ -189,13 +235,12 @@ class Fxp():
         self.set_val(val, raw=raw)
 
     # ---
-    # Properties
+    # Properties/Attributes
     # ---
     # region
 
     @property
-    def dtype(self, notation=None):
-        self._update_dtype(notation)    # update dtype
+    def dtype(self):
         return self._dtype
 
     # overflow (mirror of config for compatibility)
@@ -246,6 +291,27 @@ class Fxp():
     # region
 
     # methods about size
+
+    def get_dtype(self, notation=None):
+        """
+        Get dtype attribute of Fxp.
+
+        Parameters
+        ---
+
+        notation : {None, 'fxp', 'Q'} str, default=None
+            Set format of notation used for dtype.
+            If `notation=None`, value in config.dtype_notation is used.
+            If `notation='Q'`, dtype format will be Q Format; else 'fxp' is used by default.
+
+        Returns
+        ---
+        dtype : str
+            String describing the fixed-point format in either Q/UQ, S/U, or fxp dtype format (default).
+
+        """
+        self._update_dtype(notation)    # update dtype
+        return self._dtype
     
     _qfmt   = re.compile(r'(s|u|q|uq|qu)(\d+)(\.\d+)?')
     _fxpfmt = re.compile(r'fxp-(s|u)(\d+)/(\d+)(-complex)?')
@@ -292,9 +358,43 @@ class Fxp():
         else:
             self.resize(self.signed, n_word, n_frac, n_int)
 
-    def resize(self, signed=None, n_word=None, n_frac=None, n_int=None, restore_val=True):
+    def resize(self, signed=None, n_word=None, n_frac=None, n_int=None, restore_val=True, dtype=None):
+        """
+        Change size of one or more of size parameters (signed, n_word, n_int and/or n_frac) of the Fxp object.
+
+        Parameters
+        ---
+
+        signed : bool, optional, default=None
+            If True, a sign bit is used for the binary word. If None, Fxp is signed.
+
+        n_word : int, optional, defualt=None
+            Number of the bits for binary word (sign + integer part + fractional part).
+            If None, best word size is calculated according input value(s) and other sizes defined.
+
+        n_frac : int, optional, default=None
+            Number of bits for fractional part.
+            If None, best word size is calculated according input value(s) and other sizes defined.
+
+        n_int : int, optional, default=None
+            Number of bits for integer part.
+            If None, best word size is calculated according input value(s) and other sizes defined.
+
+        restore_val : bool
+            If `True` restores original value (if it's possible) after size changing, if `False` the raw (integer fixed point) value is kept.
+
+        dtype : str, optional, default=None
+                String describing the desired fixed-point format in either Q/UQ, S/U, or fxp dtype format.
+                If some of the size parameters are not None, a ValueError exception will be raised.
+        """
         _old_val = self.val
         _old_n_frac = self.n_frac
+
+        # check if a string-based format has been provided
+        if dtype is not None:
+            if signed is not None or n_word is not None or n_frac is not None or n_int is not None:
+                raise ValueError('If dtype is specified, other sizing parameters must be `None`!')
+            signed, n_word, n_frac = self._parseformatstr(dtype)
 
         # n_int defined:
         if n_word is None and n_frac is not None and n_int is not None:
@@ -448,13 +548,57 @@ class Fxp():
         self.n_word = int(min(self.n_word, n_word_max))
         self.resize(restore_val=False)
 
-    def reshape(self, shape):
-        self.val = self.val.reshape(shape)
+    def reshape(self, shape, order='C'):
+        """
+        Reshape the fixed-point array.
+
+        Parameters
+        ---
+        shape : int or tuple of ints
+            The new shape should be compatible with the original shape. 
+            If an integer, then the result will be a 1-D array of that length. 
+            One shape dimension can be -1. In this case, the value is inferred from the length of the array and remaining dimensions.
+
+        order : {‘C’, ‘F’, ‘A’}, optional
+            Read the elements of a using this index order, and place the elements into the reshaped array using this index order. 
+            ‘C’ means to read / write the elements using C-like index order, with the last axis index changing fastest, back to the first axis index changing slowest. 
+            ‘F’ means to read / write the elements using Fortran-like index order, with the first index changing fastest, and the last index changing slowest. 
+            Note that the ‘C’ and ‘F’ options take no account of the memory layout of the underlying array, and only refer to the order of indexing. 
+            ‘A’ means to read / write the elements in Fortran-like index order if a is Fortran contiguous in memory, C-like order otherwise.
+
+        Returns
+        ---
+        reshaped_fxp : Fxp object
+            Same Fxp object with its reshaped values array.
+
+        """
+        
+        self.val = self.val.reshape(shape=shape, order=order)
         return self
     
-    def flatten(self, **kwargs):
+    def flatten(self, order='C'):
+        """
+        Return a copy of the Fxp with its values array collapsed into one dimension.
+
+        Parameters
+        ---
+
+        order{‘C’, ‘F’, ‘A’, ‘K’}, optional
+            ‘C’ means to flatten in row-major (C-style) order. 
+            ‘F’ means to flatten in column-major (Fortran- style) order. 
+            ‘A’ means to flatten in column-major order if a is Fortran contiguous in memory, row-major order otherwise. 
+            ‘K’ means to flatten a in the order the elements occur in memory. 
+            The default is ‘C’.
+
+        Returns
+        ---
+        x : Fxp object
+            A copy of the Fxp object, with its values array flattened to one dimension.
+
+        """
+
         x = self.copy()
-        x.val = x.val.flatten(**kwargs)
+        x.val = x.val.flatten(order)
         return x
 
     # methods about value
@@ -496,7 +640,7 @@ class Fxp():
                 # by now it is just an extra test, not critical
                 pass
 
-            if np.issubdtype(val.dtype, str):
+            if np.issubdtype(val.dtype, np.str_):
                 # if val is a str(s), convert to number(s)
                 val = val.tolist()
 
@@ -594,6 +738,32 @@ class Fxp():
             self._dtype = 'fxp'
 
     def set_val(self, val, raw=False, vdtype=None, index=None):
+        """
+        Set the value/s of the Fxp object.
+
+        Paramters
+        ---
+
+        val : None, int, float, complex, list of numbers, numpy array, str (bin, hex, dec), optional, default=None
+            Value(s) to be stored in fractional fixed-point (base 2) format.
+
+        raw : bool, optional, default=False
+            If `True` the integer value which represent the fixed-point value is overwritten by `val` input.
+
+        vdtype : type, optional, default=None
+            Data type to overwrite Fxp vdtype when a raw value is set (`raw=True`).
+
+        index : int, optional, default=None
+            Index of the element to be overwritten in list or array of values by `val` input.
+
+        Returns
+        ---
+
+        self : Fxp object
+            Fxp with it's value modified. 
+
+        """
+
         # convert input value to valid format
         val, original_vdtype, raw = self._format_inupt_val(val, raw=raw)
 
@@ -698,6 +868,35 @@ class Fxp():
         return self
 
     def astype(self, dtype=None, index=None, item=None):
+        """
+        Returns non-fixed-point value cast to a specified type.
+
+        Paramters
+        ---
+
+        dtype : str or dtype, optional, default=None
+            Typecode or data-type to which the array is cast.
+
+            `None` returns according to `vdtype` of Fxp, if last one is `None`, `float` is returned.
+        
+        index : int, optional, default=None
+            Index of the element to return from list or array of values cast according `dtype`.
+
+        item : variable number and type, optional, default=None
+
+            None: value is not returned as an item.
+
+            int_type: this argument is interpreted as a flat index into the array, specifying which element to cast and return.
+
+            tuple of int_types: functions as does a single int_type argument, except that the argument is interpreted as an nd-index into the array.
+
+        Returns
+        ---
+        val : number or array
+            Value represented in original format (not binary) casted according to `dtype`.
+
+        """
+
         if dtype is None:
             dtype = self.vdtype
 
@@ -735,17 +934,81 @@ class Fxp():
         return val
 
     def get_val(self, dtype=None, index=None, item=None):
+        """
+        Returns non-fixed-point value cast to a specified type.
+
+        Paramters
+        ---
+
+        dtype : str or dtype, optional, default=None
+            Typecode or data-type to which the array is cast.
+
+            `None` returns according to `vdtype` of Fxp, if last one is `None`, `float` is returned.
+        
+        index : int, optional, default=None
+            Index of the element to return from list or array of values cast according `dtype`.
+
+        item : variable number and type, optional, default=None
+
+            None: value is not returned as an item.
+
+            int_type: this argument is interpreted as a flat index into the array, specifying which element to cast and return.
+
+            tuple of int_types: functions as does a single int_type argument, except that the argument is interpreted as an nd-index into the array.
+
+        Returns
+        ---
+        val : number or array
+            Value represented in original format (not binary) casted according to `dtype`.
+            
+        """
+
         if dtype is None:
             dtype = self.vdtype
         return self.astype(dtype, index, item)
 
     def raw(self):
+        """
+        Returns fixed-point integer value (raw value).
+
+        Notes
+        ---
+
+        When Fxp is signed, a signed integer (python `int` or `np.int64` type) is used to represent fixed-point value.
+        If a two-complement representation of this integer is needed, use `uraw` method instead.
+        """
+
         return self.val
     
     def uraw(self):
+        """
+        Returns a tow-complement of fixed-point integer value (unsigned raw value).
+
+        Notes
+        ---
+
+        If signed integer representation of this value is needed, use `raw` method instead.
+        """
         return np.where(self.val < 0, (1 << self.n_word) + self.val, self.val)
 
     def equal(self, x):
+        """
+        Sets the value of the Fxp using the value of other Fxp object.
+        If `x` is not a Fxp, this method set the value just like `set_val` method.
+
+        Parameters
+        ---
+
+        x : Fxp object, None, int, float, complex, list of numbers, numpy array, str (bin, hex, dec)
+            Value(s) to be stored in fractional fixed-point (base 2) format.
+
+        Returns
+        ---
+
+        self : Fxp object
+            Fxp with it's value modified. 
+        """
+        
         if isinstance(x, Fxp):
             new_val_raw = x.val * 2**(self.n_frac - x.n_frac)
             self.set_val(new_val_raw, raw=True)
