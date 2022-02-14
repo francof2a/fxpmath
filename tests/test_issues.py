@@ -188,3 +188,9 @@ def test_issue_44_v0_4_3():
 
     b = Fxp(2**64+6, False, 64, 0, overflow='wrap', scaling=2, bias=8)
     assert b() == 2**64+6
+
+def test_issue_53_v0_4_5():
+    x = Fxp(2j, dtype = 'fxp-u4/0-complex')
+    z = x/2
+
+    assert z() == 1j

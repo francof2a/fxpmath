@@ -1,3 +1,7 @@
+version 0.4.6
+--------------------------------------------------
+* Fix complex `truediv` and `floordiv` methods (issue #53).
+
 version 0.4.5
 --------------------------------------------------
 * Fix FutureWarning in subdtype 'str' comparison (issue #45).

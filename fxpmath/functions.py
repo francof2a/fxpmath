@@ -369,14 +369,34 @@ def floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kw
     """
     def _floordiv_repr(x, y):
         return x // y
+
+    def _floordiv_repr_complex(x, y):
+        y_norm = y.real ** 2 + y.imag ** 2
+        real_part = (x.real * y.real + x.imag * y.imag) // y_norm
+        imag_part = (x.imag * y.real - x.real * y.imag) // y_norm
+        return real_part + 1j*imag_part
+    
     def _floordiv_raw(x, y, n_frac):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
         return ((x.val * precision_cast(2**(n_frac - x.n_frac))) // (y.val * precision_cast(2**(n_frac - y.n_frac)))) * precision_cast(2**n_frac)
+
+    def _floordiv_raw_complex(x, y, n_frac):
+        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
+        y_norm = (y.val.real ** 2 + y.val.imag ** 2) * precision_cast(2**(n_frac - 2*y.n_frac))
+        real_part = (x.val.real * y.val.real + x.val.imag * y.val.imag) * precision_cast(2**(n_frac - x.n_frac - y.n_frac)) // y_norm
+        imag_part = (x.val.imag * y.val.real - x.val.real * y.val.imag) * precision_cast(2**(n_frac - x.n_frac - y.n_frac)) // y_norm
+
+        return (real_part + 1j*imag_part) * precision_cast(2**n_frac)
+
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
     if not isinstance(y, Fxp):
         y = Fxp(y)
+
+    if x.vdtype == complex or y.vdtype == complex:
+        _floordiv_repr = _floordiv_repr_complex
+        _floordiv_raw = _floordiv_raw_complex
 
     signed = x.signed or y.signed
     n_int = x.n_int + y.n_frac + signed
@@ -392,15 +412,29 @@ def truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwa
     """
     def _truediv_repr(x, y):
         return x / y
+
     def _truediv_raw(x, y, n_frac):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
         return (x.val * precision_cast(2**(n_frac - x.n_frac + y.n_frac))) // y.val
         # return np.floor_divide(np.multiply(x.val, precision_cast(2**(n_frac - x.n_frac + y.n_frac))), y.val)
 
+    def _truediv_raw_complex(x, y, n_frac):
+        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
+
+        y_norm = y.val.real ** 2 + y.val.imag ** 2
+        real_part = (x.val.real * y.val.real + x.val.imag * y.val.imag) * precision_cast(2**(n_frac - x.n_frac + y.n_frac)) // y_norm
+        imag_part = (x.val.imag * y.val.real - x.val.real * y.val.imag) * precision_cast(2**(n_frac - x.n_frac + y.n_frac)) // y_norm
+
+        return real_part + 1j*imag_part
+
+
     if not isinstance(x, Fxp):
         x = Fxp(x)
     if not isinstance(y, Fxp):
         y = Fxp(y)
+
+    if x.vdtype == complex or y.vdtype == complex:
+        _truediv_raw = _truediv_raw_complex
 
     signed = x.signed or y.signed
     n_int = x.n_int + y.n_frac + signed
