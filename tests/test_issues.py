@@ -194,3 +194,8 @@ def test_issue_53_v0_4_5():
     z = x/2
 
     assert z() == 1j
+
+def test_issue_56_v0_4_5():
+    arr_fxp = Fxp(np.array([[1, 2]]))
+    assert np.all(arr_fxp.bin() == np.array(['001', '010']))
+

@@ -258,6 +258,21 @@ def test_base_representations():
     assert x.hex() == '0x000000064'
     assert y.hex() == '0x1FFFFFF9C'
 
+    # arrays
+    arr_fxp = Fxp(np.array([[1, 2]]))
+    assert np.all(arr_fxp.bin() == np.array(['001', '010']))
+    assert np.all(arr_fxp.hex() == np.array(['0x1', '0x2']))
+    assert np.all(arr_fxp.base_repr(base=2) == np.array(['1', '10']))
+    assert np.all(arr_fxp.base_repr(base=10) == np.array(['1', '2']))
+    assert np.all(arr_fxp.base_repr(base=10) == np.array(['1', '2']))
+
+    arr_fxp = Fxp(np.array([[15, -16], [-1, 0]]))
+    assert np.all(arr_fxp.bin() == np.array([['01111', '10000'], ['11111', '00000']]))
+    assert np.all(arr_fxp.hex() == np.array([['0x0F', '0x10'], ['0x1F', '0x00']]))
+    assert np.all(arr_fxp.base_repr(base=2) == np.array([['1111', '-10000'], ['-1', '0']]))
+    assert np.all(arr_fxp.base_repr(base=10) == np.array([['15', '-16'], ['-1', '0']]))
+    assert np.all(arr_fxp.base_repr(base=16) == np.array([['F', '-10'], ['-1', '0']]))
+
 
 def test_like():
     ref = Fxp(0.0, True, 16, 4)

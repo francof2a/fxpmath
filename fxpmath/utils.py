@@ -227,14 +227,23 @@ def insert_frac_point(x_bin, n_frac):
     
     return x_bin
 
+@array_support
 def binary_repr(x, n_word=None, n_frac=None):
     if n_frac is None:
-        val = np.binary_repr(x, width=n_word)
+        val = np.binary_repr(int(x), width=n_word)
     else:
         val = insert_frac_point(np.binary_repr(x, width=n_word), n_frac=n_frac)
     return val
 
-def hex_repr(x, n_word=None, padding=None):
+@array_support
+def hex_repr(x, n_word=None, padding=None, base=10):
+    if base == 2:
+        x = int(x, 2)
+    elif base == 10:
+        pass
+    else:
+        raise ValueError('base {base} for input value is not supported!')
+
     if n_word is not None:
         val = '0x{0:0{1}X}'.format(x, int(np.ceil(n_word/4)))
     elif padding is not None:
@@ -244,12 +253,31 @@ def hex_repr(x, n_word=None, padding=None):
         val = '0x'+val[2:].upper()
     return val  
 
+@array_support
 def base_repr(x, n_word=None, base=2, n_frac=None):
     if n_frac is None:
         val = np.base_repr(x, base=base)
     elif base == 2:
         val = insert_frac_point(np.base_repr(x, base=base), n_frac=n_frac)
+    else:
+        val = np.base_repr(x, base=base)
     return val
+
+def complex_repr(r, i):
+    r = np.asarray(r)
+    i = np.asarray(i)
+
+    assert r.shape == i.shape
+
+    c = np.empty(r.shape, dtype=object)
+
+    if r.dtype.type is np.str_ and i.dtype.type is np.str_:
+        for idx in np.ndindex(r.shape):
+            imag_sign_symbol = '' if ('-' in str(i[idx]) or '+' in str(i[idx])) else '+'
+            c[idx] = str(r[idx]) + imag_sign_symbol + str(i[idx]) + 'j'
+    else:
+        raise ValueError('parameters must be a list of array of strings!')
+    return c
 
 def bits_len(x, signed=None):
     if signed is None and x < 0:
