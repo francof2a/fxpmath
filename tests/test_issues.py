@@ -188,3 +188,41 @@ def test_issue_44_v0_4_3():
 
     b = Fxp(2**64+6, False, 64, 0, overflow='wrap', scaling=2, bias=8)
     assert b() == 2**64+6
+
+def test_issue_53_v0_4_5():
+    x = Fxp(2j, dtype = 'fxp-u4/0-complex')
+    z = x/2
+
+    assert z() == 1j
+
+def test_issue_55_v0_4_5():
+    x = Fxp(0b11+0b11*1j, dtype = 'fxp-u2/0-complex')
+    z = x & 0b01
+
+def test_issue_56_v0_4_5():
+    arr_fxp = Fxp(np.array([[1, 2]]))
+    assert np.all(arr_fxp.bin() == np.array(['001', '010']))
+
+def test_issue_58_v0_4_5():
+    # datatype definition
+    TAP = Fxp(None, dtype='fxp-s32/24-complex')
+    SIGNAL = Fxp(None, dtype='fxp-s32/24-complex')
+
+    # signal
+    signal = np.array([(1 + 1j), (1 - 1j), (-1 + 1j), (-1 - 1j)], dtype=complex)
+    signal_fxp = Fxp(signal).like(SIGNAL)
+    signal_fxp1 = Fxp(signal, dtype='fxp-s32/24-complex')
+
+    # generate filter
+    filt = np.arange(0.1, 0.5, 0.1)
+    filt_fxp = Fxp(filt).like(TAP)
+    filt_fxp1 = Fxp(filt, dtype='fxp-s32/24')
+
+    # convolve signal and filter
+    out = np.convolve(signal_fxp, filt_fxp, 'same')
+    out1 = np.convolve(signal_fxp1, filt_fxp1, 'same')
+
+    assert np.all(signal_fxp() == signal_fxp1())
+    assert np.all(filt_fxp() == filt_fxp1())
+    assert np.all(out() == out1())
+

@@ -219,7 +219,9 @@ class Fxp():
 
         # check if a string-based format has been provided
         if dtype is not None:
-            signed, n_word, n_frac = self._parseformatstr(dtype)
+            signed, n_word, n_frac, complex_flag = self._parseformatstr(dtype)
+
+            self.vdtype = complex if complex_flag else self.vdtype
 
         # size
         if not _initialized:
@@ -329,15 +331,22 @@ class Fxp():
             else:
                 n_frac = int(mo.group(3)[1:])
             n_word = n_frac + n_int
+            complex_dtype = False
         else:
             mo = self._fxpfmt.match(fmt)
             if mo:
                 signed = mo.group(1) == 's'
                 n_word = int(mo.group(2))
                 n_frac = int(mo.group(3))
+                complex_dtype = False
+                if mo.lastindex > 3:
+                    _complex_str = str(mo.group(4))
+                    if _complex_str == '-complex':
+                        complex_dtype = True
+                        
             else:
                 raise ValueError('unrecognized format string')
-        return signed, n_word, n_frac
+        return signed, n_word, n_frac, complex_dtype
     
     def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=_max_error, n_word_max=_n_word_max, raw=False):
         # sign by default
@@ -394,7 +403,9 @@ class Fxp():
         if dtype is not None:
             if signed is not None or n_word is not None or n_frac is not None or n_int is not None:
                 raise ValueError('If dtype is specified, other sizing parameters must be `None`!')
-            signed, n_word, n_frac = self._parseformatstr(dtype)
+            signed, n_word, n_frac, complex_flag = self._parseformatstr(dtype)
+
+            self.vdtype = complex if complex_flag else self.vdtype
 
         # n_int defined:
         if n_word is None and n_frac is not None and n_int is not None:
@@ -611,7 +622,11 @@ class Fxp():
 
         if val is None:
             val = 0
-            vdtype = int    
+
+            if self.vdtype is None:
+                vdtype = int if n_frac < 1 else float
+            else:
+                vdtype = self.vdtype
 
         elif isinstance(val, Fxp):
             # if val is an Fxp object
@@ -729,7 +744,7 @@ class Fxp():
                 self._dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
                                                                     nword=self.n_word, 
                                                                     nfrac=self.n_frac, 
-                                                                    comp='-complex' if self.val.dtype == complex else '')
+                                                                    comp='-complex' if (self.val.dtype == complex or self.vdtype == complex) else '')
             else:
                 self._dtype = 'fxp-{sign}{nword}/{nfrac}'.format(sign='s' if self.signed else 'u', 
                                                                     nword=self.n_word, 
@@ -1479,12 +1494,16 @@ class Fxp():
         
         if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
-                rval = [ utils.binary_repr(int(val.real), n_word=self.n_word, n_frac=n_frac_dot) + '+' + utils.binary_repr(int(val.imag), n_word=self.n_word, n_frac=n_frac_dot) + 'j' for val in self.val]
+                real_val = [utils.binary_repr(utils.int_array(val.real), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
+                imag_val = [utils.binary_repr(utils.int_array(val.imag), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
+                rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = [utils.binary_repr(int(val), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
+                rval = [utils.binary_repr(utils.int_array(val), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
         else:
             if self.vdtype == complex:
-                rval = utils.binary_repr(int(self.val.real), n_word=self.n_word, n_frac=n_frac_dot) + '+' + utils.binary_repr(int(self.val.imag), n_word=self.n_word, n_frac=n_frac_dot) + 'j'
+                real_val = utils.binary_repr(utils.int_array(self.val.real), n_word=self.n_word, n_frac=n_frac_dot)
+                imag_val = utils.binary_repr(utils.int_array(self.val.imag), n_word=self.n_word, n_frac=n_frac_dot)
+                rval = utils.complex_repr(real_val, imag_val)
             else:
                 rval = utils.binary_repr(int(self.val), n_word=self.n_word, n_frac=n_frac_dot)
         return rval
@@ -1497,14 +1516,18 @@ class Fxp():
 
         if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
-                rval = [ utils.hex_repr(int(val.split('+')[0], 2), n_word=hex_n_word) + '+' +  utils.hex_repr(int(val.split('+')[1][:-1], 2), n_word=hex_n_word) + 'j' for val in self.bin()]
+                real_val = [utils.hex_repr(utils.binary_repr(utils.int_array(val.real), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2) for val in self.val]
+                imag_val = [utils.hex_repr(utils.binary_repr(utils.int_array(val.imag), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2) for val in self.val]
+                rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = [utils.hex_repr(int(val, 2), n_word=hex_n_word) for val in self.bin()]
+                rval = [utils.hex_repr(val, n_word=hex_n_word, base=2) for val in self.bin()]
         else:
             if self.vdtype == complex:
-                rval = utils.hex_repr(int(self.bin().split('+')[0], 2), n_word=hex_n_word) + '+' +  utils.hex_repr(int(self.bin().split('+')[1][:-1], 2), n_word=hex_n_word) + 'j'
+                real_val = utils.hex_repr(utils.binary_repr(utils.int_array(self.val.real), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2)
+                imag_val = utils.hex_repr(utils.binary_repr(utils.int_array(self.val.imag), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2)
+                rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = utils.hex_repr(int(self.bin(), 2), n_word=hex_n_word)
+                rval = utils.hex_repr(self.bin(), n_word=hex_n_word, base=2)
         return rval
     
     def base_repr(self, base, frac_dot=False):
@@ -1515,12 +1538,14 @@ class Fxp():
 
         if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
-                rval = [utils.base_repr(int(val.real), base=base, n_frac=n_frac_dot) + ('+' if val.imag >= 0 else '') + utils.base_repr(int(val.imag), base=base, n_frac=n_frac_dot) + 'j' for val in self.val]
+                real_val = [utils.base_repr(utils.int_array(val.real), base=base, n_frac=n_frac_dot)  for val in self.val]
+                imag_val = [utils.base_repr(utils.int_array(val.imag), base=base, n_frac=n_frac_dot)  for val in self.val]
+                rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = [utils.base_repr(int(val), base=base, n_frac=n_frac_dot) for val in self.val]
+                rval = [utils.base_repr(utils.int_array(val), base=base, n_frac=n_frac_dot) for val in self.val]
         else:
             if self.vdtype == complex:
-                rval = utils.base_repr(int(self.val.real), base=base, n_frac=n_frac_dot) + ('+' if self.val.imag >= 0 else '') + utils.base_repr(int(self.val.imag), base=base, n_frac=n_frac_dot) + 'j'
+                rval = utils.complex_repr(utils.base_repr(int(self.val.real), base=base, n_frac=n_frac_dot), utils.base_repr(int(self.val.imag), base=base, n_frac=n_frac_dot))
             else:
                 rval = utils.base_repr(int(self.val), base=base, n_frac=n_frac_dot)
         return rval
