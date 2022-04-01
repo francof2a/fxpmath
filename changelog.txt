@@ -3,6 +3,7 @@ version 0.4.6
 * Fix complex `truediv` and `floordiv` methods (issue #53).
 * Fix complex binary, hexadecimal and base representation for arrays (issue #56).
 * Tests updates for complex representations.
+* Solve init by dtype when it is complex (issue #58).
 
 version 0.4.5
 --------------------------------------------------

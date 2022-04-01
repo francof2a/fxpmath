@@ -219,7 +219,9 @@ class Fxp():
 
         # check if a string-based format has been provided
         if dtype is not None:
-            signed, n_word, n_frac = self._parseformatstr(dtype)
+            signed, n_word, n_frac, complex_flag = self._parseformatstr(dtype)
+
+            self.vdtype = complex if complex_flag else self.vdtype
 
         # size
         if not _initialized:
@@ -329,15 +331,22 @@ class Fxp():
             else:
                 n_frac = int(mo.group(3)[1:])
             n_word = n_frac + n_int
+            complex_dtype = False
         else:
             mo = self._fxpfmt.match(fmt)
             if mo:
                 signed = mo.group(1) == 's'
                 n_word = int(mo.group(2))
                 n_frac = int(mo.group(3))
+                complex_dtype = False
+                if mo.lastindex > 3:
+                    _complex_str = str(mo.group(4))
+                    if _complex_str == '-complex':
+                        complex_dtype = True
+                        
             else:
                 raise ValueError('unrecognized format string')
-        return signed, n_word, n_frac
+        return signed, n_word, n_frac, complex_dtype
     
     def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=_max_error, n_word_max=_n_word_max, raw=False):
         # sign by default
@@ -394,7 +403,9 @@ class Fxp():
         if dtype is not None:
             if signed is not None or n_word is not None or n_frac is not None or n_int is not None:
                 raise ValueError('If dtype is specified, other sizing parameters must be `None`!')
-            signed, n_word, n_frac = self._parseformatstr(dtype)
+            signed, n_word, n_frac, complex_flag = self._parseformatstr(dtype)
+
+            self.vdtype = complex if complex_flag else self.vdtype
 
         # n_int defined:
         if n_word is None and n_frac is not None and n_int is not None:
@@ -611,7 +622,11 @@ class Fxp():
 
         if val is None:
             val = 0
-            vdtype = int    
+
+            if self.vdtype is None:
+                vdtype = int if n_frac < 1 else float
+            else:
+                vdtype = self.vdtype
 
         elif isinstance(val, Fxp):
             # if val is an Fxp object
@@ -729,7 +744,7 @@ class Fxp():
                 self._dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
                                                                     nword=self.n_word, 
                                                                     nfrac=self.n_frac, 
-                                                                    comp='-complex' if self.val.dtype == complex else '')
+                                                                    comp='-complex' if (self.val.dtype == complex or self.vdtype == complex) else '')
             else:
                 self._dtype = 'fxp-{sign}{nword}/{nfrac}'.format(sign='s' if self.signed else 'u', 
                                                                     nword=self.n_word, 
