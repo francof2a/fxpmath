@@ -703,11 +703,17 @@ class Fxp():
         self.scaled = False
         if self.scale is not None and self.bias is not None and not raw:
             if self.bias != 0:
-                self.scaled = True
                 val = val - self.bias
             if self.scale != 1:
-                self.scaled = True
                 val = val / self.scale
+
+            if self.bias != 0 or self.scale != 1:
+                self.scaled = True # update scaled flag
+
+                # update vdtype due scaling tranformation
+                if vdtype == int and (isinstance(self.bias, float) or self.scale != 1):
+                    vdtype = float
+            
             # check if it is a numpy array
             if not isinstance(val, (np.ndarray, np.generic)):
                 val = np.array(val)
@@ -832,6 +838,7 @@ class Fxp():
             if np.max(new_val_real) >= 2**_n_word_max_ or np.min(new_val_real) < -2**_n_word_max_ or self.n_word >= _n_word_max_:
                 val_dtype = object
             else:
+                val = val.astype(original_vdtype)
                 val_dtype = np.int64 if self.signed else np.uint64
             
             # rounding and overflowing
@@ -1159,7 +1166,11 @@ class Fxp():
 
     def __pos__(self):
         y = Fxp(+self.val, signed=self.signed, n_word=self.n_word, n_frac=self.n_frac, raw=True)
-        return y             
+        return y
+
+    def __abs__(self):
+        y = Fxp(abs(self.val), signed=self.signed, n_word=self.n_word, n_frac=self.n_frac, raw=True)
+        return y          
 
     def __add__(self, x):
         from .functions import add

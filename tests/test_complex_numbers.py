@@ -89,6 +89,12 @@ def test_math_operations():
     z_fxp = x_fxp // c
     assert z_fxp() == z
 
+    # abs
+    x = -3.0 + 1j*4.0
+    x_fxp = Fxp(x, dtype='Q16.16')
+
+    assert abs(x_fxp)() == 5.0
+
 def test_complex_repr():
     c_fxp = Fxp(1 + 1j*15)
     assert c_fxp.bin() == '00001+01111j'

@@ -1,3 +1,9 @@
+version 0.4.7
+--------------------------------------------------
+* Keep val as original_vdtype and not as object when it is convenient (solve issue #60).
+* Convert vdtype to float when scaling transformation is applied.
+* Add `abs` method. 
+
 version 0.4.6
 --------------------------------------------------
 * Fix complex `truediv` and `floordiv` methods (issue #53).
