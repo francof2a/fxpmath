@@ -420,3 +420,13 @@ def test_scaled():
     assert x - 2.5 == 8.0
     assert x * 3 == 31.5
     assert x / 2 == 5.25
+
+def test_abs():
+    x = Fxp(-3.5, True, 32, 16)
+
+    assert x() == -3.5
+    assert abs(x)() == 3.5
+
+    x = Fxp(3.5, True, 32, 16)
+    assert abs(x)() == 3.5
+    
