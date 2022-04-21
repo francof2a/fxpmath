@@ -807,6 +807,7 @@ class Fxp():
                 val_dtype = object
                 val = val.astype(object)
             else:
+                val = val.astype(original_vdtype)
                 val_dtype = np.int64 if self.signed else np.uint64
 
             # rounding and overflowing
