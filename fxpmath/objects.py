@@ -807,6 +807,7 @@ class Fxp():
                 val_dtype = object
                 val = val.astype(object)
             else:
+                val = val.astype(original_vdtype)
                 val_dtype = np.int64 if self.signed else np.uint64
 
             # rounding and overflowing
@@ -1455,7 +1456,10 @@ class Fxp():
 
     # indexation
     def __getitem__(self, index):
-        return Fxp(self.val[index], like=self, raw=True)
+        # return Fxp(self.val[index], like=self, raw=True)
+        y = Fxp(like=self)
+        y.val = self.val[index]
+        return y
 
     def __setitem__(self, index, value):
         self.set_val(value, index=index)

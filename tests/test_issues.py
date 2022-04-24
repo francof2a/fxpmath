@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import fxpmath as fxp
-from fxpmath.objects import Fxp
+from fxpmath.objects import Fxp, Config
 
 import numpy as np
 
@@ -226,3 +226,32 @@ def test_issue_58_v0_4_5():
     assert np.all(filt_fxp() == filt_fxp1())
     assert np.all(out() == out1())
 
+def test_issue_60_v0_4_6():
+    cfg=Config(dtype_notation="Q",rounding="around")
+
+    t_fxp = Fxp(0.0,1,n_int=16,n_frac=15,config=cfg)
+    t_int = Fxp(0.0,1,n_int=13,n_frac=0,config=cfg)
+
+    arr = [-5,0,14.8,7961.625]
+    fullprec        = Fxp(arr      , like=t_fxp )
+    rounded_direct  = Fxp(arr      , like=t_int )
+    rounded         = Fxp(fullprec , like=t_int )
+    assert np.all(rounded_direct == rounded)
+
+    scalar_full         = Fxp(7961.625     , like=t_fxp )
+    scalar_round_direct = Fxp(7961.625     , like=t_int )
+    scalar_round        = Fxp(scalar_full  , like=t_int )
+
+    assert scalar_round_direct == scalar_round
+
+def test_issue_62_v0_4_7():
+    y = Fxp(dtype='fxp-s6/2')
+    y([[1.0,0.25,0.5],[0.25,0.5,0.25]])
+
+    y[0][0] = -1.0
+
+    assert y[0][0]() == -1.0
+
+    y[0][0] = y[0][0] + 1.0
+
+    assert y[0][0]() == 0.0

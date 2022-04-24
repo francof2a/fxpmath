@@ -1,3 +1,9 @@
+version 0.4.8
+--------------------------------------------------
+* Fix value dtype handling for windows OS and uint as 32 bits.
+* __getitem__ method return a Fxp with raw value as view (this solve issue #62).
+* Add tests for issues #60 and #62.
+
 version 0.4.7
 --------------------------------------------------
 * Keep val as original_vdtype and not as object when it is convenient (solve issue #60).
