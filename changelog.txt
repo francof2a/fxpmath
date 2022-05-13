@@ -1,3 +1,7 @@
+version 0.4.9
+--------------------------------------------------
+* Fix wrap fuction over n_word_max (issue #41).
+
 version 0.4.8
 --------------------------------------------------
 * Fix value dtype handling for windows OS and uint as 32 bits.

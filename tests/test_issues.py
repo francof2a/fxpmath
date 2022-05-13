@@ -152,6 +152,25 @@ def test_issue_41_v0_4_2():
     assert x() == 2
     assert y() == 2
 
+    x = Fxp(2, False, 31, 0, overflow='wrap')
+    y = Fxp(2, False, 32, 0, overflow='wrap')
+
+    assert x() == 2
+    assert y() == 2
+
+    x = Fxp(2.5, signed=True, n_word=31, n_frac=24, overflow='wrap')
+    y = Fxp(2.5, signed=True, n_word=32, n_frac=24, overflow='wrap')
+
+    assert x() == 2.5
+    assert y() == 2.5
+
+    x = Fxp(2.5, signed=True, n_word=63, n_frac=48, overflow='wrap')
+    y = Fxp(2.5, signed=True, n_word=64, n_frac=48, overflow='wrap')
+
+    assert x() == 2.5
+    assert y() == 2.5
+
+
 def test_issue_42_v0_4_2():
     b = Fxp(2, True, 4, 0, overflow='wrap')
     assert (b + 8)() == -6.0

@@ -349,7 +349,7 @@ def wrap(x, signed, n_word):
 
     m = (1 << n_word)
     if signed: 
-        x = np.array(x).astype(dtype) & (m - 1)
+        x = int_array(x).astype(dtype) & (m - 1)
         x = np.asarray(x).astype(dtype)
         x = np.where(x < (1 << (n_word-1)), x, x | (-m)) 
     else: 
