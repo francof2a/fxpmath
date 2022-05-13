@@ -342,19 +342,20 @@ def int_clip(x, val_min, val_max):
     return x_clipped
 
 def wrap(x, signed, n_word):
-    if n_word >= _n_word_max:
-        dtype = object
-    else:
-        dtype = int
 
     m = (1 << n_word)
-    if signed: 
+    if n_word >= _n_word_max:
+        dtype = object
         x = int_array(x).astype(dtype) & (m - 1)
-        x = np.asarray(x).astype(dtype)
-        x = np.where(x < (1 << (n_word-1)), x, x | (-m)) 
-    else: 
+    else:
+        dtype = int
         x = np.array(x).astype(dtype) & (m - 1) 
-        x = np.asarray(x).astype(dtype)
+
+    x = np.asarray(x).astype(dtype)
+
+    if signed: 
+        x = np.where(x < (1 << (n_word-1)), x, x | (-m))
+        
     return x
 
 def get_sizes_from_dtype(dtype):
