@@ -274,3 +274,55 @@ def test_issue_62_v0_4_7():
     y[0][0] = y[0][0] + 1.0
 
     assert y[0][0]() == 0.0
+
+def test_issue_66_v0_4_8():
+    x = Fxp(np.array([1.25, 0.5]), dtype='S8.4')
+    y = Fxp(np.array([2.25, 1.5]), dtype='S16.6')
+    # x[0].equal(y[0]) # it does NOT work
+    # x[0] = y[0] # it works
+    x.equal(y[0], index=0) # it works
+
+    assert x[0]() == y[0]()
+
+def test_issue_67_v0_4_8():
+    input_size = Fxp(None, dtype='fxp-s32/23')
+    f = [0,10+7j,20-0.65j,30]
+    f = Fxp(f, like = input_size)
+
+    def FFT(f):
+        N = len(f)
+        if N <= 1:
+            return f
+
+        # division: decompose N point FFT into N/2 point FFT
+        even= FFT(f[0::2])
+        odd = FFT(f[1::2])
+
+        # store combination of results
+        temp = np.zeros(N, dtype=complex)
+        # temp = Fxp(temp, dtype='fxp-s65/23')
+        temp = Fxp(temp, dtype='fxp-s65/46')
+
+        for u in range(N//2):
+            W =  Fxp(np.exp(-2j*np.pi*u/N), like=input_size) 
+            temp[u] = even[u] + W* odd[u] 
+            temp[u+N//2] = even[u] - W*odd[u]  
+            
+        return temp
+
+    # testing the function to see if it matches the manual computation
+    F_fft = FFT(f)
+    
+def test_issue_73_v0_4_8():
+    # single unsigned value does work
+    a = Fxp(10, False, 14, 3)
+    b = Fxp(15, False, 14, 3)
+    c = a - b
+    assert c() == 0.0  # 0.0 --> correct
+
+    # unsigned list does not work
+    d = Fxp([10, 21], False, 14, 3)
+    e = Fxp([15, 15], False, 14, 3)
+    f = d - e
+    assert f[0]() == 0.0  # [4095.875 6.0] --> 4095.875 is the upper limit
+    assert f[1]() == 6.0

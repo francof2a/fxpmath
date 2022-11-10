@@ -315,12 +315,14 @@ class Fxp():
         self._update_dtype(notation)    # update dtype
         return self._dtype
     
-    _qfmt   = re.compile(r'(s|u|q|uq|qu)(\d+)(\.\d+)?')
-    _fxpfmt = re.compile(r'fxp-(s|u)(\d+)/(\d+)(-complex)?')
+    def _qfmt(self):
+        return re.compile(r'(s|u|q|uq|qu)(\d+)(\.\d+)?')
+    def _fxpfmt(self):
+        return re.compile(r'fxp-(s|u)(\d+)/(\d+)(-complex)?')
     
     def _parseformatstr(self, fmt):
         fmt = fmt.casefold()
-        mo = self._qfmt.match(fmt)
+        mo = self._qfmt().match(fmt)
         if mo:
             # Q/S notation counts the sign bit as an integer bit, such that
             # the total number of bits is always int+frac
@@ -333,7 +335,7 @@ class Fxp():
             n_word = n_frac + n_int
             complex_dtype = False
         else:
-            mo = self._fxpfmt.match(fmt)
+            mo = self._fxpfmt().match(fmt)
             if mo:
                 signed = mo.group(1) == 's'
                 n_word = int(mo.group(2))
@@ -570,12 +572,12 @@ class Fxp():
             If an integer, then the result will be a 1-D array of that length. 
             One shape dimension can be -1. In this case, the value is inferred from the length of the array and remaining dimensions.
 
-        order : {‘C’, ‘F’, ‘A’}, optional
+        order : {'C', 'F', 'A'}, optional
             Read the elements of a using this index order, and place the elements into the reshaped array using this index order. 
-            ‘C’ means to read / write the elements using C-like index order, with the last axis index changing fastest, back to the first axis index changing slowest. 
-            ‘F’ means to read / write the elements using Fortran-like index order, with the first index changing fastest, and the last index changing slowest. 
-            Note that the ‘C’ and ‘F’ options take no account of the memory layout of the underlying array, and only refer to the order of indexing. 
-            ‘A’ means to read / write the elements in Fortran-like index order if a is Fortran contiguous in memory, C-like order otherwise.
+            'C' means to read / write the elements using C-like index order, with the last axis index changing fastest, back to the first axis index changing slowest. 
+            'F' means to read / write the elements using Fortran-like index order, with the first index changing fastest, and the last index changing slowest. 
+            Note that the 'C' and 'F' options take no account of the memory layout of the underlying array, and only refer to the order of indexing. 
+            'A' means to read / write the elements in Fortran-like index order if a is Fortran contiguous in memory, C-like order otherwise.
 
         Returns
         ---
@@ -594,12 +596,12 @@ class Fxp():
         Parameters
         ---
 
-        order{‘C’, ‘F’, ‘A’, ‘K’}, optional
-            ‘C’ means to flatten in row-major (C-style) order. 
-            ‘F’ means to flatten in column-major (Fortran- style) order. 
-            ‘A’ means to flatten in column-major order if a is Fortran contiguous in memory, row-major order otherwise. 
-            ‘K’ means to flatten a in the order the elements occur in memory. 
-            The default is ‘C’.
+        order{'C', 'F', 'A', 'K'}, optional
+            'C' means to flatten in row-major (C-style) order. 
+            'F' means to flatten in column-major (Fortran- style) order. 
+            'A' means to flatten in column-major order if a is Fortran contiguous in memory, row-major order otherwise. 
+            'K' means to flatten a in the order the elements occur in memory. 
+            The default is 'C'.
 
         Returns
         ---
@@ -750,7 +752,9 @@ class Fxp():
                 self._dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
                                                                     nword=self.n_word, 
                                                                     nfrac=self.n_frac, 
-                                                                    comp='-complex' if (self.val.dtype == complex or self.vdtype == complex) else '')
+                                                                    comp='-complex' if (isinstance(self.val, complex) or \
+                                                                        self.val.dtype == complex or \
+                                                                        self.vdtype == complex) else '')
             else:
                 self._dtype = 'fxp-{sign}{nword}/{nfrac}'.format(sign='s' if self.signed else 'u', 
                                                                     nword=self.n_word, 
@@ -1014,7 +1018,7 @@ class Fxp():
         """
         return np.where(self.val < 0, (1 << self.n_word) + self.val, self.val)
 
-    def equal(self, x):
+    def equal(self, x, index=None):
         """
         Sets the value of the Fxp using the value of other Fxp object.
         If `x` is not a Fxp, this method set the value just like `set_val` method.
@@ -1025,6 +1029,9 @@ class Fxp():
         x : Fxp object, None, int, float, complex, list of numbers, numpy array, str (bin, hex, dec)
             Value(s) to be stored in fractional fixed-point (base 2) format.
 
+        index : int, optional, default=None
+            Index of the element to be overwritten in list or array of values by `val` input.
+
         Returns
         ---
 
@@ -1033,10 +1040,15 @@ class Fxp():
         """
         
         if isinstance(x, Fxp):
-            new_val_raw = x.val * 2**(self.n_frac - x.n_frac)
-            self.set_val(new_val_raw, raw=True)
+            if index is None:
+                raw_val = x.val[index]
+            else:
+                raw_val = x.val
+
+            new_val_raw = raw_val * 2**(self.n_frac - x.n_frac)
+            self.set_val(new_val_raw, raw=True, index=index)
         else:
-            self.set_val(x)
+            self.set_val(x, index=index)
         return self
 
     # behaviors
@@ -1856,9 +1868,6 @@ class Fxp():
         else:
             items = args[0]
         return self.astype(item=items)
-
-    # ToDo:
-    #  nonzero
 
     def clip(self, a_min=None, a_max=None, **kwargs):
         from .functions import clip
