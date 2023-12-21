@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import fxpmath as fxp
 from fxpmath.objects import Fxp, Config
+from fxpmath import functions
 
 import numpy as np
 
@@ -210,8 +211,8 @@ def test_issue_44_v0_4_3():
 
 def test_issue_48_v0_4_8():
     """
-    https://github.com/francof2a/fxpmath/issues/48
     Flags not propagated
+    https://github.com/francof2a/fxpmath/issues/48
     """
     a = Fxp(-2., dtype="fxp-s24/8")
     b = Fxp(2.15, dtype="fxp-s24/8")
@@ -224,6 +225,57 @@ def test_issue_48_v0_4_8():
     # add extra test using a inaccurate Fxp to set a new Fxp
     d = Fxp(c)
     assert d.status['inaccuracy']
+
+def test_issue_49_v0_4_8():
+    """
+    Reversal of .bin()
+    https://github.com/francof2a/fxpmath/issues/49
+    """
+    # Method 1
+    x1 = Fxp(3.4)
+    x_bin = x1.bin()
+    x2 = Fxp('0b' + x_bin, like=x1)
+    assert x1 == x2
+
+    # Method 2
+    x_bin = x1.bin(frac_dot=True)
+    x2 = Fxp('0b' + x_bin)
+    assert x1 == x2
+
+    # Method 3
+    x_bin = x1.bin()
+    x2 = Fxp(like=x1).from_bin(x_bin)
+    assert x1 == x2
+
+    x_bin = x1.bin(frac_dot=True)
+    x2 = Fxp(like=x1).from_bin(x_bin)
+    assert x1 == x2
+
+    # Method 4
+    x_bin = x1.bin(frac_dot=True)
+    x2 = functions.from_bin(x_bin)
+    assert x1 == x2
+
+    # alternatives to get binary string with prefix
+    x_bin = x1.bin(frac_dot=True, prefix='0b')
+    x2 = Fxp(x_bin)
+    assert x1 == x2
+
+    x1.config.bin_prefix = '0b'
+    x_bin = x1.bin(frac_dot=True)
+    x2 = Fxp(x_bin)
+    assert x1 == x2
+
+    # test negative value
+    x1 = Fxp(-3.4)
+    x_bin = x1.bin(frac_dot=True)
+    x2 = functions.from_bin(x_bin)
+    assert x1 == x2
+
+    # test raw value
+    x_bin = x1.bin()
+    x2 = functions.from_bin(x_bin, raw=True, like=x1)
+    assert x1 == x2
 
 
 def test_issue_53_v0_4_5():

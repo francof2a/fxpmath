@@ -39,7 +39,7 @@ from . import _n_word_max
 #%% 
 def array_support(func):
     def iterator(*args, **kwargs):
-        if isinstance(args[0], (list, np.ndarray)) and args[0].ndim > 0:
+        if isinstance(args[0], (list, np.ndarray)) and np.asarray(args[0]).ndim > 0:
             vals = []
             for v in args[0]:
                 vals.append(iterator(v, *args[1:], **kwargs))
@@ -262,6 +262,26 @@ def base_repr(x, n_word=None, base=2, n_frac=None):
     else:
         val = np.base_repr(x, base=base)
     return val
+
+@array_support
+def add_binary_prefix(x):
+    if isinstance(x, str):
+        # add prefix
+        if x[0].lower() == 'b':
+            x = '0b' + x[1:]
+        elif len(x) > 1 and x[1].lower() == 'b':
+            x = '0b' + x[2:]
+        else:
+            x = '0b' + x
+        
+        # check valid characters
+        invalid_chars = set(x[2:]) - {'0', '1', '.'}
+        if len(invalid_chars) > 0:
+            raise ValueError(f"Binary string has invalid characters: {invalid_chars}")
+    else:
+        raise ValueError("Binary value must be a string!")
+    
+    return x
 
 def complex_repr(r, i):
     r = np.asarray(r)

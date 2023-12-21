@@ -285,6 +285,9 @@ def fxp_sum(x, sizes='best_sizes', axis=None, dtype=None, out=None, vdtype=None)
 
     return sum_along_axis
 
+def from_bin(x, **kwargs):
+    return Fxp(utils.add_binary_prefix(x), **kwargs)
+
 @implements(np.max)
 def fxp_max(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw', **kwargs):
     """

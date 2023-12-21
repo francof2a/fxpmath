@@ -1,4 +1,4 @@
-__version__ = '0.4.9-dev1'
+__version__ = '0.4.9-dev2'
 
 import sys
 import os
@@ -58,6 +58,7 @@ from .objects import (
 from .functions import (
     fxp_like,
     fxp_sum,
+    from_bin,
     fxp_max,
     fxp_min,
     add,

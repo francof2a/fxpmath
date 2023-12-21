@@ -1518,7 +1518,7 @@ class Fxp():
 
 
     # base representations
-    def bin(self, frac_dot=False):
+    def bin(self, frac_dot=False, prefix=None):
         if frac_dot:
             n_frac_dot = self.n_frac
         else:
@@ -1538,6 +1538,12 @@ class Fxp():
                 rval = utils.complex_repr(real_val, imag_val)
             else:
                 rval = utils.binary_repr(int(self.val), n_word=self.n_word, n_frac=n_frac_dot)
+
+        # add prefix if it's necessary
+        bin_prefix = prefix if prefix is not None else self.config.bin_prefix
+        if bin_prefix is not None:
+            rval = str(bin_prefix) + rval
+
         return rval
 
     def hex(self, padding=True):
@@ -1581,6 +1587,10 @@ class Fxp():
             else:
                 rval = utils.base_repr(int(self.val), base=base, n_frac=n_frac_dot)
         return rval
+
+    def from_bin(self, val, raw=False):
+        self.set_val(utils.add_binary_prefix(val), raw=raw)
+        return self
 
     # copy
     def copy(self):
@@ -1972,6 +1982,9 @@ class Config():
             if isinstance(self.template, Config):
                 self.__dict__ = copy.deepcopy(self.template.__dict__)
 
+        # prefixes
+        self.bin_prefix = kwargs.pop('bin_prefix', None)
+
     # ---
     # properties
     # ---
@@ -2209,6 +2222,21 @@ class Config():
             self._dtype_notation = val
         else:
             raise ValueError('dtype_notation must be str type with following valid values: {}'.format(self._dtype_notation_list))
+
+    @property
+    def bin_prefix(self):
+        return self._bin_prefix
+    
+    @bin_prefix.setter
+    def bin_prefix(self, prefix):
+        if prefix is not None and not isinstance(prefix, str):
+            print("Warning: the prefix should be a string, converted to string automatically!")
+            prefix = str(prefix)
+
+        if prefix not in [None, 'b', '0b', 'B', '0B']:
+            print(f"Warning: the prefix {prefix} is not a common prefix for binary values!")
+
+        self._bin_prefix = prefix
 
     # endregion
 

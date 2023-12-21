@@ -105,7 +105,6 @@ def test_base_repr():
     assert base_repr(30, base=16) == '1E'
     assert base_repr(-30, base=16) == '-1E'
 
-
 def test_bits_len():
     assert bits_len(1) == 1
     assert bits_len(-1) == 1
@@ -114,3 +113,42 @@ def test_bits_len():
     assert bits_len(32) == 6
     assert bits_len(-32) == 6
     assert bits_len(-33) == 7
+
+def test_add_binary_prefix():
+    # single values
+    assert add_binary_prefix('0') == '0b0'
+    assert add_binary_prefix('1') == '0b1'
+    assert add_binary_prefix('b0') == '0b0'
+    assert add_binary_prefix('b1') == '0b1'
+    assert add_binary_prefix('0b0') == '0b0'
+    assert add_binary_prefix('0b1') == '0b1'
+
+    assert add_binary_prefix('0110') == '0b0110'
+    assert add_binary_prefix('b1111') == '0b1111'
+
+    assert add_binary_prefix('01.001') == '0b01.001'
+    assert add_binary_prefix('00.000') == '0b00.000'
+
+    # list and arrays
+    assert np.all(add_binary_prefix(['110', '001']) == np.array(['0b110', '0b001']))
+    assert np.all(
+        add_binary_prefix([['110', '001'], ['b111', '0b101']]) == \
+            np.array([['0b110', '0b001'], ['0b111', '0b101']])
+        )
+    assert np.all(add_binary_prefix(np.array(['110', '001'])) == np.array(['0b110', '0b001']))
+    assert np.all(
+        add_binary_prefix(np.array([['110', '001'], ['b111', '0b101']])) == \
+            np.array([['0b110', '0b001'], ['0b111', '0b101']])
+        )
+
+    # test wrong input formats
+    inputs_list = [0, 1, 3, '3', '102', '0b1102']
+    for i in inputs_list:
+        try:
+            _ = add_binary_prefix(i)
+        except:
+            assert True
+        else:
+            print(f"input processed right when should be wrong: {i}")
+            assert False
+

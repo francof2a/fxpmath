@@ -49,3 +49,37 @@ def test_fxp_sum():
 
     y = fxp.fxp_sum(x, axis=1)
     assert (y() == np.sum(vals, axis=1)).all()
+
+def test_from_bin():
+    x = from_bin('0', signed=False)
+    assert x() == 0
+
+    x = fxp.from_bin('1', signed=False)
+    assert x() == 1
+
+    x = fxp.from_bin('011')
+    assert x() == 3
+
+    x = fxp.from_bin('111')
+    assert x() == -1
+
+    x = fxp.from_bin('111', signed=False)
+    assert x() == 7
+
+    x = fxp.from_bin('1.11')
+    assert x() == -0.25
+
+    x = fxp.from_bin('0b1.11', signed=False)
+    assert x() == 1.75
+
+    x = fxp.from_bin('0.11')
+    assert x() == 0.75
+
+    x = fxp.from_bin('01100100.01')
+    assert x() == 100.25
+    assert x.n_word == 10 and x.n_frac == 2
+
+    x = fxp.from_bin('01100100.01', dtype='fxp-s16/4')
+    assert x() == 100.25
+    assert x.n_word == 16 and x.n_frac == 4
+    
