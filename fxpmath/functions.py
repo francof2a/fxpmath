@@ -129,6 +129,10 @@ def _function_over_one_var(repr_func, raw_func, x, out=None, out_like=None, sizi
     else:
         z = Fxp(val, signed=signed, n_int=n_int, n_frac=n_frac, like=out_like, raw=raw)
 
+    # propagate inaccuracy from argument
+    if x.status['inaccuracy']:
+        z.status['inaccuracy'] = True
+
     return z 
 
 def _function_over_two_vars(repr_func, raw_func, x, y, out=None, out_like=None, sizing='optimal', method='raw', optimal_size=None, **kwargs):
@@ -176,6 +180,10 @@ def _function_over_two_vars(repr_func, raw_func, x, y, out=None, out_like=None, 
         z = out.set_val(val, raw=raw)
     else:
         z = Fxp(val, signed=signed, n_int=n_int, n_frac=n_frac, like=out_like, raw=raw, config=config)
+
+    # propagate inaccuracy from arguments
+    if x.status['inaccuracy'] or y.status['inaccuracy']:
+        z.status['inaccuracy'] = True
 
     return z   
 

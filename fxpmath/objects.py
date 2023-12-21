@@ -317,6 +317,7 @@ class Fxp():
     
     def _qfmt(self):
         return re.compile(r'(s|u|q|uq|qu)(\d+)(\.\d+)?')
+    
     def _fxpfmt(self):
         return re.compile(r'fxp-(s|u)(\d+)/(\d+)(-complex)?')
     
@@ -616,7 +617,7 @@ class Fxp():
 
     # methods about value
 
-    def _format_inupt_val(self, val, return_sizes=False, raw=False):
+    def _format_inupt_val(self, val, return_sizes=False, raw=False, set_inaccuracy=True):
         vdtype = None
         signed = self.signed
         n_word = self.n_word
@@ -637,6 +638,11 @@ class Fxp():
             if self.signed is None: self.signed = val.signed
             if self.n_word is None: self.n_word = val.n_word
             if self.n_frac is None: self.n_frac = val.n_frac
+
+            # check inaccuracy
+            if set_inaccuracy and val.status['inaccuracy']:
+                self.status['inaccuracy'] = True
+
             # force return raw value for better precision
             val = val.val * 2**(self.n_frac - val.n_frac)
             raw = True
@@ -690,7 +696,6 @@ class Fxp():
             # force return raw value for better precision
             val = int(val * 2**(self.n_frac))
             raw = True
-
 
         else:
             raise ValueError('Not supported input type: {}'.format(type(val)))
