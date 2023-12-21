@@ -34,6 +34,13 @@ def test_strbin2float():
     assert strbin2float('0001', n_frac=2) == 0.25
     assert strbin2float('000.1', n_frac=4) == 0.5
 
+def test_strbin2complex():
+    assert strbin2complex('0001') == 1.0 + 1j*0
+    assert strbin2complex('0b10000000j') == -1j*128.0
+    assert strbin2complex('0b01+0b10000000j') == 1.0 - 1j*128.0
+    assert strbin2complex('0b1+0b1000 0000j', signed=False) == 1.0 + 1j*128.0
+    assert strbin2complex('0b1 - 0b1000 0000j', signed=False) == 1.0 - 1j*128.0
+
 def test_strhex2int():
     assert strhex2int('0x00') == 0
     assert strhex2int('0x0A') == 10
@@ -140,6 +147,13 @@ def test_add_binary_prefix():
         add_binary_prefix(np.array([['110', '001'], ['b111', '0b101']])) == \
             np.array([['0b110', '0b001'], ['0b111', '0b101']])
         )
+    
+    # complex
+    assert add_binary_prefix('0110+1110j') == '0b0110+0b1110j'
+    assert add_binary_prefix('0110-1110j') == '0b0110-0b1110j'
+    assert add_binary_prefix('0b0110-1110j') == '0b0110-0b1110j'
+    assert add_binary_prefix('0110-0b1110j') == '0b0110-0b1110j'
+    assert np.all(add_binary_prefix(['110+101j', '001-111j']) == np.array(['0b110+0b101j', '0b001-0b111j']))
 
     # test wrong input formats
     inputs_list = [0, 1, 3, '3', '102', '0b1102']
@@ -152,3 +166,10 @@ def test_add_binary_prefix():
             print(f"input processed right when should be wrong: {i}")
             assert False
 
+def test_complex_repr():
+    assert complex_repr('2', '-4.5') == '2-4.5j'
+    assert complex_repr('2', '4.5') == '2+4.5j'
+    assert complex_repr('-2', '4.5') == '-2+4.5j'
+
+    assert np.all(complex_repr(['1', '-2.5'], ['4.5', '0']) == np.array(['1+4.5j', '-2.5+0j']))
+    

@@ -1523,30 +1523,31 @@ class Fxp():
             n_frac_dot = self.n_frac
         else:
             n_frac_dot = None
+
+        # set prefix if it's necessary
+        prefix = prefix if prefix is not None else self.config.bin_prefix
+        if prefix is not None:
+            if isinstance(prefix, bool) and prefix == True:
+                prefix = '0b' # default binary prefix
         
         if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
-                real_val = [utils.binary_repr(utils.int_array(val.real), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
-                imag_val = [utils.binary_repr(utils.int_array(val.imag), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
+                real_val = [utils.binary_repr(utils.int_array(val.real), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix) for val in self.val]
+                imag_val = [utils.binary_repr(utils.int_array(val.imag), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix) for val in self.val]
                 rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = [utils.binary_repr(utils.int_array(val), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
+                rval = [utils.binary_repr(utils.int_array(val), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix) for val in self.val]
         else:
             if self.vdtype == complex:
-                real_val = utils.binary_repr(utils.int_array(self.val.real), n_word=self.n_word, n_frac=n_frac_dot)
-                imag_val = utils.binary_repr(utils.int_array(self.val.imag), n_word=self.n_word, n_frac=n_frac_dot)
+                real_val = utils.binary_repr(utils.int_array(self.val.real), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix)
+                imag_val = utils.binary_repr(utils.int_array(self.val.imag), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix)
                 rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = utils.binary_repr(int(self.val), n_word=self.n_word, n_frac=n_frac_dot)
-
-        # add prefix if it's necessary
-        bin_prefix = prefix if prefix is not None else self.config.bin_prefix
-        if bin_prefix is not None:
-            rval = str(bin_prefix) + rval
+                rval = utils.binary_repr(int(self.val), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix)
 
         return rval
 
-    def hex(self, padding=True):
+    def hex(self, padding=True, prefix=None):
         if padding:
             hex_n_word = self.n_word
         else:

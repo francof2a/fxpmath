@@ -132,6 +132,15 @@ def test_instances():
     assert x.n_int == 4
     assert x.n_word == 7
 
+    x = Fxp('0b00000.01+0b01111.00j')
+    assert x() == 0.25 + 1j*15
+
+    x = Fxp('0b00000.01+0b11111.11j')
+    assert x() == 0.25 - 1j*0.25
+
+    x = Fxp('0b00000.01-0b0000.10j')
+    assert x() == 0.25 - 1j*0.5
+
     x = Fxp([[1.5, 2.25], [-0.125, -3.75]])
     assert (x() == np.array([[1.5, 2.25], [-0.125, -3.75]])).all()
 
@@ -202,6 +211,9 @@ def test_base_representations():
     # decimal positive
     x(2.5)
     assert x.bin() == '00101000'
+    assert x.bin(frac_dot=True) == '0010.1000'
+    assert x.bin(prefix='0b') == '0b00101000'
+    assert x.bin(prefix=True) == '0b00101000'
     assert x.hex() == '0x28'
     assert x.hex(padding=False) == '0x28'
     assert x.base_repr(2) == '101000'
@@ -211,6 +223,7 @@ def test_base_representations():
     x(-7.25)
     assert x.bin() == '10001100'
     assert x.bin(frac_dot=True) == '1000.1100'
+    assert x.bin(frac_dot=True, prefix='b') == 'b1000.1100'
     assert x.hex() == '0x8C'
     assert x.hex(padding=False) == '0x8C'
     assert x.base_repr(2) == '-1110100'
@@ -220,6 +233,8 @@ def test_base_representations():
     # complex
     x(1.5 + 1j*0.75)
     assert x.bin() == '00011000+00001100j'
+    assert x.bin(frac_dot=True) == '0001.1000+0000.1100j'
+    assert x.bin(frac_dot=True, prefix=True) == '0b0001.1000+0b0000.1100j'
     assert x.hex() == '0x18+0x0Cj'
     assert x.hex(padding=False) == '0x18+0xCj'
     assert x.base_repr(2) == '11000+1100j'

@@ -277,6 +277,12 @@ def test_issue_49_v0_4_8():
     x2 = functions.from_bin(x_bin, raw=True, like=x1)
     assert x1 == x2
 
+    # test complex value
+    x1 = Fxp(-3.4 + 1j*0.25)
+    x_bin = x1.bin(frac_dot=True)
+    x2 = functions.from_bin(x_bin)
+    assert x1 == x2
+
 
 def test_issue_53_v0_4_5():
     x = Fxp(2j, dtype = 'fxp-u4/0-complex')
