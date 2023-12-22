@@ -1321,7 +1321,10 @@ class Fxp():
         from .functions import pow
 
         if not isinstance(x, Fxp):
-            x = self._convert_op_input_value(x)
+            if self.config is not None and self.config.op_input_size != 'best':
+                print("Warning: using config.op_input_size != 'best' could lead to long execution times and huge memory usage! Forcing to config.op_input_size='best'")
+                print(f"Tip: force a explicit Fxp dtype for your exponent. Instead of x**{x} use x**Fxp({x}) or x**Fxp({x}, dtype='some fxp dtype')")
+            x = self._convert_op_input_value(x, op_input_size='best')
             _sizing = self.config.const_op_sizing
         else:
             _sizing = self.config.op_sizing
@@ -1615,17 +1618,19 @@ class Fxp():
             'underflow': False,
             'inaccuracy': False}
 
-    def _convert_op_input_value(self, x):
+    def _convert_op_input_value(self, x, op_input_size=None):
         if not isinstance(x, Fxp):
-            if self.config is not None:
-                if self.config.op_input_size == 'best':
-                    x_fxp = Fxp(x)
-                elif self.config.op_input_size == 'same':
-                    x_fxp = Fxp(x, like=self)
-                else:
-                    raise ValueError('Sizing parameter not supported: {}'.format(self.config.op_input_size))
-            else:
+            if op_input_size is None and self.config is not None:
+                op_input_size = self.config.op_input_size
+
+            if op_input_size is None:
                 x_fxp = Fxp(x)
+            elif op_input_size == 'best':
+                x_fxp = Fxp(x)
+            elif op_input_size == 'same':
+                x_fxp = Fxp(x, like=self)
+            else:
+                raise ValueError('Sizing parameter not supported: {}'.format(op_input_size))
         else:
             x_fxp = x
 

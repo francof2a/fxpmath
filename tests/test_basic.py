@@ -147,6 +147,26 @@ def test_instances():
     x = Fxp([['0b1100', '0b0110'], ['0b0000', '0b1111']], signed=True, n_frac=2)
     assert (x() == np.array([[-1.0, 1.5], [0.0, -0.25]])).all()
 
+    # Fxp from a Fxp
+    x = Fxp(-1.75, dtype='fxp-s8/4')
+    y = Fxp(x)
+    assert x() == y()
+
+    y = Fxp(x, like=x)
+    assert x() == y() and x.dtype == y.dtype
+
+    y = Fxp(x, signed=False)
+    assert x() != y() and y() == 0
+
+    x = Fxp(1.75, dtype='fxp-u8/4')
+    y = Fxp(x)
+    assert x() == y()
+
+    x1 = Fxp(4, False, 9, 3)
+    x2 = Fxp(5, False, 9, 3)
+    cast = Fxp(None, True, 9, 3)
+    y = cast(x1) - cast(x2)
+
 def test_signed():
     # signed
     x_fxp = Fxp(0.0, True, 8, 7)
