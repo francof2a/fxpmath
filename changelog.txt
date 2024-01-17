@@ -5,6 +5,7 @@ version 0.4.9
 * New `from_bin` method and function. Set value or create new Fxp from a binary string (issue #49).
 * Support to complex binary strings as input format.
 * Force to `config.op_input_size='best'` when power operation has an constant operator (non-Fxp). Add warning message. (issue #89).
+* Selection of `prefix` for binary and hexadecimal representations.
 
 version 0.4.8
 --------------------------------------------------

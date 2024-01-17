@@ -288,7 +288,7 @@ def binary_repr(x, n_word=None, n_frac=None, prefix=None):
     return val
 
 @array_support
-def hex_repr(x, n_word=None, padding=None, base=10):
+def hex_repr(x, n_word=None, padding=None, base=10, prefix='0x'):
     if base == 2:
         x = int(x, 2)
     elif base == 10:
@@ -297,12 +297,12 @@ def hex_repr(x, n_word=None, padding=None, base=10):
         raise ValueError('base {base} for input value is not supported!')
 
     if n_word is not None:
-        val = '0x{0:0{1}X}'.format(x, int(np.ceil(n_word/4)))
+        val = prefix + '{0:0{1}X}'.format(x, int(np.ceil(n_word/4)))
     elif padding is not None:
-        val = '0x{0:0{1}X}'.format(x, padding)
+        val = prefix + '{0:0{1}X}'.format(x, padding)
     else:
         val = hex(x)
-        val = '0x'+val[2:].upper()
+        val = prefix + val[2:].upper()
     return val  
 
 @array_support

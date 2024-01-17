@@ -1556,20 +1556,26 @@ class Fxp():
         else:
             hex_n_word = None
 
+        # set prefix if it's necessary
+        prefix = prefix if prefix is not None else self.config.hex_prefix
+        if prefix is not None:
+            if isinstance(prefix, bool) and prefix == True:
+                prefix = '0x' # default hexadecimal prefix
+
         if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
-                real_val = [utils.hex_repr(utils.binary_repr(utils.int_array(val.real), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2) for val in self.val]
-                imag_val = [utils.hex_repr(utils.binary_repr(utils.int_array(val.imag), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2) for val in self.val]
+                real_val = [utils.hex_repr(utils.binary_repr(utils.int_array(val.real), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2, prefix=prefix) for val in self.val]
+                imag_val = [utils.hex_repr(utils.binary_repr(utils.int_array(val.imag), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2, prefix=prefix) for val in self.val]
                 rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = [utils.hex_repr(val, n_word=hex_n_word, base=2) for val in self.bin()]
+                rval = [utils.hex_repr(val, n_word=hex_n_word, base=2, prefix=prefix) for val in self.bin()]
         else:
             if self.vdtype == complex:
-                real_val = utils.hex_repr(utils.binary_repr(utils.int_array(self.val.real), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2)
-                imag_val = utils.hex_repr(utils.binary_repr(utils.int_array(self.val.imag), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2)
+                real_val = utils.hex_repr(utils.binary_repr(utils.int_array(self.val.real), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2, prefix=prefix)
+                imag_val = utils.hex_repr(utils.binary_repr(utils.int_array(self.val.imag), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2, prefix=prefix)
                 rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = utils.hex_repr(self.bin(), n_word=hex_n_word, base=2)
+                rval = utils.hex_repr(self.bin(), n_word=hex_n_word, base=2, prefix=prefix)
         return rval
     
     def base_repr(self, base, frac_dot=False):
@@ -1990,6 +1996,7 @@ class Config():
 
         # prefixes
         self.bin_prefix = kwargs.pop('bin_prefix', None)
+        self.hex_prefix = kwargs.pop('hex_prefix', '0x')
 
     # ---
     # properties
@@ -2229,6 +2236,7 @@ class Config():
         else:
             raise ValueError('dtype_notation must be str type with following valid values: {}'.format(self._dtype_notation_list))
 
+    # prefixes
     @property
     def bin_prefix(self):
         return self._bin_prefix
@@ -2243,6 +2251,21 @@ class Config():
             print(f"Warning: the prefix {prefix} is not a common prefix for binary values!")
 
         self._bin_prefix = prefix
+
+    @property
+    def hex_prefix(self):
+        return self._hex_prefix
+    
+    @hex_prefix.setter
+    def hex_prefix(self, prefix):
+        if prefix is not None and not isinstance(prefix, str):
+            print("Warning: the prefix should be a string, converted to string automatically!")
+            prefix = str(prefix)
+
+        if prefix not in [None, 'x', '0x', 'X', '0X', 'h', '0h', 'H', '0H']:
+            print(f"Warning: the prefix {prefix} is not a common prefix for hexadecimal values!")
+
+        self._hex_prefix = prefix
 
     # endregion
 
