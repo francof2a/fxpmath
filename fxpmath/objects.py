@@ -352,11 +352,25 @@ class Fxp():
         return signed, n_word, n_frac, complex_dtype
     
     def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=_max_error, n_word_max=_n_word_max, raw=False):
+        # check signed type
+        if not isinstance(signed, (type(None), bool, int)):
+            raise TypeError("signed must be boolean (True, False), int (1 or 0) or None!")
+        
+        # check n_word, n_frac, n_int type
+        if not isinstance(n_word, (type(None), int)):
+            raise TypeError("n_word must be integer or None!")
+        if not isinstance(n_frac, (type(None), int)):
+            raise TypeError("n_frac must be integer or None!")
+        if not isinstance(n_int, (type(None), int)):
+            raise TypeError("n_int must be integer or None!")
+        
         # sign by default
         if signed is None:
             self.signed = True
         else:
-            self.signed = signed
+            self.signed = bool(signed)
+            if self.signed != 0 and self.signed != 1:
+                raise ValueError("If signed is int, the valid values are 1 (True) and 0 (False)!")
         
         # n_int defined:
         if n_word is None and n_frac is not None and n_int is not None:
@@ -402,6 +416,24 @@ class Fxp():
         _old_val = self.val
         _old_n_frac = self.n_frac
 
+        # check signed type
+        if not isinstance(signed, (type(None), bool, int)):
+            raise TypeError("signed must be boolean (True, False), int (1 or 0) or None!")
+        
+        # check n_word, n_frac, n_int type
+        if not isinstance(n_word, (type(None), int)):
+            raise TypeError("n_word must be integer or None!")
+        if not isinstance(n_frac, (type(None), int)):
+            raise TypeError("n_frac must be integer or None!")
+        if not isinstance(n_int, (type(None), int)):
+            raise TypeError("n_int must be integer or None!")
+        
+        # sign by default
+        if signed is not None:
+            self.signed = bool(signed)
+            if self.signed != 0 and self.signed != 1:
+                raise ValueError("If signed is int, the valid values are 1 (True) and 0 (False)!")
+
         # check if a string-based format has been provided
         if dtype is not None:
             if signed is not None or n_word is not None or n_frac is not None or n_int is not None:
@@ -421,10 +453,10 @@ class Fxp():
             self.signed = signed
         # word
         if n_word is not None:
-            self.n_word = n_word
+            self.n_word = int(n_word)
         # frac
         if n_frac is not None:
-            self.n_frac = n_frac
+            self.n_frac = int(n_frac)
     
         # n_int    
         self.n_int = self.n_word - self.n_frac - (1 if self.signed else 0)

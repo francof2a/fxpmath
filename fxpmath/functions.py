@@ -272,7 +272,7 @@ def fxp_sum(x, sizes='best_sizes', axis=None, dtype=None, out=None, vdtype=None)
             raise TypeError('out argument must be a Fxp object!')
     elif sizes == 'best_sizes':
         signed = x.signed
-        n_word = np.ceil(np.log2(x().size)).astype(int) + x.n_word
+        n_word = int(np.ceil(np.log2(x().size))) + x.n_word
         n_frac = x.n_frac
         
         sum_along_axis = Fxp(x_sum, signed=signed, n_word=n_word, n_frac=n_frac)
@@ -554,7 +554,7 @@ def sum(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw', *
         x = Fxp(x)
 
     signed = x.signed
-    n_word = np.ceil(np.log2(x.size)).astype(int) + x.n_word
+    n_word = int(np.ceil(np.log2(x.size))) + x.n_word
     n_frac = x.n_frac
     n_int = n_word - int(signed) - n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
@@ -574,7 +574,7 @@ def cumsum(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw'
         x = Fxp(x)
 
     signed = x.signed
-    n_word = np.ceil(np.log2(x.size)).astype(int) + x.n_word
+    n_word = int(np.ceil(np.log2(x.size))) + x.n_word
     n_frac = x.n_frac
     n_int = n_word - int(signed) - n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
@@ -683,7 +683,7 @@ def trace(a, offset=0, axis1=0, axis2=1, out=None, out_like=None, sizing='optima
 
     num_of_additions = np.diagonal(np.array(a), offset=offset, axis1=axis1, axis2=axis2).size
     signed = a.signed
-    n_word = np.ceil(np.log2(num_of_additions)).astype(int) + a.n_word
+    n_word = int(np.ceil(np.log2(num_of_additions))) + a.n_word
     n_frac = a.n_frac
     n_int = n_word - int(signed) - n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
@@ -731,7 +731,7 @@ def dot(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     num_of_additions = x.shape[-1]
     signed = x.signed or y.signed
     n_frac = x.n_frac + y.n_frac
-    n_word = np.ceil(np.log2(num_of_additions)).astype(int) + x.n_word + y.n_word
+    n_word = int(np.ceil(np.log2(num_of_additions))) + x.n_word + y.n_word
     n_int = n_word - int(signed) - n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
 

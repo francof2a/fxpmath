@@ -402,3 +402,23 @@ def test_issue_73_v0_4_8():
     f = d - e
     assert f[0]() == 0.0  # [4095.875 6.0] --> 4095.875 is the upper limit
     assert f[1]() == 6.0
+
+def test_issue_76_v0_4_8():
+    # Numpy Issue with Bigger bit sizes
+    # Getting strange results when using larger bit sizes in numpy calls
+    
+    # This works
+    w = Fxp([1, 1, 1, 1], dtype='fxp-s29/0')
+    y = np.cumsum(w)
+    assert np.all(y() == np.array([1, 2, 3, 4]))
+
+    # This doesn't
+    w = Fxp([1, 1, 1, 1], dtype='fxp-s32/0')
+    y = np.cumsum(w)
+    assert np.all(y() == np.array([1, 2, 3, 4])) # works in linux, not in windows
+
+    # Increase word size above 64 bits
+    w = Fxp([1, 1, 1, 1], dtype='fxp-s64/0')
+    y = np.cumsum(w)
+    assert np.all(y() == np.array([1, 2, 3, 4]))
+    
