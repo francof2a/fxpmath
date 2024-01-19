@@ -448,4 +448,21 @@ def test_issue_80_v0_4_8():
 
     x = Fxp(16, dtype='fxp-s8/-2')
     assert x.dtype == 'fxp-s8/-2'
-    
+
+def test_issue_85_v0_4_8():
+    # Wrap overflow breaks on 0.0 value
+
+    dt_values = ['fxp-s32/16', 'fxp-s64/32', 'fxp-s96/64']
+
+    for dt in dt_values:
+        x = Fxp(0,   dtype=dt)  # => Success
+        assert x() == 0.0
+
+        x = Fxp(0.0, dtype=dt)  # => Success
+        assert x() == 0.0
+
+        x = Fxp(0,   dtype=dt, overflow='wrap')  # => Success
+        assert x() == 0.0
+
+        x = Fxp(0.0, dtype=dt, overflow='wrap')  #  EXCEPTION
+        assert x() == 0.0
