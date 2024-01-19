@@ -433,3 +433,19 @@ def test_issue_77_v0_4_8():
     y = np.reshape(x, (1, 4))
     # fxp-s4/3-complex
     assert y.signed == True and y.n_word == 5 and y.n_frac == 3
+
+def test_issue_80_v0_4_8():
+    # Creation of Fxp-object with negative n_frac
+
+    # The following code results in unexpected behaviour 
+    # when trying to specify the same type using alternative formats
+    x = Fxp(16, signed=True, n_word=8, n_frac=-2)
+    # -> x.dtype = 'fxp-s8/-2' , ok
+    assert x.dtype == 'fxp-s8/-2'
+
+    x = Fxp(16, dtype='S10.-2')
+    assert x.dtype == 'fxp-s8/-2'
+
+    x = Fxp(16, dtype='fxp-s8/-2')
+    assert x.dtype == 'fxp-s8/-2'
+    

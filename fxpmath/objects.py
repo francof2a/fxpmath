@@ -316,10 +316,10 @@ class Fxp():
         return self._dtype
     
     def _qfmt(self):
-        return re.compile(r'(s|u|q|uq|qu)(\d+)(\.\d+)?')
+        return re.compile(r'(s|u|q|uq|qu)(\d+)(\.[+-]?\d+)?')
     
     def _fxpfmt(self):
-        return re.compile(r'fxp-(s|u)(\d+)/(\d+)(-complex)?')
+        return re.compile(r'fxp-(s|u)(\d+)/([+-]?\d+)(-complex)?')
     
     def _parseformatstr(self, fmt):
         fmt = fmt.casefold()
