@@ -747,3 +747,14 @@ def nonzero(x):
         return np.nonzero(x.get_val())
     else:
         return np.nonzero(x.val)
+    
+@implements(np.reshape)
+def reshape(a, newshape, order='C', out=None, out_like=None, sizing='same', method='raw', **kwargs):
+    """
+    """
+    def _reshape_raw(x, newshape, order, **kwargs):
+        return np.reshape(x.val, newshape=newshape, order=order)
+    
+    kwargs['newshape'] = newshape
+    kwargs['order'] = order 
+    return _function_over_one_var(repr_func=np.reshape, raw_func=_reshape_raw, x=a, out=out, out_like=out_like, sizing=sizing, method=method, optimal_size=None, **kwargs)

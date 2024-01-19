@@ -421,4 +421,15 @@ def test_issue_76_v0_4_8():
     w = Fxp([1, 1, 1, 1], dtype='fxp-s64/0')
     y = np.cumsum(w)
     assert np.all(y() == np.array([1, 2, 3, 4]))
-    
+
+def test_issue_77_v0_4_8():
+    # Precision error when numpy.reshape
+
+    a = np.array([[0.762, 0.525], [0.345, 0.875]], dtype=complex)
+    x = Fxp(a, signed=True, n_word=5, n_frac=3)
+    # fxp-s5/3-complex
+    assert x.signed == True and x.n_word == 5 and x.n_frac == 3
+
+    y = np.reshape(x, (1, 4))
+    # fxp-s4/3-complex
+    assert y.signed == True and y.n_word == 5 and y.n_frac == 3

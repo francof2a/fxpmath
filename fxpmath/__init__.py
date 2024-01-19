@@ -1,4 +1,4 @@
-__version__ = '0.4.9-dev6'
+__version__ = '0.4.9-dev7'
 
 import sys
 import os
@@ -79,5 +79,6 @@ from .functions import (
     trace,
     prod,
     dot,
-    nonzero
+    nonzero,
+    reshape
 )
