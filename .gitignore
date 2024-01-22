@@ -157,3 +157,10 @@ docs/figs/*.svg
 temp.py
 dev_*
 
+# code repository out of pages
+.devcontainer/
+fxpmath/
+docker/
+
+# temp
+temp/
