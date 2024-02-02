@@ -85,6 +85,15 @@ def test_shift_bitwise():
     assert (x << 1)() == 128
     assert (x << 2)() == x.upper
     
+    # keep shift
+    # left unsigned
+    x = Fxp(1, False, 8, 0, shifting="keep")
+    prev = 1
+    for i in range(x.n_word):
+        assert (x << i)() == prev
+        prev = 2 * prev
+    assert (x << 8)() == 0
+
     # right unsigned
     x.set_val(128)
     prev = 128
