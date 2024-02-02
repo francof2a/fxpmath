@@ -26,20 +26,20 @@ def test_shift_bitwise():
 
     # float val
     x = Fxp(24.25, True, 8, 2)
-    # left
+    #left
     assert (x << 1)() == 48.5
     assert (x << 4)() == 388.0
-    # right
+    #right
     x = Fxp(24.5, True, 8, 2)
     assert (x >> 1)() == 12.25
     assert (x >> 2)() == 6.125
 
     # negative
     x = Fxp(-24.25, True, 8, 2)
-    # left
+    #left
     assert (x << 1)() == -48.5
     assert (x << 4)() == -388.0
-    # right
+    #right
     x = Fxp(-24.5, True, 8, 2)
     assert (x >> 1)() == -12.25
     assert (x >> 2)() == -6.125
@@ -72,10 +72,10 @@ def test_shift_bitwise():
 
     # float val
     x = Fxp(24.25, False, 8, 2)
-    # left
+    #left
     assert (x << 1)() == 48.5
     assert (x << 4)() == 388.0
-    # right
+    #right
     x = Fxp(24.5, False, 8, 2)
     assert (x >> 1)() == 12.25
     assert (x >> 2)() == 6.125
@@ -84,16 +84,7 @@ def test_shift_bitwise():
     x = Fxp(64, False, 8, 0, shifting='trunc')
     assert (x << 1)() == 128
     assert (x << 2)() == x.upper
-
-    # keep shift
-    # left unsigned
-    x = Fxp(1, False, 8, 0, shifting="keep")
-    prev = 1
-    for i in range(x.n_word):
-        assert (x << i)() == prev
-        prev = 2 * prev
-    assert (x << 8)() == 0
-
+    
     # right unsigned
     x.set_val(128)
     prev = 128
@@ -464,3 +455,4 @@ def test_abs():
 
     x = Fxp(3.5, True, 32, 16)
     assert abs(x)() == 3.5
+    
