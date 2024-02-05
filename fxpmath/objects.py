@@ -1344,11 +1344,11 @@ class Fxp():
         y = Fxp(None, signed=self.signed, n_word=n_word, n_frac=self.n_frac)
         
         if self.config.shifting == "keep":
-            a = self.val << np.array(n, dtype=self.val.dtype)
-            b = np.array((1 << n_word) - 1, dtype=self.val.dtype)
+            shift = self.val << np.array(n, dtype=self.val.dtype)
+            mask = np.array((1 << n_word) - 1, dtype=self.val.dtype)
             # this formatting is necessary for when shifting a 1 in a signed number
             # into the MSB. i.e. 1 << 7 == -128, not 127
-            y.set_val(f"0b{(a & b):0{n_word}b}",raw=True, vdtype=self.vdtype)
+            y.set_val(f"0b{(shift & mask):0{n_word}b}",raw=True, vdtype=self.vdtype)
         else:
             y.set_val(self.val << np.array(n, dtype=self.val.dtype), raw=True, vdtype=self.vdtype)   # set raw val shifted
             
