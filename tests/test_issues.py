@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import fxpmath as fxp
 from fxpmath.objects import Fxp, Config
+from fxpmath import functions
 
 import numpy as np
 
@@ -152,6 +153,25 @@ def test_issue_41_v0_4_2():
     assert x() == 2
     assert y() == 2
 
+    x = Fxp(2, False, 31, 0, overflow='wrap')
+    y = Fxp(2, False, 32, 0, overflow='wrap')
+
+    assert x() == 2
+    assert y() == 2
+
+    x = Fxp(2.5, signed=True, n_word=31, n_frac=24, overflow='wrap')
+    y = Fxp(2.5, signed=True, n_word=32, n_frac=24, overflow='wrap')
+
+    assert x() == 2.5
+    assert y() == 2.5
+
+    x = Fxp(2.5, signed=True, n_word=63, n_frac=48, overflow='wrap')
+    y = Fxp(2.5, signed=True, n_word=64, n_frac=48, overflow='wrap')
+
+    assert x() == 2.5
+    assert y() == 2.5
+
+
 def test_issue_42_v0_4_2():
     b = Fxp(2, True, 4, 0, overflow='wrap')
     assert (b + 8)() == -6.0
@@ -188,6 +208,81 @@ def test_issue_44_v0_4_3():
 
     b = Fxp(2**64+6, False, 64, 0, overflow='wrap', scaling=2, bias=8)
     assert b() == 2**64+6
+
+def test_issue_48_v0_4_8():
+    """
+    Flags not propagated
+    https://github.com/francof2a/fxpmath/issues/48
+    """
+    a = Fxp(-2., dtype="fxp-s24/8")
+    b = Fxp(2.15, dtype="fxp-s24/8")
+    assert b.status['inaccuracy']
+
+    # inaccuracy in b must be propagated to c
+    c = a + b
+    assert c.status['inaccuracy']
+
+    # add extra test using a inaccurate Fxp to set a new Fxp
+    d = Fxp(c)
+    assert d.status['inaccuracy']
+
+def test_issue_49_v0_4_8():
+    """
+    Reversal of .bin()
+    https://github.com/francof2a/fxpmath/issues/49
+    """
+    # Method 1
+    x1 = Fxp(3.4)
+    x_bin = x1.bin()
+    x2 = Fxp('0b' + x_bin, like=x1)
+    assert x1 == x2
+
+    # Method 2
+    x_bin = x1.bin(frac_dot=True)
+    x2 = Fxp('0b' + x_bin)
+    assert x1 == x2
+
+    # Method 3
+    x_bin = x1.bin()
+    x2 = Fxp(like=x1).from_bin(x_bin)
+    assert x1 == x2
+
+    x_bin = x1.bin(frac_dot=True)
+    x2 = Fxp(like=x1).from_bin(x_bin)
+    assert x1 == x2
+
+    # Method 4
+    x_bin = x1.bin(frac_dot=True)
+    x2 = functions.from_bin(x_bin)
+    assert x1 == x2
+
+    # alternatives to get binary string with prefix
+    x_bin = x1.bin(frac_dot=True, prefix='0b')
+    x2 = Fxp(x_bin)
+    assert x1 == x2
+
+    x1.config.bin_prefix = '0b'
+    x_bin = x1.bin(frac_dot=True)
+    x2 = Fxp(x_bin)
+    assert x1 == x2
+
+    # test negative value
+    x1 = Fxp(-3.4)
+    x_bin = x1.bin(frac_dot=True)
+    x2 = functions.from_bin(x_bin)
+    assert x1 == x2
+
+    # test raw value
+    x_bin = x1.bin()
+    x2 = functions.from_bin(x_bin, raw=True, like=x1)
+    assert x1 == x2
+
+    # test complex value
+    x1 = Fxp(-3.4 + 1j*0.25)
+    x_bin = x1.bin(frac_dot=True)
+    x2 = functions.from_bin(x_bin)
+    assert x1 == x2
+
 
 def test_issue_53_v0_4_5():
     x = Fxp(2j, dtype = 'fxp-u4/0-complex')
@@ -255,3 +350,119 @@ def test_issue_62_v0_4_7():
     y[0][0] = y[0][0] + 1.0
 
     assert y[0][0]() == 0.0
+
+def test_issue_66_v0_4_8():
+    x = Fxp(np.array([1.25, 0.5]), dtype='S8.4')
+    y = Fxp(np.array([2.25, 1.5]), dtype='S16.6')
+    # x[0].equal(y[0]) # it does NOT work
+    # x[0] = y[0] # it works
+    x.equal(y[0], index=0) # it works
+
+    assert x[0]() == y[0]()
+
+def test_issue_67_v0_4_8():
+    input_size = Fxp(None, dtype='fxp-s32/23')
+    f = [0,10+7j,20-0.65j,30]
+    f = Fxp(f, like = input_size)
+
+    def FFT(f):
+        N = len(f)
+        if N <= 1:
+            return f
+
+        # division: decompose N point FFT into N/2 point FFT
+        even= FFT(f[0::2])
+        odd = FFT(f[1::2])
+
+        # store combination of results
+        temp = np.zeros(N, dtype=complex)
+        # temp = Fxp(temp, dtype='fxp-s65/23')
+        temp = Fxp(temp, dtype='fxp-s65/46')
+
+        for u in range(N//2):
+            W =  Fxp(np.exp(-2j*np.pi*u/N), like=input_size) 
+            temp[u] = even[u] + W* odd[u] 
+            temp[u+N//2] = even[u] - W*odd[u]  
+            
+        return temp
+
+    # testing the function to see if it matches the manual computation
+    F_fft = FFT(f)
+    
+def test_issue_73_v0_4_8():
+    # single unsigned value does work
+    a = Fxp(10, False, 14, 3)
+    b = Fxp(15, False, 14, 3)
+    c = a - b
+    assert c() == 0.0  # 0.0 --> correct
+
+    # unsigned list does not work
+    d = Fxp([10, 21], False, 14, 3)
+    e = Fxp([15, 15], False, 14, 3)
+    f = d - e
+    assert f[0]() == 0.0  # [4095.875 6.0] --> 4095.875 is the upper limit
+    assert f[1]() == 6.0
+
+def test_issue_76_v0_4_8():
+    # Numpy Issue with Bigger bit sizes
+    # Getting strange results when using larger bit sizes in numpy calls
+    
+    # This works
+    w = Fxp([1, 1, 1, 1], dtype='fxp-s29/0')
+    y = np.cumsum(w)
+    assert np.all(y() == np.array([1, 2, 3, 4]))
+
+    # This doesn't
+    w = Fxp([1, 1, 1, 1], dtype='fxp-s32/0')
+    y = np.cumsum(w)
+    assert np.all(y() == np.array([1, 2, 3, 4])) # works in linux, not in windows
+
+    # Increase word size above 64 bits
+    w = Fxp([1, 1, 1, 1], dtype='fxp-s64/0')
+    y = np.cumsum(w)
+    assert np.all(y() == np.array([1, 2, 3, 4]))
+
+def test_issue_77_v0_4_8():
+    # Precision error when numpy.reshape
+
+    a = np.array([[0.762, 0.525], [0.345, 0.875]], dtype=complex)
+    x = Fxp(a, signed=True, n_word=5, n_frac=3)
+    # fxp-s5/3-complex
+    assert x.signed == True and x.n_word == 5 and x.n_frac == 3
+
+    y = np.reshape(x, (1, 4))
+    # fxp-s4/3-complex
+    assert y.signed == True and y.n_word == 5 and y.n_frac == 3
+
+def test_issue_80_v0_4_8():
+    # Creation of Fxp-object with negative n_frac
+
+    # The following code results in unexpected behaviour 
+    # when trying to specify the same type using alternative formats
+    x = Fxp(16, signed=True, n_word=8, n_frac=-2)
+    # -> x.dtype = 'fxp-s8/-2' , ok
+    assert x.dtype == 'fxp-s8/-2'
+
+    x = Fxp(16, dtype='S10.-2')
+    assert x.dtype == 'fxp-s8/-2'
+
+    x = Fxp(16, dtype='fxp-s8/-2')
+    assert x.dtype == 'fxp-s8/-2'
+
+def test_issue_85_v0_4_8():
+    # Wrap overflow breaks on 0.0 value
+
+    dt_values = ['fxp-s32/16', 'fxp-s64/32', 'fxp-s96/64']
+
+    for dt in dt_values:
+        x = Fxp(0,   dtype=dt)  # => Success
+        assert x() == 0.0
+
+        x = Fxp(0.0, dtype=dt)  # => Success
+        assert x() == 0.0
+
+        x = Fxp(0,   dtype=dt, overflow='wrap')  # => Success
+        assert x() == 0.0
+
+        x = Fxp(0.0, dtype=dt, overflow='wrap')  #  EXCEPTION
+        assert x() == 0.0

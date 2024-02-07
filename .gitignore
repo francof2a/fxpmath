@@ -143,6 +143,7 @@ results/*
 # !.vscode/launch.json
 # !.vscode/extensions.json
 *.code-workspace
+.devcontainer
 
 # Local History for Visual Studio Code
 .history/
@@ -157,4 +158,9 @@ docs/figs/*.svg
 temp.py
 dev_*
 
+# temp
+temp/
+*.temp
 
+# docker
+docker/

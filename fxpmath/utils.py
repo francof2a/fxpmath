@@ -39,7 +39,7 @@ from . import _n_word_max
 #%% 
 def array_support(func):
     def iterator(*args, **kwargs):
-        if isinstance(args[0], (list, np.ndarray)) and args[0].ndim > 0:
+        if isinstance(args[0], (list, np.ndarray)) and np.asarray(args[0]).ndim > 0:
             vals = []
             for v in args[0]:
                 vals.append(iterator(v, *args[1:], **kwargs))
@@ -64,8 +64,12 @@ def twos_complement_repr(val, nbits):
 
 def strbin2int(x, signed=True, n_word=None, return_sizes=False):
 
-    x = x.split('b')[-1]        # remove 0b at the begining
-    x = x.replace(' ', '')      # remove spacing
+    x = x.replace('0b', 'b').replace('b', '')       # remove 0b at the begining
+    x = x.replace(' ', '').replace('+', '')         # remove spacing and +
+
+    # get original sign of number
+    sign = -1 if x[0] == '-' else 1
+    x = x.replace('-', '')
 
     if n_word is None:
         n_word = len(x)
@@ -78,11 +82,20 @@ def strbin2int(x, signed=True, n_word=None, return_sizes=False):
         raise ValueError('binary val has more bits ({}) than word ({})!'.format(len(x), n_word))
     
     if signed:
+        if len(x) < 2:
+            raise('Signed binary with no enough amount of bits!')
+        
         val = int(x[1:], 2)
         if x[0] == '1':
             val = -1*( (1 << (n_word - 1)) - val)
+        
+        if sign == -1:
+            print('Warning: you are using a negative sign (-) with an already binary signed. The value conversion could be wrong!')
     else:
         val = int(x, 2)
+
+    # set same original sign
+    val = sign * val
 
     if return_sizes:
         return val, signed, n_word
@@ -109,6 +122,35 @@ def strbin2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
         return val, signed, n_word, n_frac
     else:
         return val
+
+def strbin2complex(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
+    x = x.replace(' ', '').replace('+', '|').replace('-', '|-').split('|')
+
+    if len(x) == 1  and isinstance(x[0], str) and 'j' in x[0]:
+        # imaginary number
+        val, signed, n_word, n_frac = strbin2float(x[0].replace('j', ''), signed, n_word, n_frac, return_sizes=True)
+        val = 1j*val
+    elif len(x) == 1 and isinstance(x[0], str) and not 'j' in x[0]:
+        # real number
+        val, signed, n_word, n_frac = strbin2float(x[0], signed, n_word, n_frac, return_sizes=True)
+        val = val + 1j*0
+    elif len(x) == 2 and isinstance(x, list) and not 'j' in x[0] and 'j' in x[1]:
+        # complex
+        val_real, signed_real, n_word_real, n_frac_real = strbin2float(x[0], signed, n_word, n_frac, return_sizes=True)
+        val_imag, signed_imag, n_word_imag, n_frac_imag = strbin2float(x[1].replace('j', ''), signed, n_word, n_frac, return_sizes=True)
+        val = val_real + 1j*val_imag
+
+        signed = signed_real or signed_imag
+        n_word = max(n_word_real, n_word_imag)
+        n_frac = max(n_frac_real, n_frac_imag)
+    else:
+        raise ValueError(f"Wrong complex format of binary string!")
+    
+    if return_sizes:
+        return val, signed, n_word, n_frac
+    else:
+        return val
+
 
 def strhex2int(x, signed=True, n_word=None, return_sizes=False):
     x = x.replace('0x', '')
@@ -171,9 +213,16 @@ def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=Fals
             # binary
             if '.' in x or (n_frac is not None and n_frac > 0):
                 # fractional binary
-                val, signed, n_word, n_frac =  strbin2float(x, signed, n_word, n_frac, return_sizes=True)
+                if 'j' in x:
+                    val, signed, n_word, n_frac =  strbin2complex(x, signed, n_word, n_frac, return_sizes=True)
+                else:
+                    val, signed, n_word, n_frac =  strbin2float(x, signed, n_word, n_frac, return_sizes=True)
             else:
-                val, signed, n_word = strbin2int(x, signed, n_word, return_sizes=True)
+                # integer binary
+                if 'j' in x:
+                    val, signed, n_word = strbin2complex(x, signed, n_word, return_sizes=True)
+                else:
+                    val, signed, n_word = strbin2int(x, signed, n_word, return_sizes=True)
                 n_frac = 0
             
         elif base == 16 or 'x' in x[:2]:
@@ -228,15 +277,18 @@ def insert_frac_point(x_bin, n_frac):
     return x_bin
 
 @array_support
-def binary_repr(x, n_word=None, n_frac=None):
+def binary_repr(x, n_word=None, n_frac=None, prefix=None):
     if n_frac is None:
         val = np.binary_repr(int(x), width=n_word)
     else:
         val = insert_frac_point(np.binary_repr(x, width=n_word), n_frac=n_frac)
+
+    if prefix is not None:
+        val = add_binary_prefix(val, prefix=prefix)
     return val
 
 @array_support
-def hex_repr(x, n_word=None, padding=None, base=10):
+def hex_repr(x, n_word=None, padding=None, base=10, prefix='0x'):
     if base == 2:
         x = int(x, 2)
     elif base == 10:
@@ -245,12 +297,12 @@ def hex_repr(x, n_word=None, padding=None, base=10):
         raise ValueError('base {base} for input value is not supported!')
 
     if n_word is not None:
-        val = '0x{0:0{1}X}'.format(x, int(np.ceil(n_word/4)))
+        val = prefix + '{0:0{1}X}'.format(x, int(np.ceil(n_word/4)))
     elif padding is not None:
-        val = '0x{0:0{1}X}'.format(x, padding)
+        val = prefix + '{0:0{1}X}'.format(x, padding)
     else:
         val = hex(x)
-        val = '0x'+val[2:].upper()
+        val = prefix + val[2:].upper()
     return val  
 
 @array_support
@@ -262,6 +314,30 @@ def base_repr(x, n_word=None, base=2, n_frac=None):
     else:
         val = np.base_repr(x, base=base)
     return val
+
+@array_support
+def add_binary_prefix(x, prefix='0b'):
+    if isinstance(x, np.ndarray) and x.ndim == 0:
+        x = x.item()
+
+    if isinstance(x, str):
+        # convert to easy format
+        x = x.lower().replace(' ', '').replace('i', 'j').replace('0b', '').replace('b', '')
+
+        if ('+' in x or '-' in x) and 'j' in x:
+            # complex format
+            x = prefix + x.replace('+', '+' + prefix).replace('-', '-' + prefix)
+        else:
+            x = prefix + x
+        
+        # check valid characters
+        invalid_chars = set(x.replace(prefix, '')) - {'0', '1', '.', 'j', '+', '-'}
+        if len(invalid_chars) > 0:
+            raise ValueError(f"Binary string has invalid characters: {invalid_chars}")
+    else:
+        raise ValueError("Binary value must be a string!")
+    
+    return x
 
 def complex_repr(r, i):
     r = np.asarray(r)
@@ -277,6 +353,10 @@ def complex_repr(r, i):
             c[idx] = str(r[idx]) + imag_sign_symbol + str(i[idx]) + 'j'
     else:
         raise ValueError('parameters must be a list of array of strings!')
+    
+    # return single element is array has one value
+    if c.size == 0:
+        c = c.item(0)
     return c
 
 def bits_len(x, signed=None):
@@ -342,19 +422,20 @@ def int_clip(x, val_min, val_max):
     return x_clipped
 
 def wrap(x, signed, n_word):
-    if n_word >= _n_word_max:
-        dtype = object
-    else:
-        dtype = int
 
     m = (1 << n_word)
-    if signed: 
-        x = np.array(x).astype(dtype) & (m - 1)
-        x = np.asarray(x).astype(dtype)
-        x = np.where(x < (1 << (n_word-1)), x, x | (-m)) 
-    else: 
+    if n_word >= _n_word_max:
+        dtype = object
+        x = int_array(x).astype(dtype) & (m - 1)
+    else:
+        dtype = int
         x = np.array(x).astype(dtype) & (m - 1) 
-        x = np.asarray(x).astype(dtype)
+
+    x = np.asarray(x).astype(dtype)
+
+    if signed: 
+        x = np.where(x < (1 << (n_word-1)), x, x | (-m))
+        
     return x
 
 def get_sizes_from_dtype(dtype):

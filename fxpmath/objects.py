@@ -315,12 +315,15 @@ class Fxp():
         self._update_dtype(notation)    # update dtype
         return self._dtype
     
-    _qfmt   = re.compile(r'(s|u|q|uq|qu)(\d+)(\.\d+)?')
-    _fxpfmt = re.compile(r'fxp-(s|u)(\d+)/(\d+)(-complex)?')
+    def _qfmt(self):
+        return re.compile(r'(s|u|q|uq|qu)(\d+)(\.[+-]?\d+)?')
+    
+    def _fxpfmt(self):
+        return re.compile(r'fxp-(s|u)(\d+)/([+-]?\d+)(-complex)?')
     
     def _parseformatstr(self, fmt):
         fmt = fmt.casefold()
-        mo = self._qfmt.match(fmt)
+        mo = self._qfmt().match(fmt)
         if mo:
             # Q/S notation counts the sign bit as an integer bit, such that
             # the total number of bits is always int+frac
@@ -333,7 +336,7 @@ class Fxp():
             n_word = n_frac + n_int
             complex_dtype = False
         else:
-            mo = self._fxpfmt.match(fmt)
+            mo = self._fxpfmt().match(fmt)
             if mo:
                 signed = mo.group(1) == 's'
                 n_word = int(mo.group(2))
@@ -349,11 +352,25 @@ class Fxp():
         return signed, n_word, n_frac, complex_dtype
     
     def _init_size(self, val=None, signed=None, n_word=None, n_frac=None, n_int=None, max_error=_max_error, n_word_max=_n_word_max, raw=False):
+        # check signed type
+        if not isinstance(signed, (type(None), bool, int)):
+            raise TypeError("signed must be boolean (True, False), int (1 or 0) or None!")
+        
+        # check n_word, n_frac, n_int type
+        if not isinstance(n_word, (type(None), int)):
+            raise TypeError("n_word must be integer or None!")
+        if not isinstance(n_frac, (type(None), int)):
+            raise TypeError("n_frac must be integer or None!")
+        if not isinstance(n_int, (type(None), int)):
+            raise TypeError("n_int must be integer or None!")
+        
         # sign by default
         if signed is None:
             self.signed = True
         else:
-            self.signed = signed
+            self.signed = bool(signed)
+            if self.signed != 0 and self.signed != 1:
+                raise ValueError("If signed is int, the valid values are 1 (True) and 0 (False)!")
         
         # n_int defined:
         if n_word is None and n_frac is not None and n_int is not None:
@@ -399,6 +416,24 @@ class Fxp():
         _old_val = self.val
         _old_n_frac = self.n_frac
 
+        # check signed type
+        if not isinstance(signed, (type(None), bool, int)):
+            raise TypeError("signed must be boolean (True, False), int (1 or 0) or None!")
+        
+        # check n_word, n_frac, n_int type
+        if not isinstance(n_word, (type(None), int)):
+            raise TypeError("n_word must be integer or None!")
+        if not isinstance(n_frac, (type(None), int)):
+            raise TypeError("n_frac must be integer or None!")
+        if not isinstance(n_int, (type(None), int)):
+            raise TypeError("n_int must be integer or None!")
+        
+        # sign by default
+        if signed is not None:
+            self.signed = bool(signed)
+            if self.signed != 0 and self.signed != 1:
+                raise ValueError("If signed is int, the valid values are 1 (True) and 0 (False)!")
+
         # check if a string-based format has been provided
         if dtype is not None:
             if signed is not None or n_word is not None or n_frac is not None or n_int is not None:
@@ -418,10 +453,10 @@ class Fxp():
             self.signed = signed
         # word
         if n_word is not None:
-            self.n_word = n_word
+            self.n_word = int(n_word)
         # frac
         if n_frac is not None:
-            self.n_frac = n_frac
+            self.n_frac = int(n_frac)
     
         # n_int    
         self.n_int = self.n_word - self.n_frac - (1 if self.signed else 0)
@@ -570,12 +605,12 @@ class Fxp():
             If an integer, then the result will be a 1-D array of that length. 
             One shape dimension can be -1. In this case, the value is inferred from the length of the array and remaining dimensions.
 
-        order : {‘C’, ‘F’, ‘A’}, optional
+        order : {'C', 'F', 'A'}, optional
             Read the elements of a using this index order, and place the elements into the reshaped array using this index order. 
-            ‘C’ means to read / write the elements using C-like index order, with the last axis index changing fastest, back to the first axis index changing slowest. 
-            ‘F’ means to read / write the elements using Fortran-like index order, with the first index changing fastest, and the last index changing slowest. 
-            Note that the ‘C’ and ‘F’ options take no account of the memory layout of the underlying array, and only refer to the order of indexing. 
-            ‘A’ means to read / write the elements in Fortran-like index order if a is Fortran contiguous in memory, C-like order otherwise.
+            'C' means to read / write the elements using C-like index order, with the last axis index changing fastest, back to the first axis index changing slowest. 
+            'F' means to read / write the elements using Fortran-like index order, with the first index changing fastest, and the last index changing slowest. 
+            Note that the 'C' and 'F' options take no account of the memory layout of the underlying array, and only refer to the order of indexing. 
+            'A' means to read / write the elements in Fortran-like index order if a is Fortran contiguous in memory, C-like order otherwise.
 
         Returns
         ---
@@ -594,12 +629,12 @@ class Fxp():
         Parameters
         ---
 
-        order{‘C’, ‘F’, ‘A’, ‘K’}, optional
-            ‘C’ means to flatten in row-major (C-style) order. 
-            ‘F’ means to flatten in column-major (Fortran- style) order. 
-            ‘A’ means to flatten in column-major order if a is Fortran contiguous in memory, row-major order otherwise. 
-            ‘K’ means to flatten a in the order the elements occur in memory. 
-            The default is ‘C’.
+        order{'C', 'F', 'A', 'K'}, optional
+            'C' means to flatten in row-major (C-style) order. 
+            'F' means to flatten in column-major (Fortran- style) order. 
+            'A' means to flatten in column-major order if a is Fortran contiguous in memory, row-major order otherwise. 
+            'K' means to flatten a in the order the elements occur in memory. 
+            The default is 'C'.
 
         Returns
         ---
@@ -614,7 +649,7 @@ class Fxp():
 
     # methods about value
 
-    def _format_inupt_val(self, val, return_sizes=False, raw=False):
+    def _format_inupt_val(self, val, return_sizes=False, raw=False, set_inaccuracy=True):
         vdtype = None
         signed = self.signed
         n_word = self.n_word
@@ -635,6 +670,11 @@ class Fxp():
             if self.signed is None: self.signed = val.signed
             if self.n_word is None: self.n_word = val.n_word
             if self.n_frac is None: self.n_frac = val.n_frac
+
+            # check inaccuracy
+            if set_inaccuracy and val.status['inaccuracy']:
+                self.status['inaccuracy'] = True
+
             # force return raw value for better precision
             val = val.val * 2**(self.n_frac - val.n_frac)
             raw = True
@@ -688,7 +728,6 @@ class Fxp():
             # force return raw value for better precision
             val = int(val * 2**(self.n_frac))
             raw = True
-
 
         else:
             raise ValueError('Not supported input type: {}'.format(type(val)))
@@ -750,7 +789,9 @@ class Fxp():
                 self._dtype = 'fxp-{sign}{nword}/{nfrac}{comp}'.format(sign='s' if self.signed else 'u', 
                                                                     nword=self.n_word, 
                                                                     nfrac=self.n_frac, 
-                                                                    comp='-complex' if (self.val.dtype == complex or self.vdtype == complex) else '')
+                                                                    comp='-complex' if (isinstance(self.val, complex) or \
+                                                                        self.val.dtype == complex or \
+                                                                        self.vdtype == complex) else '')
             else:
                 self._dtype = 'fxp-{sign}{nword}/{nfrac}'.format(sign='s' if self.signed else 'u', 
                                                                     nword=self.n_word, 
@@ -1014,7 +1055,7 @@ class Fxp():
         """
         return np.where(self.val < 0, (1 << self.n_word) + self.val, self.val)
 
-    def equal(self, x):
+    def equal(self, x, index=None):
         """
         Sets the value of the Fxp using the value of other Fxp object.
         If `x` is not a Fxp, this method set the value just like `set_val` method.
@@ -1025,6 +1066,9 @@ class Fxp():
         x : Fxp object, None, int, float, complex, list of numbers, numpy array, str (bin, hex, dec)
             Value(s) to be stored in fractional fixed-point (base 2) format.
 
+        index : int, optional, default=None
+            Index of the element to be overwritten in list or array of values by `val` input.
+
         Returns
         ---
 
@@ -1033,10 +1077,15 @@ class Fxp():
         """
         
         if isinstance(x, Fxp):
-            new_val_raw = x.val * 2**(self.n_frac - x.n_frac)
-            self.set_val(new_val_raw, raw=True)
+            if index is None:
+                raw_val = x.val[index]
+            else:
+                raw_val = x.val
+
+            new_val_raw = raw_val * 2**(self.n_frac - x.n_frac)
+            self.set_val(new_val_raw, raw=True, index=index)
         else:
-            self.set_val(x)
+            self.set_val(x, index=index)
         return self
 
     # behaviors
@@ -1304,7 +1353,10 @@ class Fxp():
         from .functions import pow
 
         if not isinstance(x, Fxp):
-            x = self._convert_op_input_value(x)
+            if self.config is not None and self.config.op_input_size != 'best':
+                print("Warning: using config.op_input_size != 'best' could lead to long execution times and huge memory usage! Forcing to config.op_input_size='best'")
+                print(f"Tip: force a explicit Fxp dtype for your exponent. Instead of x**{x} use x**Fxp({x}) or x**Fxp({x}, dtype='some fxp dtype')")
+            x = self._convert_op_input_value(x, op_input_size='best')
             _sizing = self.config.const_op_sizing
         else:
             _sizing = self.config.op_sizing
@@ -1501,48 +1553,61 @@ class Fxp():
 
 
     # base representations
-    def bin(self, frac_dot=False):
+    def bin(self, frac_dot=False, prefix=None):
         if frac_dot:
             n_frac_dot = self.n_frac
         else:
             n_frac_dot = None
+
+        # set prefix if it's necessary
+        prefix = prefix if prefix is not None else self.config.bin_prefix
+        if prefix is not None:
+            if isinstance(prefix, bool) and prefix == True:
+                prefix = '0b' # default binary prefix
         
         if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
-                real_val = [utils.binary_repr(utils.int_array(val.real), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
-                imag_val = [utils.binary_repr(utils.int_array(val.imag), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
+                real_val = [utils.binary_repr(utils.int_array(val.real), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix) for val in self.val]
+                imag_val = [utils.binary_repr(utils.int_array(val.imag), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix) for val in self.val]
                 rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = [utils.binary_repr(utils.int_array(val), n_word=self.n_word, n_frac=n_frac_dot) for val in self.val]
+                rval = [utils.binary_repr(utils.int_array(val), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix) for val in self.val]
         else:
             if self.vdtype == complex:
-                real_val = utils.binary_repr(utils.int_array(self.val.real), n_word=self.n_word, n_frac=n_frac_dot)
-                imag_val = utils.binary_repr(utils.int_array(self.val.imag), n_word=self.n_word, n_frac=n_frac_dot)
+                real_val = utils.binary_repr(utils.int_array(self.val.real), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix)
+                imag_val = utils.binary_repr(utils.int_array(self.val.imag), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix)
                 rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = utils.binary_repr(int(self.val), n_word=self.n_word, n_frac=n_frac_dot)
+                rval = utils.binary_repr(int(self.val), n_word=self.n_word, n_frac=n_frac_dot, prefix=prefix)
+
         return rval
 
-    def hex(self, padding=True):
+    def hex(self, padding=True, prefix=None):
         if padding:
             hex_n_word = self.n_word
         else:
             hex_n_word = None
 
+        # set prefix if it's necessary
+        prefix = prefix if prefix is not None else self.config.hex_prefix
+        if prefix is not None:
+            if isinstance(prefix, bool) and prefix == True:
+                prefix = '0x' # default hexadecimal prefix
+
         if isinstance(self.val, (list, np.ndarray)) and self.val.ndim > 0:
             if self.vdtype == complex:
-                real_val = [utils.hex_repr(utils.binary_repr(utils.int_array(val.real), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2) for val in self.val]
-                imag_val = [utils.hex_repr(utils.binary_repr(utils.int_array(val.imag), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2) for val in self.val]
+                real_val = [utils.hex_repr(utils.binary_repr(utils.int_array(val.real), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2, prefix=prefix) for val in self.val]
+                imag_val = [utils.hex_repr(utils.binary_repr(utils.int_array(val.imag), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2, prefix=prefix) for val in self.val]
                 rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = [utils.hex_repr(val, n_word=hex_n_word, base=2) for val in self.bin()]
+                rval = [utils.hex_repr(val, n_word=hex_n_word, base=2, prefix=prefix) for val in self.bin()]
         else:
             if self.vdtype == complex:
-                real_val = utils.hex_repr(utils.binary_repr(utils.int_array(self.val.real), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2)
-                imag_val = utils.hex_repr(utils.binary_repr(utils.int_array(self.val.imag), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2)
+                real_val = utils.hex_repr(utils.binary_repr(utils.int_array(self.val.real), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2, prefix=prefix)
+                imag_val = utils.hex_repr(utils.binary_repr(utils.int_array(self.val.imag), n_word=self.n_word, n_frac=None), n_word=hex_n_word, base=2, prefix=prefix)
                 rval = utils.complex_repr(real_val, imag_val)
             else:
-                rval = utils.hex_repr(self.bin(), n_word=hex_n_word, base=2)
+                rval = utils.hex_repr(self.bin(), n_word=hex_n_word, base=2, prefix=prefix)
         return rval
     
     def base_repr(self, base, frac_dot=False):
@@ -1564,6 +1629,10 @@ class Fxp():
             else:
                 rval = utils.base_repr(int(self.val), base=base, n_frac=n_frac_dot)
         return rval
+
+    def from_bin(self, val, raw=False):
+        self.set_val(utils.add_binary_prefix(val), raw=raw)
+        return self
 
     # copy
     def copy(self):
@@ -1587,17 +1656,19 @@ class Fxp():
             'underflow': False,
             'inaccuracy': False}
 
-    def _convert_op_input_value(self, x):
+    def _convert_op_input_value(self, x, op_input_size=None):
         if not isinstance(x, Fxp):
-            if self.config is not None:
-                if self.config.op_input_size == 'best':
-                    x_fxp = Fxp(x)
-                elif self.config.op_input_size == 'same':
-                    x_fxp = Fxp(x, like=self)
-                else:
-                    raise ValueError('Sizing parameter not supported: {}'.format(self.config.op_input_size))
-            else:
+            if op_input_size is None and self.config is not None:
+                op_input_size = self.config.op_input_size
+
+            if op_input_size is None:
                 x_fxp = Fxp(x)
+            elif op_input_size == 'best':
+                x_fxp = Fxp(x)
+            elif op_input_size == 'same':
+                x_fxp = Fxp(x, like=self)
+            else:
+                raise ValueError('Sizing parameter not supported: {}'.format(op_input_size))
         else:
             x_fxp = x
 
@@ -1857,9 +1928,6 @@ class Fxp():
             items = args[0]
         return self.astype(item=items)
 
-    # ToDo:
-    #  nonzero
-
     def clip(self, a_min=None, a_max=None, **kwargs):
         from .functions import clip
 
@@ -1957,6 +2025,10 @@ class Config():
         if self.template is not None:
             if isinstance(self.template, Config):
                 self.__dict__ = copy.deepcopy(self.template.__dict__)
+
+        # prefixes
+        self.bin_prefix = kwargs.pop('bin_prefix', None)
+        self.hex_prefix = kwargs.pop('hex_prefix', '0x')
 
     # ---
     # properties
@@ -2195,6 +2267,37 @@ class Config():
             self._dtype_notation = val
         else:
             raise ValueError('dtype_notation must be str type with following valid values: {}'.format(self._dtype_notation_list))
+
+    # prefixes
+    @property
+    def bin_prefix(self):
+        return self._bin_prefix
+    
+    @bin_prefix.setter
+    def bin_prefix(self, prefix):
+        if prefix is not None and not isinstance(prefix, str):
+            print("Warning: the prefix should be a string, converted to string automatically!")
+            prefix = str(prefix)
+
+        if prefix not in [None, 'b', '0b', 'B', '0B']:
+            print(f"Warning: the prefix {prefix} is not a common prefix for binary values!")
+
+        self._bin_prefix = prefix
+
+    @property
+    def hex_prefix(self):
+        return self._hex_prefix
+    
+    @hex_prefix.setter
+    def hex_prefix(self, prefix):
+        if prefix is not None and not isinstance(prefix, str):
+            print("Warning: the prefix should be a string, converted to string automatically!")
+            prefix = str(prefix)
+
+        if prefix not in [None, 'x', '0x', 'X', '0X', 'h', '0h', 'H', '0H']:
+            print(f"Warning: the prefix {prefix} is not a common prefix for hexadecimal values!")
+
+        self._hex_prefix = prefix
 
     # endregion
 

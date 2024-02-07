@@ -129,6 +129,10 @@ def _function_over_one_var(repr_func, raw_func, x, out=None, out_like=None, sizi
     else:
         z = Fxp(val, signed=signed, n_int=n_int, n_frac=n_frac, like=out_like, raw=raw)
 
+    # propagate inaccuracy from argument
+    if x.status['inaccuracy']:
+        z.status['inaccuracy'] = True
+
     return z 
 
 def _function_over_two_vars(repr_func, raw_func, x, y, out=None, out_like=None, sizing='optimal', method='raw', optimal_size=None, **kwargs):
@@ -176,6 +180,10 @@ def _function_over_two_vars(repr_func, raw_func, x, y, out=None, out_like=None, 
         z = out.set_val(val, raw=raw)
     else:
         z = Fxp(val, signed=signed, n_int=n_int, n_frac=n_frac, like=out_like, raw=raw, config=config)
+
+    # propagate inaccuracy from arguments
+    if x.status['inaccuracy'] or y.status['inaccuracy']:
+        z.status['inaccuracy'] = True
 
     return z   
 
@@ -264,7 +272,7 @@ def fxp_sum(x, sizes='best_sizes', axis=None, dtype=None, out=None, vdtype=None)
             raise TypeError('out argument must be a Fxp object!')
     elif sizes == 'best_sizes':
         signed = x.signed
-        n_word = np.ceil(np.log2(x().size)).astype(int) + x.n_word
+        n_word = int(np.ceil(np.log2(x().size))) + x.n_word
         n_frac = x.n_frac
         
         sum_along_axis = Fxp(x_sum, signed=signed, n_word=n_word, n_frac=n_frac)
@@ -276,6 +284,9 @@ def fxp_sum(x, sizes='best_sizes', axis=None, dtype=None, out=None, vdtype=None)
         raise ValueError('Could not resolve output size!')
 
     return sum_along_axis
+
+def from_bin(x, **kwargs):
+    return Fxp(utils.add_binary_prefix(x), **kwargs)
 
 @implements(np.max)
 def fxp_max(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw', **kwargs):
@@ -543,7 +554,7 @@ def sum(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw', *
         x = Fxp(x)
 
     signed = x.signed
-    n_word = np.ceil(np.log2(x.size)).astype(int) + x.n_word
+    n_word = int(np.ceil(np.log2(x.size))) + x.n_word
     n_frac = x.n_frac
     n_int = n_word - int(signed) - n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
@@ -563,7 +574,7 @@ def cumsum(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw'
         x = Fxp(x)
 
     signed = x.signed
-    n_word = np.ceil(np.log2(x.size)).astype(int) + x.n_word
+    n_word = int(np.ceil(np.log2(x.size))) + x.n_word
     n_frac = x.n_frac
     n_int = n_word - int(signed) - n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
@@ -672,7 +683,7 @@ def trace(a, offset=0, axis1=0, axis2=1, out=None, out_like=None, sizing='optima
 
     num_of_additions = np.diagonal(np.array(a), offset=offset, axis1=axis1, axis2=axis2).size
     signed = a.signed
-    n_word = np.ceil(np.log2(num_of_additions)).astype(int) + a.n_word
+    n_word = int(np.ceil(np.log2(num_of_additions))) + a.n_word
     n_frac = a.n_frac
     n_int = n_word - int(signed) - n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
@@ -720,7 +731,7 @@ def dot(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     num_of_additions = x.shape[-1]
     signed = x.signed or y.signed
     n_frac = x.n_frac + y.n_frac
-    n_word = np.ceil(np.log2(num_of_additions)).astype(int) + x.n_word + y.n_word
+    n_word = int(np.ceil(np.log2(num_of_additions))) + x.n_word + y.n_word
     n_int = n_word - int(signed) - n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
 
@@ -736,3 +747,14 @@ def nonzero(x):
         return np.nonzero(x.get_val())
     else:
         return np.nonzero(x.val)
+    
+@implements(np.reshape)
+def reshape(a, newshape, order='C', out=None, out_like=None, sizing='same', method='raw', **kwargs):
+    """
+    """
+    def _reshape_raw(x, newshape, order, **kwargs):
+        return np.reshape(x.val, newshape=newshape, order=order)
+    
+    kwargs['newshape'] = newshape
+    kwargs['order'] = order 
+    return _function_over_one_var(repr_func=np.reshape, raw_func=_reshape_raw, x=a, out=out, out_like=out_like, sizing=sizing, method=method, optimal_size=None, **kwargs)

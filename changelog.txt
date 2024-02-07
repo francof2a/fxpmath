@@ -1,3 +1,15 @@
+version 0.4.9
+--------------------------------------------------
+* Fix wrap fuction over n_word_max (issue #41).
+* Inaccuracy flag is propagated to a new Fxp or resulting Fxp if one or more input Fxp are inaccurate (issue #48).
+* New `from_bin` method and function. Set value or create new Fxp from a binary string (issue #49).
+* Support to complex binary strings as input format.
+* Force to `config.op_input_size='best'` when power operation has an constant operator (non-Fxp). Add warning message. (issue #89).
+* Selection of `prefix` for binary and hexadecimal representations.
+* Fix `cumsum` function bug when dealing with sizes bigger than 32 bits (windows) / 64 bits (linux) (issue #76).
+* Fix `numpy.reshape` function handling. This function was returning optimal size instead of same by default (issue #77).
+* Fix negative number parsing in `dtype` string (issue #80).
+
 version 0.4.8
 --------------------------------------------------
 * Fix value dtype handling for windows OS and uint as 32 bits.

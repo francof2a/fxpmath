@@ -1,4 +1,4 @@
-__version__ = '0.4.8'
+__version__ = '0.4.9'
 
 import sys
 import os
@@ -58,6 +58,7 @@ from .objects import (
 from .functions import (
     fxp_like,
     fxp_sum,
+    from_bin,
     fxp_max,
     fxp_min,
     add,
@@ -78,5 +79,6 @@ from .functions import (
     trace,
     prod,
     dot,
-    nonzero
+    nonzero,
+    reshape
 )
