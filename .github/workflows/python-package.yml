@@ -10,6 +10,7 @@ on:
     branches: [ master ]
 
 jobs:
+  if: always()
   build:
     name: Test on ubuntu-22.04 with Python ${{ matrix.python-version }}
     runs-on: ubuntu-22.04
@@ -37,5 +38,3 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
-      continue-on-error: true
-      
