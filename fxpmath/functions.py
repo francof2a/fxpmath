@@ -366,9 +366,11 @@ def mul(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     if not isinstance(y, Fxp):
         y = Fxp(y)
 
+    is_complex = x.vdtype == complex or y.vdtype == complex
+
     signed = x.signed or y.signed
     n_frac = x.n_frac + y.n_frac
-    n_word = x.n_word + y.n_word
+    n_word = x.n_word + y.n_word + int(is_complex)
     n_int = n_word - int(signed) - n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
 
@@ -405,12 +407,13 @@ def floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kw
     if not isinstance(y, Fxp):
         y = Fxp(y)
 
-    if x.vdtype == complex or y.vdtype == complex:
+    is_complex = x.vdtype == complex or y.vdtype == complex
+    if is_complex:
         _floordiv_repr = _floordiv_repr_complex
         _floordiv_raw = _floordiv_raw_complex
 
     signed = x.signed or y.signed
-    n_int = x.n_int + y.n_frac + signed
+    n_int = x.n_int + y.n_frac + int(signed) + int(is_complex)
     n_frac = 0
     n_word = int(signed) + n_int + n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
@@ -444,12 +447,13 @@ def truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwa
     if not isinstance(y, Fxp):
         y = Fxp(y)
 
-    if x.vdtype == complex or y.vdtype == complex:
+    is_complex = x.vdtype == complex or y.vdtype == complex
+    if is_complex:
         _truediv_raw = _truediv_raw_complex
 
     signed = x.signed or y.signed
-    n_int = x.n_int + y.n_frac + signed
-    n_frac = x.n_frac + y.n_int
+    n_int = x.n_int + y.n_frac + int(signed) + int(is_complex)
+    n_frac = x.n_frac + y.n_int + int(is_complex)
     n_word = int(signed) + n_int + n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
 

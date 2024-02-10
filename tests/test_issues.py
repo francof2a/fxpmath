@@ -489,3 +489,16 @@ def test_issue_90_v0_4_9():
 
     assert np.all(x.val.shape == np.array((4,)))
     assert np.all(zz.val.shape == np.array((2,2)))
+
+
+def test_issue_91_v0_4_10():
+    # Inaccuracy for certain complex multiplications
+
+    x = Fxp(-1-1j)
+    xa = np.array(-1-1j)
+
+    y = x * x
+    ya = xa * xa
+
+    assert np.all(y() == ya)
+    
