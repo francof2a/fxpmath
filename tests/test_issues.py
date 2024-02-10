@@ -471,3 +471,21 @@ def test_issue_85_v0_4_8():
 
         x = Fxp(0.0, dtype=dt, overflow='wrap')  #  EXCEPTION
         assert x() == 0.0
+
+def test_issue_90_v0_4_9():
+    # Built-in Fxp.reshape() method passes the wrong number of arguments to underlying numpy reshape() function
+    x = Fxp([1,2,3,4], False, 8, 0)
+    y = x.reshape((2,2))
+
+    assert np.all(x.val.shape == np.array((4,)))
+    assert np.all(y.val.shape == np.array((2,2)))
+
+    z = np.reshape(x, (2,2))
+
+    assert np.all(x.val.shape == np.array((4,)))
+    assert np.all(z.val.shape == np.array((2,2)))
+
+    zz = fxp.reshape(x, (2,2))
+
+    assert np.all(x.val.shape == np.array((4,)))
+    assert np.all(zz.val.shape == np.array((2,2)))

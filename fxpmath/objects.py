@@ -619,8 +619,9 @@ class Fxp():
 
         """
         
-        self.val = self.val.reshape(shape=shape, order=order)
-        return self
+        x = self.copy()
+        x.val = x.val.reshape(shape, order=order)
+        return x
     
     def flatten(self, order='C'):
         """
