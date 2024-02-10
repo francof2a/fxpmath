@@ -422,6 +422,11 @@ def test_issue_76_v0_4_8():
     y = np.cumsum(w)
     assert np.all(y() == np.array([1, 2, 3, 4]))
 
+    # Increase word size to 96 bits
+    w = Fxp([1, 1, 1, 1], dtype='fxp-s96/0')
+    y = np.cumsum(w)
+    assert np.all(y() == np.array([1, 2, 3, 4]))
+
 def test_issue_77_v0_4_8():
     # Precision error when numpy.reshape
 

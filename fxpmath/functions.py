@@ -568,7 +568,7 @@ def cumsum(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw'
     """
     def _cumsum_raw(x, n_frac, **kwargs):
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return np.cumsum(x.val, **kwargs) * precision_cast(2**(n_frac - x.n_frac))
+        return np.cumsum(precision_cast(x.val), **kwargs) * precision_cast(2**(n_frac - x.n_frac))
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -591,7 +591,7 @@ def cumprod(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw
         precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
         pow_vals = n_frac - np.cumsum(np.ones_like(np.array(x)), axis=axis).astype(int)  * x.n_frac
         conv_factors = utils.int_array([2**pow_val for pow_val in precision_cast(pow_vals)])
-        return np.cumprod(x.val, **kwargs) * conv_factors
+        return np.cumprod(precision_cast(x.val), **kwargs) * precision_cast(conv_factors)
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
