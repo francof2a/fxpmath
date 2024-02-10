@@ -619,8 +619,9 @@ class Fxp():
 
         """
         
-        self.val = self.val.reshape(shape=shape, order=order)
-        return self
+        x = self.copy()
+        x.val = x.val.reshape(shape, order=order)
+        return x
     
     def flatten(self, order='C'):
         """
@@ -849,7 +850,10 @@ class Fxp():
                 val = val.astype(object)
             else:
                 val = val.astype(original_vdtype)
-                val_dtype = np.int64 if self.signed else np.uint64
+                if _n_word_max_ <= 32:
+                    val_dtype = np.int32 if self.signed else np.uint32
+                else:
+                    val_dtype = np.int64 if self.signed else np.uint64
 
             # rounding and overflowing
             new_val = self._round(val * conv_factor , method=self.config.rounding)
