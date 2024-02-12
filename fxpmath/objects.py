@@ -1350,7 +1350,7 @@ class Fxp():
             # into the MSB. i.e. 1 << 7 == -128, not 127
             try:
                 new_value = [f"0b{(s & mask):0{n_word}b}" for s in shift]
-            except:
+            except TypeError:
                 new_value = f"0b{(shift & mask):0{n_word}b}"
             y.set_val(new_value,raw=True, vdtype=self.vdtype)
         else:
