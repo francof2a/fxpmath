@@ -84,6 +84,53 @@ def test_shift_bitwise():
     x = Fxp(64, False, 8, 0, shifting='trunc')
     assert (x << 1)() == 128
     assert (x << 2)() == x.upper
+    
+    # keep shift
+    ## left unsigned
+    x = Fxp(1, False, 8, 0, shifting="keep")
+    prev = x.get_val()
+    for i in range(x.n_word):
+        assert (x << i)() == prev
+        prev = 2 * prev
+    assert (x << 8)() == 0
+    
+    ## right unsigned
+    x.set_val(128)
+    prev = 128
+    for i in range(x.n_word):
+        assert (x >> i)() == prev
+        prev = prev // 2
+    assert (x >> 8)() == 0
+
+    ## left signed
+    x = Fxp(1, True, 8, 0, shifting="keep")
+    prev = 1
+    for i in range(x.n_word - 1):
+        assert (x << i)() == prev, f"{i}, {prev}"
+        prev = 2 * prev
+    assert (x << x.n_word - 1)() == -128
+    assert (x << x.n_word)() == 0
+    x.set_val(113)
+    for i in range(x.n_word):
+        assert (x << i).bin() == x.bin()[i:] + (i * "0")
+
+    ## right signed
+    x.set_val(-128)
+    for i in range(x.n_word):
+        assert (x >> i).bin() == (i + 1) * "1" + (x.n_word - (i + 1)) * "0"
+    assert (x >> 8).bin() == x.n_word * "1"
+    
+    ## None type
+    x = Fxp(None, False, 8, 0, shifting="keep")
+    for i in range(10):
+        assert x << i == 0
+        
+    ## array
+    x = Fxp([1,2,4,8], False, 8, 0, shifting="keep")
+    assert all(x << 1 == x*2)
+    x.set_val([128])
+    assert all(x << 1 == 0)
+    
 
 def test_invert():
     x = Fxp(None, True, 8, 4)
