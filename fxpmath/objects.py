@@ -1348,7 +1348,11 @@ class Fxp():
             mask = np.array((1 << n_word) - 1, dtype=self.val.dtype)
             # this formatting is necessary for when shifting a 1 in a signed number
             # into the MSB. i.e. 1 << 7 == -128, not 127
-            y.set_val(f"0b{(shift & mask):0{n_word}b}",raw=True, vdtype=self.vdtype)
+            try:
+                new_value = [f"0b{(s & mask):0{n_word}b}" for s in shift]
+            except:
+                new_value = f"0b{(shift & mask):0{n_word}b}"
+            y.set_val(new_value,raw=True, vdtype=self.vdtype)
         else:
             y.set_val(self.val << np.array(n, dtype=self.val.dtype), raw=True, vdtype=self.vdtype)   # set raw val shifted
             

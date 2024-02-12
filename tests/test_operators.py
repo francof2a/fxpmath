@@ -87,20 +87,13 @@ def test_shift_bitwise():
     
     # keep shift
     ## left unsigned
-    test_xs = [
-        Fxp(1, False, 8, 0, shifting="keep"),
-        Fxp([1,2,4], 8, 0, shifting="keep")
-    ]
-    for x in test_xs:
-        prev = x.get_val()
-        for i in range(x.n_word):
-            if prev <= 256:
-                assert (x << i)() == prev
-            else:
-                assert (x << i)() == 0
-            prev = 2 * prev
-        assert (x << 8)() == 0
-
+    x = Fxp(1, False, 8, 0, shifting="keep")
+    prev = x.get_val()
+    for i in range(x.n_word):
+        assert (x << i)() == prev
+        prev = 2 * prev
+    assert (x << 8)() == 0
+    
     ## right unsigned
     x.set_val(128)
     prev = 128
@@ -127,8 +120,16 @@ def test_shift_bitwise():
         assert (x >> i).bin() == (i + 1) * "1" + (x.n_word - (i + 1)) * "0"
     assert (x >> 8).bin() == x.n_word * "1"
     
-    ## test arrays
-    x = Fxp([1,2,3,4], False, 8, 0)
+    ## None type
+    x = Fxp(None, False, 8, 0, shifting="keep")
+    for i in range(10):
+        assert x << i == 0
+        
+    ## array
+    x = Fxp([1,2,4,8], False, 8, 0, shifting="keep")
+    assert all(x << 1 == x*2)
+    x.set_val([128])
+    assert all(x << 1 == 0)
     
 
 def test_invert():
