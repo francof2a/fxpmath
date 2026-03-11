@@ -4,7 +4,15 @@
   "service": "dev",
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
-  "remoteUser": "root",
+  "remoteUser": "ubuntu",
+  "updateRemoteUserUID": true,
+  "mounts": [
+    "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind",
+    "source=${localEnv:HOME}/.ssh,target=/home/ubuntu/.ssh,type=bind,consistency=cached"
+  ],
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": "/ssh-agent"
+  },
   "customizations": {
     "vscode": {
       "settings": {

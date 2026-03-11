@@ -5,6 +5,5 @@ services:
       dockerfile: .devcontainer/Dockerfile
     volumes:
       - ..:/workspace:cached
-      - ${HOME}/.ssh:/root/.ssh
     working_dir: /workspace
     command: sleep infinity
