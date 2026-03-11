@@ -434,6 +434,30 @@ def test_issue_77_v0_4_8():
     # fxp-s4/3-complex
     assert y.signed == True and y.n_word == 5 and y.n_frac == 3
 
+def test_issue_reshape_shape_kw_and_newshape_alias_v0_4_9():
+    a = np.array([[0.762, 0.525], [0.345, 0.875]], dtype=complex)
+    x = Fxp(a, signed=True, n_word=5, n_frac=3)
+
+    # New-style keyword path (NumPy >= 2.4 style)
+    y_shape = functions.reshape(x, shape=(1, 4))
+    assert y_shape.signed == True and y_shape.n_word == 5 and y_shape.n_frac == 3
+
+    # Backward-compatible alias path
+    y_newshape = functions.reshape(x, newshape=(1, 4))
+    assert y_newshape.signed == True and y_newshape.n_word == 5 and y_newshape.n_frac == 3
+    assert np.all(y_shape() == y_newshape())
+
+    # NumPy dispatch only supports `shape=` in NumPy >= 2.4
+    if np.lib.NumpyVersion(np.__version__) >= np.lib.NumpyVersion('2.4.0'):
+        y_np_shape = np.reshape(x, shape=(1, 4))
+        assert y_np_shape.signed == True and y_np_shape.n_word == 5 and y_np_shape.n_frac == 3
+
+    try:
+        functions.reshape(x, shape=(1, 4), newshape=(2, 2))
+        assert False
+    except TypeError:
+        pass
+
 def test_issue_80_v0_4_8():
     # Creation of Fxp-object with negative n_frac
 

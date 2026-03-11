@@ -749,12 +749,25 @@ def nonzero(x):
         return np.nonzero(x.val)
     
 @implements(np.reshape)
-def reshape(a, newshape, order='C', out=None, out_like=None, sizing='same', method='raw', **kwargs):
+def reshape(a, shape=None, order='C', out=None, out_like=None, sizing='same', method='raw', **kwargs):
     """
     """
-    def _reshape_raw(x, newshape, order, **kwargs):
-        return np.reshape(x.val, newshape=newshape, order=order)
-    
-    kwargs['newshape'] = newshape
+    # compatibility alias for callers still using `newshape=...`
+    newshape = kwargs.pop('newshape', None)
+    if shape is None:
+        shape = newshape
+    elif newshape is not None and shape != newshape:
+        raise TypeError('`shape` and `newshape` can not be different values!')
+
+    if shape is None:
+        raise TypeError("reshape() missing 1 required argument: 'shape'")
+
+    def _reshape_repr(x, shape, order, **kwargs):
+        return np.reshape(x, shape, order=order)
+
+    def _reshape_raw(x, shape, order, **kwargs):
+        return np.reshape(x.val, shape, order=order)
+
+    kwargs['shape'] = shape
     kwargs['order'] = order 
-    return _function_over_one_var(repr_func=np.reshape, raw_func=_reshape_raw, x=a, out=out, out_like=out_like, sizing=sizing, method=method, optimal_size=None, **kwargs)
+    return _function_over_one_var(repr_func=_reshape_repr, raw_func=_reshape_raw, x=a, out=out, out_like=out_like, sizing=sizing, method=method, optimal_size=None, **kwargs)

@@ -148,6 +148,27 @@ If we want to resize our fxp variable we can do:
 x.resize(True, 8, 6)    # signed=True, n_word=8, n_frac=6
 ```
 
+For NumPy reshape dispatch, use:
+
+```python
+np.reshape(x, (1, 4))
+```
+
+With NumPy >= 2.4, this is also supported:
+
+```python
+np.reshape(x, shape=(1, 4))
+```
+
+If you call `fxpmath.functions.reshape` directly, both keyword styles are accepted:
+
+```python
+from fxpmath import functions
+
+functions.reshape(x, shape=(1, 4))
+functions.reshape(x, newshape=(1, 4))
+```
+
 ## data types supported
 
 Fxp can handle following input data types:
