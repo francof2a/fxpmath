@@ -86,6 +86,61 @@ def test_shift_bitwise():
     assert (x << 1)() == 128
     assert (x << 2)() == x.upper
 
+    # keep shift
+    # Regression for released branches: keep-left on signed values should preserve bits.
+    x = Fxp(1, False, 8, 0, shifting='keep')
+    prev = x.get_val()
+    for i in range(x.n_word):
+        assert (x << i)() == prev
+        prev = 2 * prev
+    assert (x << 8)() == 0
+
+    # right unsigned
+    x.set_val(128)
+    prev = 128
+    for i in range(x.n_word):
+        assert (x >> i)() == prev
+        prev = prev // 2
+    assert (x >> 8)() == 0
+
+    # left signed
+    x = Fxp(1, True, 8, 0, shifting='keep')
+    prev = 1
+    for i in range(x.n_word - 1):
+        assert (x << i)() == prev, f'{i}, {prev}'
+        prev = 2 * prev
+    assert (x << (x.n_word - 1))() == -128
+    assert (x << x.n_word)() == 0
+
+    x.set_val(113)
+    for i in range(x.n_word):
+        assert (x << i).bin() == x.bin()[i:] + (i * '0')
+
+    x.set_val(-1)
+    for i in range(x.n_word):
+        assert (x << i).bin() == (x.n_word - i) * '1' + (i * '0')
+
+    # right signed
+    x.set_val(-128)
+    for i in range(x.n_word):
+        assert (x >> i).bin() == (i + 1) * '1' + (x.n_word - (i + 1)) * '0'
+    assert (x >> 8).bin() == x.n_word * '1'
+
+    # None type
+    x = Fxp(None, False, 8, 0, shifting='keep')
+    for i in range(10):
+        assert x << i == 0
+
+    # arrays (1-D and N-D regression for PR #92 thread discussion)
+    x = Fxp([1, 2, 4, 8], False, 8, 0, shifting='keep')
+    assert np.all(x << 1 == x * 2)
+
+    x.set_val([128])
+    assert np.all(x << 1 == 0)
+
+    x = Fxp([[1, 2], [4, 8]], False, 8, 0, shifting='keep')
+    assert np.all(x << 1 == x * 2)
+
 def test_invert():
     """Validates invert by checking binary representation/interpretation paths."""
     x = Fxp(None, True, 8, 4)

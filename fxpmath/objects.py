@@ -1756,11 +1756,27 @@ class Fxp():
             New fixed-point object containing the operation result."""
         if self.config.shifting == 'expand':
             n_word = max(self.n_word, int(np.max(np.ceil(np.log2(np.abs(self.val)+0.5)))) + self.signed + n)
-        else:
+            new_value = self.val << np.array(n, dtype=self.val.dtype)
+        elif self.config.shifting == 'keep':
             n_word = self.n_word
 
+            @utils.array_support
+            def _raw_lshift(val, nshift, nbits, signed):
+                # Shift and keep only the least-significant nbits after shifting.
+                val = (val << np.array(nshift, dtype=val.dtype)) % (1 << nbits)
+
+                # If signed and MSb is 1, convert from two's complement representation.
+                if signed and (int(val) & (1 << (nbits - 1))) != 0:
+                    val = val - (1 << nbits)
+                return val
+
+            new_value = _raw_lshift(self.val, nshift=n, nbits=n_word, signed=self.signed)
+        else:
+            n_word = self.n_word
+            new_value = self.val << np.array(n, dtype=self.val.dtype)
+
         y = Fxp(None, signed=self.signed, n_word=n_word, n_frac=self.n_frac)
-        y.set_val(self.val << np.array(n, dtype=self.val.dtype), raw=True, vdtype=self.vdtype)   # set raw val shifted
+        y.set_val(new_value, raw=True, vdtype=self.vdtype)   # set raw val shifted
         return y
     
     __ilshift__ = __lshift__
