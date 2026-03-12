@@ -678,9 +678,11 @@ def mul(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     if not isinstance(y, Fxp):
         y = Fxp(y)
 
+    is_complex = x.vdtype == complex or y.vdtype == complex
+
     signed = x.signed or y.signed
     n_frac = x.n_frac + y.n_frac
-    n_word = x.n_word + y.n_word
+    n_word = x.n_word + y.n_word + int(is_complex)
     n_int = n_word - int(signed) - n_frac
     optimal_size = (signed, n_word, n_int, n_frac)
 

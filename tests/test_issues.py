@@ -513,3 +513,14 @@ def test_issue_85_v0_4_8():
 
         x = Fxp(0.0, dtype=dt, overflow='wrap')  #  EXCEPTION
         assert x() == 0.0
+
+
+def test_issue_91_v0_4_9():
+    """Regression test for issue #91; verifies complex fixed-point multiplication matches NumPy."""
+    x = Fxp(-1 - 1j)
+    xa = np.array(-1 - 1j)
+
+    y = x * x
+    ya = xa * xa
+
+    assert np.all(y() == ya)
