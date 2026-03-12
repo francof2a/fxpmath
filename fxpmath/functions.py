@@ -36,7 +36,7 @@ SOFTWARE.
 import numpy as np
 from .objects import Fxp, implements
 from . import utils
-from . import _n_word_max
+from .helpers import _cast_func, _use_object_cast
 
 try:
     from decimal import Decimal
@@ -293,8 +293,10 @@ def fxp_max(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw
     """
     """
     def _max_raw(x, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return np.max(x.val, **kwargs) * precision_cast(2**(n_frac - x.n_frac))
+        shift = n_frac - x.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
+        return np.max(cast(x.val), **kwargs) * cast(2**shift)
 
     kwargs['axis'] = axis  
     return _function_over_one_var(repr_func=np.max, raw_func=_max_raw, x=x, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
@@ -304,8 +306,10 @@ def fxp_min(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw
     """
     """
     def _min_raw(x, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return np.min(x.val, **kwargs) * precision_cast(2**(n_frac - x.n_frac))
+        shift = n_frac - x.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
+        return np.min(cast(x.val), **kwargs) * cast(2**shift)
     
     kwargs['axis'] = axis  
     return _function_over_one_var(repr_func=np.min, raw_func=_min_raw, x=x, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
@@ -315,8 +319,11 @@ def add(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     """
     """
     def _add_raw(x, y, n_frac):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return x.val * precision_cast(2**(n_frac - x.n_frac)) + y.val * precision_cast(2**(n_frac - y.n_frac))
+        x_shift = n_frac - x.n_frac
+        y_shift = n_frac - y.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, x_shift), (y.n_word, y_shift)])
+        cast = _cast_func(use_object)
+        return cast(x.val) * cast(2**x_shift) + cast(y.val) * cast(2**y_shift)
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -336,8 +343,11 @@ def sub(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     """
     """
     def _sub_raw(x, y, n_frac):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return x.val * precision_cast(2**(n_frac - x.n_frac)) - y.val * precision_cast(2**(n_frac - y.n_frac))
+        x_shift = n_frac - x.n_frac
+        y_shift = n_frac - y.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, x_shift), (y.n_word, y_shift)])
+        cast = _cast_func(use_object)
+        return cast(x.val) * cast(2**x_shift) - cast(y.val) * cast(2**y_shift)
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -357,9 +367,13 @@ def mul(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     """
     """
     def _mul_raw(x, y, n_frac):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        raw_cast = (lambda m: np.array(m, dtype=object)) if (x.n_word + y.n_word) >= _n_word_max else (lambda m: m)
-        return raw_cast(x.val) * raw_cast(y.val) * precision_cast(2**(n_frac - x.n_frac - y.n_frac))
+        shift = n_frac - x.n_frac - y.n_frac
+        use_object = _use_object_cast(
+            scale_terms=[(x.n_word + y.n_word, shift)],
+            product_terms=[(x.n_word, y.n_word)]
+        )
+        cast = _cast_func(use_object)
+        return cast(x.val) * cast(y.val) * cast(2**shift)
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -388,16 +402,30 @@ def floordiv(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kw
         return real_part + 1j*imag_part
     
     def _floordiv_raw(x, y, n_frac):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return ((x.val * precision_cast(2**(n_frac - x.n_frac))) // (y.val * precision_cast(2**(n_frac - y.n_frac)))) * precision_cast(2**n_frac)
+        x_shift = n_frac - x.n_frac
+        y_shift = n_frac - y.n_frac
+        use_object = _use_object_cast(
+            scale_terms=[(x.n_word, x_shift), (y.n_word, y_shift)],
+            pow2_terms=[n_frac]
+        )
+        cast = _cast_func(use_object)
+        return ((cast(x.val) * cast(2**x_shift)) // (cast(y.val) * cast(2**y_shift))) * cast(2**n_frac)
 
     def _floordiv_raw_complex(x, y, n_frac):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        y_norm = (y.val.real ** 2 + y.val.imag ** 2) * precision_cast(2**(n_frac - 2*y.n_frac))
-        real_part = (x.val.real * y.val.real + x.val.imag * y.val.imag) * precision_cast(2**(n_frac - x.n_frac - y.n_frac)) // y_norm
-        imag_part = (x.val.imag * y.val.real - x.val.real * y.val.imag) * precision_cast(2**(n_frac - x.n_frac - y.n_frac)) // y_norm
+        norm_shift = n_frac - 2*y.n_frac
+        num_shift = n_frac - x.n_frac - y.n_frac
+        use_object = _use_object_cast(
+            scale_terms=[(2*y.n_word, norm_shift), (x.n_word + y.n_word, num_shift)],
+            product_terms=[(y.n_word, y.n_word), (x.n_word, y.n_word)],
+            pow2_terms=[n_frac]
+        )
+        cast = _cast_func(use_object)
 
-        return (real_part + 1j*imag_part) * precision_cast(2**n_frac)
+        y_norm = (cast(y.val.real) ** 2 + cast(y.val.imag) ** 2) * cast(2**norm_shift)
+        real_part = (cast(x.val.real) * cast(y.val.real) + cast(x.val.imag) * cast(y.val.imag)) * cast(2**num_shift) // y_norm
+        imag_part = (cast(x.val.imag) * cast(y.val.real) - cast(x.val.real) * cast(y.val.imag)) * cast(2**num_shift) // y_norm
+
+        return (real_part + 1j*imag_part) * cast(2**n_frac)
 
 
     if not isinstance(x, Fxp):
@@ -425,16 +453,23 @@ def truediv(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwa
         return x / y
 
     def _truediv_raw(x, y, n_frac):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return (x.val * precision_cast(2**(n_frac - x.n_frac + y.n_frac))) // y.val
+        shift = n_frac - x.n_frac + y.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
+        return (cast(x.val) * cast(2**shift)) // cast(y.val)
         # return np.floor_divide(np.multiply(x.val, precision_cast(2**(n_frac - x.n_frac + y.n_frac))), y.val)
 
     def _truediv_raw_complex(x, y, n_frac):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
+        shift = n_frac - x.n_frac + y.n_frac
+        use_object = _use_object_cast(
+            scale_terms=[(x.n_word + y.n_word, shift)],
+            product_terms=[(y.n_word, y.n_word), (x.n_word, y.n_word)]
+        )
+        cast = _cast_func(use_object)
 
-        y_norm = y.val.real ** 2 + y.val.imag ** 2
-        real_part = (x.val.real * y.val.real + x.val.imag * y.val.imag) * precision_cast(2**(n_frac - x.n_frac + y.n_frac)) // y_norm
-        imag_part = (x.val.imag * y.val.real - x.val.real * y.val.imag) * precision_cast(2**(n_frac - x.n_frac + y.n_frac)) // y_norm
+        y_norm = cast(y.val.real) ** 2 + cast(y.val.imag) ** 2
+        real_part = (cast(x.val.real) * cast(y.val.real) + cast(x.val.imag) * cast(y.val.imag)) * cast(2**shift) // y_norm
+        imag_part = (cast(x.val.imag) * cast(y.val.real) - cast(x.val.real) * cast(y.val.imag)) * cast(2**shift) // y_norm
 
         return real_part + 1j*imag_part
 
@@ -462,8 +497,11 @@ def mod(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     def _mod_repr(x, y):
         return x % y
     def _mod_raw(x, y, n_frac):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return (x.val * precision_cast(2**(n_frac - x.n_frac))) % (y.val * precision_cast(2**(n_frac - y.n_frac)))
+        x_shift = n_frac - x.n_frac
+        y_shift = n_frac - y.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, x_shift), (y.n_word, y_shift)])
+        cast = _cast_func(use_object)
+        return (cast(x.val) * cast(2**x_shift)) % (cast(y.val) * cast(2**y_shift))
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -491,7 +529,10 @@ def pow(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
         def _power(x, y, x_n_frac, y_n_frac, n_frac):
             x_raw = int(x)
             y_raw = int(y)
-            y_conv_factor = 2**y_n_frac
+            x_n_frac = int(x_n_frac)
+            y_n_frac = int(y_n_frac)
+            n_frac = int(n_frac)
+            y_conv_factor = int(2**y_n_frac)
             _sign = 1
 
             if y_raw > 0:
@@ -501,7 +542,8 @@ def pow(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
                 else:
                     z = (x_raw**y_raw) // (2**(-p1))
             elif y_raw < 0:
-                z = (2**(n_frac*y_conv_factor - y_raw*x_n_frac)) // (x_raw**(-1*y_raw))
+                p1 = int(n_frac*y_conv_factor - y_raw*x_n_frac)
+                z = (2**p1) // (x_raw**(-1*y_raw))
             else:
                 z = 2**n_frac
                 y_conv_factor = 1 # force y_conv_factor
@@ -547,8 +589,10 @@ def sum(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw', *
     """
     """
     def _sum_raw(x, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return np.sum(x.val, **kwargs) * precision_cast(2**(n_frac - x.n_frac))
+        shift = n_frac - x.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
+        return np.sum(cast(x.val), **kwargs) * cast(2**shift)
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -567,8 +611,10 @@ def cumsum(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw'
     """
     """
     def _cumsum_raw(x, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return np.cumsum(x.val, **kwargs) * precision_cast(2**(n_frac - x.n_frac))
+        shift = n_frac - x.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
+        return np.cumsum(cast(x.val), **kwargs) * cast(2**shift)
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -588,10 +634,15 @@ def cumprod(x, axis=None, out=None, out_like=None, sizing='optimal', method='raw
     """
     def _cumprod_raw(x, n_frac, **kwargs):
         axis = kwargs['axis'] if 'axis' in kwargs else None
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
         pow_vals = n_frac - np.cumsum(np.ones_like(np.array(x)), axis=axis).astype(int)  * x.n_frac
-        conv_factors = utils.int_array([2**pow_val for pow_val in precision_cast(pow_vals)])
-        return np.cumprod(x.val, **kwargs) * conv_factors
+        max_pow = int(np.max(pow_vals)) if np.size(pow_vals) > 0 else 0
+        use_object = _use_object_cast(
+            scale_terms=[(x.n_word, max_pow)],
+            product_terms=[x.size * x.n_word]
+        )
+        cast = _cast_func(use_object)
+        conv_factors = np.array([2**int(pow_val) for pow_val in np.array(pow_vals).flatten()], dtype=object if use_object else None).reshape(np.shape(pow_vals))
+        return np.cumprod(cast(x.val), **kwargs) * conv_factors
 
     if not isinstance(x, Fxp):
         x = Fxp(x)
@@ -610,8 +661,10 @@ def sort(x, axis=-1, out=None, out_like=None, sizing='optimal', method='raw', **
     """
     """
     def _sort_raw(x, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return np.sort(x.val, **kwargs) * precision_cast(2**(n_frac - x.n_frac))
+        shift = n_frac - x.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
+        return np.sort(cast(x.val), **kwargs) * cast(2**shift)
 
     kwargs['axis'] = axis
     return _function_over_one_var(repr_func=np.sort, raw_func=_sort_raw, x=x, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
@@ -621,10 +674,12 @@ def conjugate(x, out=None, out_like=None, sizing='optimal', method='raw', **kwar
     """
     """
     def _conjugate_raw(x, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
+        shift = n_frac - x.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
         val_real = np.vectorize(lambda v: v.real)(x.val)
         val_imag = np.vectorize(lambda v: v.imag)(x.val)
-        return (val_real -1j*val_imag) * precision_cast(2**(n_frac - x.n_frac))
+        return (cast(val_real) -1j*cast(val_imag)) * cast(2**shift)
 
     return _function_over_one_var(repr_func=np.conjugate, raw_func=_conjugate_raw, x=x, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
 
@@ -633,8 +688,10 @@ def transpose(x, axes=None, out=None, out_like=None, sizing='optimal', method='r
     """
     """
     def _transpose_raw(x, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return (x.val.T) * precision_cast(2**(n_frac - x.n_frac))
+        shift = n_frac - x.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
+        return cast(x.val.T) * cast(2**shift)
 
     kwargs['axes'] = axes
     return _function_over_one_var(repr_func=np.transpose, raw_func=_transpose_raw, x=x, out=out, out_like=out_like, sizing=sizing, method=method, **kwargs)
@@ -644,14 +701,16 @@ def clip(a, a_min=None, a_max=None, out=None, out_like=None, sizing='optimal', m
     """
     """
     def _clip_raw(x, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
+        shift = n_frac - x.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
         val_min = kwargs.pop('a_min', None)
         val_max = kwargs.pop('a_max', None)
 
         if val_min is not None: val_min *= 2**x.n_frac
         if val_max is not None: val_max *= 2**x.n_frac
 
-        return utils.clip(x.val, val_min=val_min, val_max=val_max) * precision_cast(2**(n_frac - x.n_frac))
+        return cast(utils.clip(cast(x.val), val_min=val_min, val_max=val_max)) * cast(2**shift)
 
     kwargs['a_min'] = a_min
     kwargs['a_max'] = a_max
@@ -662,8 +721,10 @@ def diagonal(a, offset=0, axis1=0, axis2=1, out=None, out_like=None, sizing='opt
     """
     """
     def _diagonal_raw(x, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return np.diagonal(x.val, **kwargs) * precision_cast(2**(n_frac - x.n_frac))
+        shift = n_frac - x.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
+        return np.diagonal(cast(x.val), **kwargs) * cast(2**shift)
 
     kwargs['offset'] = offset
     kwargs['axis1'] = axis1
@@ -675,8 +736,10 @@ def trace(a, offset=0, axis1=0, axis2=1, out=None, out_like=None, sizing='optima
     """
     """
     def _trace_raw(x, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return np.trace(x.val, **kwargs) * precision_cast(2**(n_frac - x.n_frac))
+        shift = n_frac - x.n_frac
+        use_object = _use_object_cast(scale_terms=[(x.n_word, shift)])
+        cast = _cast_func(use_object)
+        return np.trace(cast(x.val), **kwargs) * cast(2**shift)
 
     if not isinstance(a, Fxp):
         a = Fxp(a)
@@ -698,9 +761,14 @@ def prod(a, axis=None, out=None, out_like=None, sizing='optimal', method='raw', 
     """
     """
     def _prod_raw(x, n_frac, axis=None, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
         num_of_products = a.size if axis is None else a.shape[axis]
-        return np.prod(x.val, axis=axis, **kwargs) * precision_cast(2**(n_frac - num_of_products * x.n_frac))
+        shift = n_frac - num_of_products * x.n_frac
+        use_object = _use_object_cast(
+            scale_terms=[(num_of_products * x.n_word, shift)],
+            product_terms=[num_of_products * x.n_word]
+        )
+        cast = _cast_func(use_object)
+        return np.prod(cast(x.val), axis=axis, **kwargs) * cast(2**shift)
 
     if not isinstance(a, Fxp):
         a = Fxp(a)
@@ -720,8 +788,13 @@ def dot(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
     """
     """
     def _dot_raw(x, y, n_frac, **kwargs):
-        precision_cast = (lambda m: np.array(m, dtype=object)) if n_frac >= _n_word_max else (lambda m: m)
-        return np.dot(x.val, y.val, **kwargs) * precision_cast(2**(n_frac - x.n_frac - y.n_frac))
+        shift = n_frac - x.n_frac - y.n_frac
+        use_object = _use_object_cast(
+            scale_terms=[(x.n_word + y.n_word, shift)],
+            product_terms=[(x.n_word, y.n_word)]
+        )
+        cast = _cast_func(use_object)
+        return np.dot(cast(x.val), cast(y.val), **kwargs) * cast(2**shift)
 
     if not isinstance(x, Fxp):
         x = Fxp(x)

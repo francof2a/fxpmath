@@ -326,6 +326,50 @@ def test_operations_with_constants_with_combinations():
             assert (x % vy)() == (vx % vy) == (vx % y)() == (x % y)()
             # assert (vy % x)() == (vy % vx) == (y % vx)() == (y % x)()
 
+def _overflow_stress_boundary_frac_operands():
+    # Stress scalar scaling close to native integer boundary (n_frac = _n_word_max - 1).
+    x = Fxp(np.array([1.0, -2.0]), signed=True, n_word=16, n_frac=0)
+    y_n_word = int(fxp._n_word_max)
+    y_n_frac = y_n_word - 1
+    y = Fxp(np.array([0.5, 0.5]), signed=True, n_word=y_n_word, n_frac=y_n_frac)
+    return x, y
+
+def _overflow_stress_truediv_operands():
+    # Keep x simple and force a very large scale shift through y format.
+    x = Fxp(np.array([1.0, -2.0]), signed=True, n_word=16, n_frac=0)
+    y_n_word = int(fxp._n_word_max + 8)
+    y_n_int = 4
+    y_n_frac = y_n_word - 1 - y_n_int
+    y = Fxp(np.array([1.0, 0.5]), signed=True, n_word=y_n_word, n_frac=y_n_frac)
+    return x, y
+
+def test_add_raw_intermediate_overflow():
+    x, y = _overflow_stress_boundary_frac_operands()
+    z = x + y
+    assert np.all(z() == np.array([1.5, -1.5]))
+
+def test_sub_raw_intermediate_overflow():
+    x, y = _overflow_stress_boundary_frac_operands()
+    z = x - y
+    assert np.all(z() == np.array([0.5, -2.5]))
+
+def test_mod_raw_intermediate_overflow():
+    x, y = _overflow_stress_boundary_frac_operands()
+    z = x % y
+    assert np.all(z() == np.array([0.0, 0.0]))
+
+def test_truediv_raw_intermediate_overflow():
+    # Keep output precision small but force a huge intermediate shift in raw division.
+    x, y = _overflow_stress_truediv_operands()
+    z = x / y
+    assert np.all(z() == np.array([1.0, -4.0]))
+
+def test_floordiv_raw_intermediate_overflow_with_high_frac_out():
+    x, y = _overflow_stress_truediv_operands()
+    out = Fxp(np.zeros(2), signed=True, n_word=96, n_frac=63)
+    z = fxp.floordiv(x, y, out=out)
+    assert np.all(z() == np.array([1.0, -4.0]))
+
 def test_pow():
     x = Fxp(16, True, n_int=14, n_frac=8)
     n = Fxp(-1, True, n_int=14, n_frac=8)
