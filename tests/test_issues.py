@@ -524,3 +524,34 @@ def test_issue_91_v0_4_9():
     ya = xa * xa
 
     assert np.all(y() == ya)
+
+
+def test_issue_97_v0_4_9():
+    """Regression for issue #97 in v0.4.9: indexed scalar multiply must match scalar construction."""
+    a1 = Fxp(np.array([1.057311]), dtype='Q5.20')
+    a2 = Fxp(1.057311, dtype='Q5.20')
+    b = Fxp('7971079', dtype='Q24.20')
+
+    c = b * a1[0]
+    d = b * a2
+    e = b * Fxp(a1[0], dtype='Q5.20')
+
+    # Setup details from the issue report:
+    # A1 = 1.0573101043701172, dtype = fxp-s25/20, mem = 1108670
+    # A2 = 1.0573101043701172, dtype = fxp-s25/20, mem = 1108670
+    # B  = 7971079.0, dtype = fxp-s44/20
+    assert a1[0].dtype == 'fxp-s25/20'
+    assert a2.dtype == 'fxp-s25/20'
+    assert a1[0].val == 1108670
+    assert a2.val == 1108670
+    assert b.dtype == 'fxp-s44/20'
+    assert c.dtype == 'fxp-s69/40'
+    assert d.dtype == 'fxp-s69/40'
+    assert e.dtype == 'fxp-s69/40'
+
+    # Correct behavior: all three paths should match.
+    expected = 8427902.36943245
+    assert np.isclose(d(), expected)
+    assert np.isclose(e(), expected)
+    assert np.isclose(c(), expected)
+    assert c() == d() == e()

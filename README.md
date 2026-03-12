@@ -452,7 +452,7 @@ Until now we had been storing values in our Fxp that were represented without lo
 
 But, if we want to change the value of our Fxp to -7.3, the precision is not enough and Fxp will store -7.25 again. That is because Fxp is **rounding** the value before storing as a fractional fixed point value. Fxp allows different types of rounding methods:
 
-* *trunc* (default): The truncated value of the scalar (let's say `x`) will be the nearest fractional supported value which is closer to zero than `x` is. In short, the fractional part of the signed number `x` that is not supported, is discarded. Round to nearest fractional supported value towards zero.
+* *trunc* (default): Round to the nearest fractional supported value toward zero (same criterion as `numpy.trunc`/`numpy.fix`). The unsupported fractional part is discarded in the **numerical-value** sense, not by applying a bitwise right shift to raw storage. For negative values this differs from *floor* (and from arithmetic right-shift): for example, reducing precision for `-2046.3867` gives `trunc -> -2046`, while `floor -> -2047`.
 * *around* : Evenly round of the given value to the nearest fractional supported value, for example: 1.5 is rounded to 2.0.
 * *floor* : The floor of the scalar `x` is the largest fractional supported value `i`, such that i <= x. It is often denoted as $\lfloor x \rfloor$.
 * *ceil* :  The ceil of the scalar `x` is the smallest fractional supported value `i`, such that i >= x. It is often denoted as \lceil x \rceil.

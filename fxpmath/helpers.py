@@ -17,7 +17,11 @@ def _cast_to_object(x):
     ---
     numpy.ndarray
         Array view/copy of `x` with `dtype=object`."""
-    return np.array(x, dtype=object)
+    # Normalize NumPy scalar objects (e.g., np.int64) to Python scalars so
+    # object-mode arithmetic uses arbitrary-precision Python ints/floats.
+    if isinstance(x, np.generic):
+        x = x.item()
+    return np.asarray(x).astype(object)
 
 
 def _cast_func(use_object):
