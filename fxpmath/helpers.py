@@ -1,6 +1,4 @@
-"""
-Internal helpers for fixed-point operation kernels.
-"""
+"""Internal helpers for fixed-point operation kernels."""
 
 import numpy as np
 
@@ -8,14 +6,51 @@ from . import _n_word_max
 
 
 def _cast_to_object(x):
+    """Cast inputs to NumPy object dtype to avoid overflow in wide integer operations.
+    
+    Parameters
+    ---
+    x : array_like
+        Scalar or array to convert into an object-dtype NumPy array.
+    
+    Returns
+    ---
+    numpy.ndarray
+        Array view/copy of `x` with `dtype=object`."""
     return np.array(x, dtype=object)
 
 
 def _cast_func(use_object):
+    """Return a casting helper that optionally converts arrays to object dtype.
+    
+    Parameters
+    ---
+    use_object : bool
+        When `True`, the returned callable casts inputs with `_cast_to_object`.
+        When `False`, the returned callable returns inputs unchanged.
+    
+    Returns
+    ---
+    Callable[[array_like], array_like]
+        Casting helper used by arithmetic kernels."""
     return _cast_to_object if use_object else (lambda m: m)
 
 
 def _requires_object_for_scale(n_word, shift):
+    """Decide whether a scaling/shift operation needs object dtype to remain safe.
+    
+    Parameters
+    ---
+    n_word : int or None
+        Operand word length in bits. `None` disables this check and returns `False`.
+    shift : int
+        Power-of-two scaling shift applied to the operand.
+    
+    Returns
+    ---
+    bool
+        `True` when the scale operation could exceed native integer safety and
+        should use object arithmetic."""
     shift = int(shift)
 
     if n_word is None:
@@ -36,6 +71,21 @@ def _requires_object_for_scale(n_word, shift):
 
 
 def _use_object_cast(scale_terms=None, product_terms=None, pow2_terms=None):
+    """Determine whether any part of an operation requires object-dtype arithmetic.
+    
+    Parameters
+    ---
+    scale_terms : sequence[tuple[int | None, int]], optional
+        Pairs of `(n_word, shift)` checked with `_requires_object_for_scale`.
+    product_terms : sequence[tuple[int, ...] | int], optional
+        Terms whose total bit growth is evaluated against `_n_word_max`.
+    pow2_terms : sequence[int], optional
+        Shifts used in `2**shift` factors; very large shifts force object mode.
+    
+    Returns
+    ---
+    bool
+        `True` when at least one condition requires object-dtype arithmetic."""
     if scale_terms is not None:
         for n_word, shift in scale_terms:
             if _requires_object_for_scale(n_word, shift):

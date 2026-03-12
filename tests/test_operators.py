@@ -10,6 +10,7 @@ import numpy as np
 
 def test_shift_bitwise():
     # integer val
+    """Validates shift bitwise by checking bit-shift operation behavior."""
     x = Fxp(32, True, 8, 0)
     # left
     assert (x << 1)() == 64
@@ -86,6 +87,7 @@ def test_shift_bitwise():
     assert (x << 2)() == x.upper
 
 def test_invert():
+    """Validates invert by checking binary representation/interpretation paths."""
     x = Fxp(None, True, 8, 4)
     xu = Fxp(None, False, 8, 4)
 
@@ -119,6 +121,7 @@ def test_invert():
     assert (~xu).bin() == inv_str
 
 def test_and():
+    """Validates and by checking binary representation/interpretation paths."""
     x = Fxp(None, True, 8, 4)
     xu = Fxp(None, False, 8, 4)
     y = Fxp(None, True, 8, 4)
@@ -161,6 +164,7 @@ def test_and():
     assert (utils.str2num('0b'+mks_str) & xu).bin() == and_str
 
 def test_or():
+    """Validates or by checking binary representation/interpretation paths."""
     x = Fxp(None, True, 8, 4)
     xu = Fxp(None, False, 8, 4)
     y = Fxp(None, True, 8, 4)
@@ -203,6 +207,7 @@ def test_or():
     assert (utils.str2num('0b'+mks_str) | xu).bin() == or_str
 
 def test_xor():
+    """Validates xor by checking binary representation/interpretation paths."""
     x = Fxp(None, True, 8, 4)
     xu = Fxp(None, False, 8, 4)
     y = Fxp(None, True, 8, 4)
@@ -245,6 +250,7 @@ def test_xor():
     assert (utils.str2num('0b'+mks_str) ^ xu).bin() == xor_str
 
 def test_arrays():
+    """Validates arrays by checking binary representation/interpretation paths."""
     x = Fxp(None, True, 8, 4)
     y = Fxp(None, True, 8, 4)
 
@@ -256,7 +262,7 @@ def test_arrays():
     assert z.bin()[1] == '10100000'
 
 def test_operations_with_combinations():
-    
+    """Exhaustively compare Fxp-vs-Fxp arithmetic against Python numeric results over mixed signed values."""
     v = [-256, -64, -16, -4.75, -3.75, -3.25, -1, -0.75, -0.125, 0.0, 0.125, 0.75, 1, 1.5, 3.75, 4.0, 8.0, 32, 128]
     for i in range(len(v)):
         for j in range(len(v)):
@@ -287,7 +293,7 @@ def test_operations_with_combinations():
             assert (vx % vy) == (x % y)()
 
 def test_operations_with_constants_with_combinations():
-    
+    """Exhaustively compare mixed Fxp/constant arithmetic against Python numeric results across value grids."""
     v = [-256, -64, -16, -4.75, -3.75, -3.25, -1, -0.75, -0.125, 0.0, 0.125, 0.75, 1, 1.5, 3.75, 4.0, 8.0, 32, 128]
     for i in range(len(v)):
         for j in range(len(v)):
@@ -328,6 +334,7 @@ def test_operations_with_constants_with_combinations():
 
 def _overflow_stress_boundary_frac_operands():
     # Stress scalar scaling close to native integer boundary (n_frac = _n_word_max - 1).
+    """Validates  overflow stress boundary frac operands by checking overflow/wrap/saturate behavior, NumPy interoperability, scale/bias conversion behavior."""
     x = Fxp(np.array([1.0, -2.0]), signed=True, n_word=16, n_frac=0)
     y_n_word = int(fxp._n_word_max)
     y_n_frac = y_n_word - 1
@@ -336,6 +343,7 @@ def _overflow_stress_boundary_frac_operands():
 
 def _overflow_stress_truediv_operands():
     # Keep x simple and force a very large scale shift through y format.
+    """Validates  overflow stress truediv operands by checking overflow/wrap/saturate behavior, NumPy interoperability, scale/bias conversion behavior."""
     x = Fxp(np.array([1.0, -2.0]), signed=True, n_word=16, n_frac=0)
     y_n_word = int(fxp._n_word_max + 8)
     y_n_int = 4
@@ -344,33 +352,39 @@ def _overflow_stress_truediv_operands():
     return x, y
 
 def test_add_raw_intermediate_overflow():
+    """Validates add raw intermediate overflow by checking overflow/wrap/saturate behavior, NumPy interoperability."""
     x, y = _overflow_stress_boundary_frac_operands()
     z = x + y
     assert np.all(z() == np.array([1.5, -1.5]))
 
 def test_sub_raw_intermediate_overflow():
+    """Validates sub raw intermediate overflow by checking overflow/wrap/saturate behavior, NumPy interoperability."""
     x, y = _overflow_stress_boundary_frac_operands()
     z = x - y
     assert np.all(z() == np.array([0.5, -2.5]))
 
 def test_mod_raw_intermediate_overflow():
+    """Validates mod raw intermediate overflow by checking overflow/wrap/saturate behavior, NumPy interoperability."""
     x, y = _overflow_stress_boundary_frac_operands()
     z = x % y
     assert np.all(z() == np.array([0.0, 0.0]))
 
 def test_truediv_raw_intermediate_overflow():
     # Keep output precision small but force a huge intermediate shift in raw division.
+    """Validates truediv raw intermediate overflow by checking overflow/wrap/saturate behavior, NumPy interoperability, bit-shift operation behavior."""
     x, y = _overflow_stress_truediv_operands()
     z = x / y
     assert np.all(z() == np.array([1.0, -4.0]))
 
 def test_floordiv_raw_intermediate_overflow_with_high_frac_out():
+    """Validates floordiv raw intermediate overflow with high frac out by checking overflow/wrap/saturate behavior, NumPy interoperability."""
     x, y = _overflow_stress_truediv_operands()
     out = Fxp(np.zeros(2), signed=True, n_word=96, n_frac=63)
     z = fxp.floordiv(x, y, out=out)
     assert np.all(z() == np.array([1.0, -4.0]))
 
 def test_pow():
+    """Validate power behavior for integer, fractional, signed/unsigned, scalar, and vectorized exponent cases."""
     x = Fxp(16, True, n_int=14, n_frac=8)
     n = Fxp(-1, True, n_int=14, n_frac=8)
     assert(x**n)() == 1/16
@@ -456,6 +470,7 @@ def test_pow():
     assert ((x_vals**p_vals)() == np.power(v_vals, n_vals)).all()
 
 def test_scaled():
+    """Validates scaled by checking scale/bias conversion behavior."""
     x = Fxp(10.5, True, 16, 8, scale=2, bias=1)
 
     assert x() == 10.5
@@ -466,6 +481,7 @@ def test_scaled():
     assert x / 2 == 5.25
 
 def test_abs():
+    """Verify absolute-value operator returns non-negative represented values for signed inputs."""
     x = Fxp(-3.5, True, 32, 16)
 
     assert x() == -3.5

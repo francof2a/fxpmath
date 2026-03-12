@@ -9,6 +9,7 @@ from fxpmath.functions import *
 import numpy as np
 
 def test_fxp_sum():
+    """Validates fxp sum by checking NumPy reduction interoperability, NumPy interoperability, dtype parsing and conversion behavior."""
     vals = np.array([-2, -1, 0, 1, 2, 3, 4])
 
     x = Fxp(vals, True, 16, 2)
@@ -51,6 +52,7 @@ def test_fxp_sum():
     assert (y() == np.sum(vals, axis=1)).all()
 
 def test_from_bin():
+    """Validates from bin by checking binary string parsing and inferred sizing, binary representation/interpretation paths, dtype parsing and conversion behavior."""
     x = from_bin('0', signed=False)
     assert x() == 0
 
@@ -84,6 +86,7 @@ def test_from_bin():
     assert x.n_word == 16 and x.n_frac == 4
 
 def test_boundary_precision_scaling_in_raw_functions():
+    """Validates boundary precision scaling in raw functions by checking NumPy reduction interoperability, NumPy cumulative reduction interoperability, NumPy dot-product interoperability."""
     n_frac = fxp._n_word_max - 1
 
     x = Fxp(np.array([1.0, -2.0, 3.0]), signed=True, n_word=16, n_frac=0)

@@ -10,6 +10,7 @@ import numpy as np
 import time
 
 def test_perf_clip(repeat=10):
+    """Validates perf clip by checking NumPy interoperability."""
     exec_time_vals = np.zeros(repeat)
     for i in range(repeat):
         start_time = time.time()
@@ -28,6 +29,7 @@ def test_perf_clip(repeat=10):
 
 
 def test_perf_wrap(signed=True, n_word=8, repeat=10):
+    """Validates perf wrap by checking NumPy interoperability, modular wrap-around behavior."""
     exec_time_vals = np.zeros(repeat)
     for i in range(repeat):
         start_time = time.time()
@@ -39,6 +41,7 @@ def test_perf_wrap(signed=True, n_word=8, repeat=10):
 
 def test_perf_change_2d_indexed_value(m=24, n=16, repeat=10):
 
+    """Validates perf change 2d indexed value by checking NumPy interoperability."""
     A_fxp = Fxp(np.random.uniform(size=[m,n]))
     x = 1/repeat
 

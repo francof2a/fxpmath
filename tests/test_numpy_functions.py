@@ -16,6 +16,7 @@ from fxpmath.objects import Fxp
 
 
 def test_ufunc():
+    """Validates ufunc by checking complex fixed-point behavior, NumPy interoperability."""
     vx = [-1., 0., 1.]
     vy = [1., 2., 4.]
     vc = [1j*0.5, 1.5 + 1j*2.0, -0.5 + 1j*0]
@@ -78,6 +79,7 @@ def test_ufunc():
         assert (ufunc(nx, ny) == ufunc(fx, ny)()).all()
 
 def test_reduce_func():
+    """Validates reduce func by checking complex fixed-point behavior, NumPy reduction interoperability, NumPy dot-product interoperability."""
     vx = [-1., 0., 1.]
     vy = [1., 2., 3.]
     vc = [1j*0.5, 1.5 + 1j*2.0, -0.5 + 1j*0]
@@ -114,6 +116,7 @@ def test_reduce_func():
         assert (ufunc(nx, ny) == ufunc(fx, ny)()).all()
 
 def test_ndarray_methods():
+    """Validates ndarray methods by checking NumPy interoperability."""
     values = [[1, 2, 3], [-1, 0, 1]]
     w = Fxp(values, True, 16, 8)
     wa = np.array(values)
@@ -184,6 +187,7 @@ def test_ndarray_methods():
 
 def test_outputs_formats():
     
+    """Validates outputs formats by checking NumPy interoperability."""
     values = [[1, 2, 3], [-1, 0, 1]]
     w = Fxp(values, True, 16, 8)
     like_ref = Fxp(None, True, 24, 12)

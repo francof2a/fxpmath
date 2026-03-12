@@ -9,6 +9,7 @@ from fxpmath import functions
 import numpy as np
 
 def test_issue_9_v0_3_6():
+    """Regression test for issue #9; verifies NumPy interoperability."""
     M = 24
     N = 16
     A_fxp = Fxp(np.zeros((M,N)), True, 16, 8)
@@ -28,10 +29,12 @@ def test_issue_9_v0_3_6():
     assert C_fxp() == 4
 
 def test_issue_10_v0_3_6():
+    """Regression test for issue #10; confirms large-word fixed-point construction preserves decimal values."""
     x = Fxp(1.5, True, 256, 64)
     assert x() == 1.5
 
 def test_issue_11_v0_3_6():
+    """Regression test for issue #11; verifies NumPy interoperability."""
     try:
         val = np.float128(1.5)
     except:
@@ -49,21 +52,25 @@ def test_issue_14_v0_3_7():
     #         True, n_word=128, n_frac=125, rounding='around')
     # assert d.bin(frac_dot=True) == '000.00000000000000000001011101010110101011101010101010101010101010101010101010101001010101010101010101001010101001010101010101010'
 
+    """Regression test for issue #14; verifies binary representation/interpretation paths, rounding behavior and quantization effects, raw fixed-point input/output handling."""
     d = Fxp('0b00000000000000000000001011101010110101011101010101010101010101010101010101010101001010101010101010101001010101001010101010101010', 
             True, n_word=128, n_frac=125, rounding='around', raw=True)
     assert d.bin() == '00000000000000000000001011101010110101011101010101010101010101010101010101010101001010101010101010101001010101001010101010101010'
  
 def test_issue_15_v0_3_7():
+    """Regression test for issue #15; verifies hexadecimal parsing/formatting paths, binary representation/interpretation paths."""
     x = Fxp('0xb', True, 10, 4)
     assert x.hex() == '0x00B'
 
 def test_issue_17_v0_3_7():
+    """Regression test for issue #17; verifies exponentiation with Fxp exponents returns expected numeric results."""
     a = Fxp(15, signed=False)
     b = a ** Fxp(2)
 
     assert b() == 15**2
 
 def test_issue_19_v0_3_7():
+    """Regression test for issue #19; verifies complex fixed-point behavior, NumPy interoperability, dtype parsing and conversion behavior."""
     DW=12
     DATA_FXPTYPE = Fxp(None, signed=True, n_word=DW, n_frac=DW-1)
 
@@ -85,6 +92,7 @@ def test_issue_19_v0_3_7():
     assert a[0]() == 0.5-0.125j
 
 def test_issue_20_v0_3_8():
+    """Regression test for issue #20; verifies overflow/wrap/saturate behavior, modular wrap-around behavior."""
     x = Fxp(0, signed=True, n_word = 4, n_frac = 0, overflow='wrap')
 
     assert x(-30) == 2
@@ -94,6 +102,7 @@ def test_issue_20_v0_3_8():
     assert x(8) == -8
 
 def test_issue_21_v0_3_8():
+    """Regression test for issue #21; verifies NumPy interoperability."""
     a = [1, 2, 3]
     b = [0, 1, 0]
     assert (np.inner(a, b) == 2)
@@ -108,6 +117,7 @@ def test_issue_21_v0_3_8():
     assert (np.inner(fa, fb)() == np.inner(a, b)).all()
 
 def test_issue_26_v0_4_0():
+    """Regression test for issue #26; verifies hexadecimal parsing/formatting paths, NumPy interoperability."""
     sig = np.array(['0xff864d8f', '0xff86b76d', '0xff880f87'])
 
     fxp_sig = Fxp(sig)
@@ -121,6 +131,7 @@ def test_issue_26_v0_4_0():
     assert fxp_sig[2] == int('0xff880f87', 16)
 
 def test_issue_31_v0_4_0():
+    """Regression test for issue #31; verifies status-flag propagation, dtype parsing and conversion behavior, bit-shift operation behavior."""
     t = Fxp(2**32, dtype="u32.32", shifting="trunc")
     assert t.status['extended_prec'] == True
     assert t.val.dtype == object
@@ -147,6 +158,7 @@ def test_issue_31_v0_4_0():
     assert q3() == 1.0
 
 def test_issue_41_v0_4_2():
+    """Regression test for issue #41; verifies overflow/wrap/saturate behavior, modular wrap-around behavior."""
     x = Fxp(2, False, 63, 0, overflow='wrap')
     y = Fxp(2, False, 64, 0, overflow='wrap')
 
@@ -173,12 +185,14 @@ def test_issue_41_v0_4_2():
 
 
 def test_issue_42_v0_4_2():
+    """Regression test for issue #42; verifies overflow/wrap/saturate behavior, modular wrap-around behavior."""
     b = Fxp(2, True, 4, 0, overflow='wrap')
     assert (b + 8)() == -6.0
     assert (b - 8)() == -6.0
 
 def test_issue_44_v0_4_3():
     # 1a
+    """Regression test for issue #44; verifies overflow/wrap/saturate behavior, scale/bias conversion behavior, modular wrap-around behavior."""
     b = Fxp(20.5, False, n_word=5, scaling=1, bias=8)
     assert b() == 20.5
 
@@ -210,10 +224,7 @@ def test_issue_44_v0_4_3():
     assert b() == 2**64+6
 
 def test_issue_48_v0_4_8():
-    """
-    Flags not propagated
-    https://github.com/francof2a/fxpmath/issues/48
-    """
+    """Regression test for issue #48; verifies status-flag propagation, dtype parsing and conversion behavior."""
     a = Fxp(-2., dtype="fxp-s24/8")
     b = Fxp(2.15, dtype="fxp-s24/8")
     assert b.status['inaccuracy']
@@ -227,10 +238,7 @@ def test_issue_48_v0_4_8():
     assert d.status['inaccuracy']
 
 def test_issue_49_v0_4_8():
-    """
-    Reversal of .bin()
-    https://github.com/francof2a/fxpmath/issues/49
-    """
+    """Regression test for issue #49; verifies binary string parsing and inferred sizing, binary representation/interpretation paths, complex fixed-point behavior."""
     # Method 1
     x1 = Fxp(3.4)
     x_bin = x1.bin()
@@ -285,21 +293,25 @@ def test_issue_49_v0_4_8():
 
 
 def test_issue_53_v0_4_5():
+    """Regression test for issue #53; verifies complex fixed-point behavior, dtype parsing and conversion behavior."""
     x = Fxp(2j, dtype = 'fxp-u4/0-complex')
     z = x/2
 
     assert z() == 1j
 
 def test_issue_55_v0_4_5():
+    """Regression test for issue #55; verifies binary representation/interpretation paths, complex fixed-point behavior, dtype parsing and conversion behavior."""
     x = Fxp(0b11+0b11*1j, dtype = 'fxp-u2/0-complex')
     z = x & 0b01
 
 def test_issue_56_v0_4_5():
+    """Regression test for issue #56; verifies NumPy interoperability."""
     arr_fxp = Fxp(np.array([[1, 2]]))
     assert np.all(arr_fxp.bin() == np.array(['001', '010']))
 
 def test_issue_58_v0_4_5():
     # datatype definition
+    """Regression test for issue #58; verifies complex fixed-point behavior, NumPy interoperability, dtype parsing and conversion behavior."""
     TAP = Fxp(None, dtype='fxp-s32/24-complex')
     SIGNAL = Fxp(None, dtype='fxp-s32/24-complex')
 
@@ -322,6 +334,7 @@ def test_issue_58_v0_4_5():
     assert np.all(out() == out1())
 
 def test_issue_60_v0_4_6():
+    """Regression test for issue #60; verifies rounding behavior and quantization effects, NumPy interoperability, dtype parsing and conversion behavior."""
     cfg=Config(dtype_notation="Q",rounding="around")
 
     t_fxp = Fxp(0.0,1,n_int=16,n_frac=15,config=cfg)
@@ -340,6 +353,7 @@ def test_issue_60_v0_4_6():
     assert scalar_round_direct == scalar_round
 
 def test_issue_62_v0_4_7():
+    """Regression test for issue #62; verifies dtype parsing and conversion behavior."""
     y = Fxp(dtype='fxp-s6/2')
     y([[1.0,0.25,0.5],[0.25,0.5,0.25]])
 
@@ -352,6 +366,7 @@ def test_issue_62_v0_4_7():
     assert y[0][0]() == 0.0
 
 def test_issue_66_v0_4_8():
+    """Regression test for issue #66; verifies NumPy interoperability, dtype parsing and conversion behavior."""
     x = Fxp(np.array([1.25, 0.5]), dtype='S8.4')
     y = Fxp(np.array([2.25, 1.5]), dtype='S16.6')
     # x[0].equal(y[0]) # it does NOT work
@@ -361,11 +376,13 @@ def test_issue_66_v0_4_8():
     assert x[0]() == y[0]()
 
 def test_issue_67_v0_4_8():
+    """Regression test for issue #67; verifies complex fixed-point behavior, NumPy interoperability, dtype parsing and conversion behavior."""
     input_size = Fxp(None, dtype='fxp-s32/23')
     f = [0,10+7j,20-0.65j,30]
     f = Fxp(f, like = input_size)
 
     def FFT(f):
+        """Validates fft by checking complex fixed-point behavior, NumPy interoperability, dtype parsing and conversion behavior."""
         N = len(f)
         if N <= 1:
             return f
@@ -391,6 +408,7 @@ def test_issue_67_v0_4_8():
     
 def test_issue_73_v0_4_8():
     # single unsigned value does work
+    """Regression test for issue #73; verifies unsigned subtraction saturates per-element for scalar and vector operands."""
     a = Fxp(10, False, 14, 3)
     b = Fxp(15, False, 14, 3)
     c = a - b
@@ -408,6 +426,7 @@ def test_issue_76_v0_4_8():
     # Getting strange results when using larger bit sizes in numpy calls
     
     # This works
+    """Regression test for issue #76; verifies NumPy cumulative reduction interoperability, NumPy interoperability, dtype parsing and conversion behavior."""
     w = Fxp([1, 1, 1, 1], dtype='fxp-s29/0')
     y = np.cumsum(w)
     assert np.all(y() == np.array([1, 2, 3, 4]))
@@ -425,6 +444,7 @@ def test_issue_76_v0_4_8():
 def test_issue_77_v0_4_8():
     # Precision error when numpy.reshape
 
+    """Regression test for issue #77; verifies complex fixed-point behavior, reshape compatibility and shape handling, NumPy interoperability."""
     a = np.array([[0.762, 0.525], [0.345, 0.875]], dtype=complex)
     x = Fxp(a, signed=True, n_word=5, n_frac=3)
     # fxp-s5/3-complex
@@ -435,6 +455,7 @@ def test_issue_77_v0_4_8():
     assert y.signed == True and y.n_word == 5 and y.n_frac == 3
 
 def test_issue_reshape_shape_kw_and_newshape_alias_v0_4_9():
+    """Validates issue reshape shape kw and newshape alias v0 4 9 by checking complex fixed-point behavior, reshape compatibility and shape handling, NumPy interoperability."""
     a = np.array([[0.762, 0.525], [0.345, 0.875]], dtype=complex)
     x = Fxp(a, signed=True, n_word=5, n_frac=3)
 
@@ -463,6 +484,7 @@ def test_issue_80_v0_4_8():
 
     # The following code results in unexpected behaviour 
     # when trying to specify the same type using alternative formats
+    """Regression test for issue #80; verifies dtype parsing and conversion behavior."""
     x = Fxp(16, signed=True, n_word=8, n_frac=-2)
     # -> x.dtype = 'fxp-s8/-2' , ok
     assert x.dtype == 'fxp-s8/-2'
@@ -476,6 +498,7 @@ def test_issue_80_v0_4_8():
 def test_issue_85_v0_4_8():
     # Wrap overflow breaks on 0.0 value
 
+    """Regression test for issue #85; verifies overflow/wrap/saturate behavior, dtype parsing and conversion behavior, modular wrap-around behavior."""
     dt_values = ['fxp-s32/16', 'fxp-s64/32', 'fxp-s96/64']
 
     for dt in dt_values:

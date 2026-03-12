@@ -1,4 +1,4 @@
-version 0.4.9
+version 0.5.0-dev0
 --------------------------------------------------
 * Fix wrap fuction over n_word_max (issue #41).
 * Inaccuracy flag is propagated to a new Fxp or resulting Fxp if one or more input Fxp are inaccurate (issue #48).

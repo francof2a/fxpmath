@@ -16,6 +16,7 @@ import math
 
 
 def test_creation():
+    """Verify creation of high-precision fixed-point values from floats, decimals, and arrays."""
     x = Fxp(1.0, True, 256, 248)
     y = Fxp(-0.1, True, 128, 96)
 
@@ -37,6 +38,7 @@ def test_creation():
     assert (w() == np.array(w_vals)).all()
 
 def test_math_operators():
+    """Verify core arithmetic operators preserve expected results for extended-precision operands."""
     x = Fxp(1.0, True, 256, 248)
     y = Fxp(-0.1, True, 128, 96)
 
@@ -48,7 +50,7 @@ def test_math_operators():
     assert (x/y)() == -10.0
 
 def test_operations_with_combinations():
-    
+    """Exhaustively compare extended-precision Fxp-vs-Fxp arithmetic against Python numeric results."""
     v = [-256, -64, -16, -4.75, -3.75, -3.25, -1, -0.75, -0.125, 0.0, 0.125, 0.75, 1, 1.5, 3.75, 4.0, 8.0, 32, 128]
     for i in range(len(v)):
         for j in range(len(v)):
@@ -79,7 +81,7 @@ def test_operations_with_combinations():
             assert (vx % vy) == (x % y)()
 
 def test_operations_with_constants_with_combinations():
-    
+    """Exhaustively compare extended-precision mixed Fxp/constant arithmetic against Python numeric results."""
     v = [-256, -64, -16, -4.75, -3.75, -3.25, -1, -0.75, -0.125, 0.0, 0.125, 0.75, 1, 1.5, 3.75, 4.0, 8.0, 32, 128]
     for i in range(len(v)):
         for j in range(len(v)):
@@ -119,6 +121,7 @@ def test_operations_with_constants_with_combinations():
             # assert (vy % x)() == (vy % vx) == (y % vx)() == (y % x)()
 
 def test_numpy_ufunc():
+    """Validates numpy ufunc by checking complex fixed-point behavior, NumPy interoperability."""
     vx = [-1., 0., 1.]
     vy = [1., 2., 4.]
     vc = [1j*0.5, 1.5 + 1j*2.0, -0.5 + 1j*0]

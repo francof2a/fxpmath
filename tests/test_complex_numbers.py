@@ -8,6 +8,7 @@ from fxpmath.objects import Fxp
 import numpy as np
 
 def test_complex_creation():
+    """Validates complex creation by checking complex fixed-point behavior, dtype parsing and conversion behavior."""
     x = Fxp(0.25 - 1j*14.5)
     assert x() == 0.25 - 1j*14.5
     assert x.real == 0.25
@@ -34,6 +35,7 @@ def test_complex_creation():
     assert x.dtype == 'fxp-s10/4-complex'
 
 def test_math_operations():
+    """Validates math operations by checking complex fixed-point behavior, NumPy interoperability, dtype parsing and conversion behavior."""
     c = 2.0
     x = 0.25 - 1j*14.5
     y = -1.0 + 1j*0.5
@@ -96,6 +98,7 @@ def test_math_operations():
     assert abs(x_fxp)() == 5.0
 
 def test_complex_repr():
+    """Validates complex repr by checking hexadecimal parsing/formatting paths, complex fixed-point behavior, NumPy interoperability."""
     c_fxp = Fxp(1 + 1j*15)
     assert c_fxp.bin() == '00001+01111j'
     assert c_fxp.hex() == '0x01+0x0Fj'

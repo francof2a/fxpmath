@@ -9,6 +9,12 @@ with open(path.join(project_folder, 'README.md'), 'r') as f:
     long_description = f.read()
 
 def _get_version():
+    """Read and return the package version from `__init__.py`.
+    
+    Returns
+    ---
+    str
+        Version string assigned to `__version__` in `fxpmath/__init__.py`."""
     with open(path.join(project_folder, 'fxpmath', '__init__.py')) as f:
         for line in f.readlines():
             if line.startswith('__version__'):
@@ -44,4 +50,3 @@ setup(
 
     ]
 )
-
