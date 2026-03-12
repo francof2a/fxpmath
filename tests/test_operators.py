@@ -126,6 +126,11 @@ def test_shift_bitwise():
         assert (x >> i).bin() == (i + 1) * '1' + (x.n_word - (i + 1)) * '0'
     assert (x >> 8).bin() == x.n_word * '1'
 
+    # right signed sign extension from -1
+    x.set_val(-1)
+    for i in range(x.n_word + 2):
+        assert (x >> i).bin() == x.n_word * '1'
+
     # None type
     x = Fxp(None, False, 8, 0, shifting='keep')
     for i in range(10):
@@ -140,6 +145,15 @@ def test_shift_bitwise():
 
     x = Fxp([[1, 2], [4, 8]], False, 8, 0, shifting='keep')
     assert np.all(x << 1 == x * 2)
+
+    # keep right-shift over arrays (including N-D and signed values)
+    x = Fxp([[128, 64], [2, 1]], False, 8, 0, shifting='keep')
+    assert np.array_equal((x >> 1)(), np.array([[64, 32], [1, 0]]))
+    assert np.array_equal((x >> 8)(), np.zeros((2, 2), dtype=int))
+
+    x = Fxp([[-128, -1], [-2, 3]], True, 8, 0, shifting='keep')
+    assert np.array_equal((x >> 1)(), np.array([[-64, -1], [-1, 1]]))
+    assert np.array_equal((x >> 8)(), np.array([[-1, -1], [-1, 0]]))
 
 def test_invert():
     """Validates invert by checking binary representation/interpretation paths."""
