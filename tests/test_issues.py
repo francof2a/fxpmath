@@ -555,3 +555,18 @@ def test_issue_97_v0_4_9():
     assert np.isclose(e(), expected)
     assert np.isclose(c(), expected)
     assert c() == d() == e()
+
+
+def test_issue_102_v0_4_9():
+    """Regression for issue #102 in v0.4.9: complex `uraw` must convert real/imag parts independently."""
+    num = -1.8186004967338193e-16 - 0.99j
+    x = Fxp(num, dtype='s1.13')
+
+    real_uraw = Fxp(num.real, dtype='s1.13').uraw()
+    imag_uraw = Fxp(num.imag, dtype='s1.13').uraw()
+    expected_uraw = real_uraw + 1j * imag_uraw
+
+    # Signed raw storage should already match the independently-quantized components.
+    assert x.raw() == (Fxp(num.real, dtype='s1.13').raw() + 1j * Fxp(num.imag, dtype='s1.13').raw())
+    # Unsigned raw conversion must also be component-wise for complex values.
+    assert x.uraw() == expected_uraw

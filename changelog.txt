@@ -12,6 +12,8 @@ version 0.5.0-dev0
 * Modernize packaging to PEP 517/PEP 621 using `pyproject.toml` as canonical metadata source (issue #79).
 * Add dynamic versioning from `fxpmath.__version__` and setuptools package discovery via `find`.
 * Add installation smoke test suite in `tests/test_installation.py` that creates an isolated virtual environment, installs from source, and verifies import path/version.
+* Fix complex `uraw` conversion to apply unsigned two's-complement independently to real and imaginary components (issue #102).
+* Add regression test for complex `uraw` conversion parity (`tests/test_issues.py::test_issue_102_v0_4_9`).
 
 version 0.4.8
 --------------------------------------------------

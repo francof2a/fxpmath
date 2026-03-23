@@ -1168,6 +1168,12 @@ class Fxp():
     
     def uraw(self):
         """Return raw values encoded as unsigned two's-complement integers."""
+
+        if np.iscomplexobj(self.val):
+            raw_real = np.where(self.val.real < 0, (1 << self.n_word) + self.val.real, self.val.real)
+            raw_imag = np.where(self.val.imag < 0, (1 << self.n_word) + self.val.imag, self.val.imag)
+            return raw_real + 1j * raw_imag
+
         return np.where(self.val < 0, (1 << self.n_word) + self.val, self.val)
 
     def equal(self, x, index=None):
