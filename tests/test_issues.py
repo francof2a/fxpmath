@@ -526,6 +526,30 @@ def test_issue_91_v0_4_9():
     assert np.all(y() == ya)
 
 
+def test_issue_95_v0_4_9():
+    """Regression for issue #95 in v0.4.9: binary point outside word should be accepted consistently."""
+    signed_args = Fxp(-3, signed=True, n_word=1, n_frac=10)
+    signed_dtype = Fxp(-3, dtype='fxp-s1/10')
+
+    assert signed_args.dtype == 'fxp-s1/10'
+    assert signed_args.n_int == -10
+    assert signed_args.raw() == -1
+    assert np.isclose(signed_args(), -(2**-10))
+    assert signed_dtype.dtype == signed_args.dtype
+    assert signed_dtype.raw() == signed_args.raw()
+    assert np.isclose(signed_dtype(), signed_args())
+
+    unsigned_args = Fxp(1, signed=False, n_word=4, n_frac=5)
+    unsigned_dtype = Fxp(1, dtype='fxp-u4/5')
+
+    assert unsigned_args.dtype == 'fxp-u4/5'
+    assert unsigned_args.n_int == -1
+    assert unsigned_args.raw() == 15
+    assert np.isclose(unsigned_args(), 15 / 32)
+    assert unsigned_dtype.dtype == unsigned_args.dtype
+    assert unsigned_dtype.raw() == unsigned_args.raw()
+    assert np.isclose(unsigned_dtype(), unsigned_args())
+
 def test_issue_97_v0_4_9():
     """Regression for issue #97 in v0.4.9: indexed scalar multiply must match scalar construction."""
     a1 = Fxp(np.array([1.057311]), dtype='Q5.20')
