@@ -5,10 +5,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import fxpmath as fxp
 from fxpmath.objects import Fxp, Config
 from fxpmath import functions
+import fxpmath.utils as fxp_utils
 
 import numpy as np
 import pathlib
 import tomllib
+import warnings
 
 def test_issue_9_v0_3_6():
     """Regression test for issue #9; verifies NumPy interoperability."""
@@ -302,9 +304,17 @@ def test_issue_53_v0_4_5():
     assert z() == 1j
 
 def test_issue_55_v0_4_5():
-    """Regression test for issue #55; verifies binary representation/interpretation paths, complex fixed-point behavior, dtype parsing and conversion behavior."""
-    x = Fxp(0b11+0b11*1j, dtype = 'fxp-u2/0-complex')
-    z = x & 0b01
+    """Minimal regression test for issue #55: mixed complex/non-complex bitwise uses both components."""
+    fxp_utils.reset_mixed_complex_bitwise_warning_state()
+
+    x = Fxp(0b11+0b11*1j, dtype='fxp-u2/0-complex')
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        z = x & 0b01
+
+    assert z() == (1+1j)
+    mixed_msgs = [w for w in caught if issubclass(w.category, fxp_utils.ComplexBitwiseOperationWarning)]
+    assert len(mixed_msgs) == 1
 
 def test_issue_56_v0_4_5():
     """Regression test for issue #56; verifies NumPy interoperability."""

@@ -319,7 +319,7 @@ def test_xor():
     assert (utils.str2num('0b'+mks_str) ^ xu).bin() == xor_str
 
 def test_arrays():
-    """Validates arrays by checking binary representation/interpretation paths."""
+    """Validates arrays by checking binary representation/interpretation paths, including multidimensional bitwise ops."""
     x = Fxp(None, True, 8, 4)
     y = Fxp(None, True, 8, 4)
 
@@ -329,6 +329,29 @@ def test_arrays():
     z = x & y
     assert z.bin()[0] == '00110000'
     assert z.bin()[1] == '10100000'
+
+    # 2D array with scalar masks (int and Fxp scalar) for multidimensional bitwise checks.
+    x2 = Fxp(np.array([[0b00110101, 0b10101100], [0b11110000, 0b00001111]]), signed=False, n_word=8, n_frac=0)
+    m2 = Fxp(0b11110000, signed=False, n_word=8, n_frac=0)
+
+    exp_and_2d = np.array([[0b00110000, 0b10100000], [0b11110000, 0b00000000]])
+    exp_or_2d = np.array([[0b11110101, 0b11111100], [0b11110000, 0b11111111]])
+    exp_xor_2d = np.array([[0b11000101, 0b01011100], [0b00000000, 0b11111111]])
+    exp_inv_2d = np.array([[0b11001010, 0b01010011], [0b00001111, 0b11110000]])
+
+    assert np.array_equal((x2 & m2)(), exp_and_2d)
+    assert np.array_equal((x2 | m2)(), exp_or_2d)
+    assert np.array_equal((x2 ^ m2)(), exp_xor_2d)
+    assert np.array_equal((~x2)(), exp_inv_2d)
+
+    # 3D array with scalar masks for multidimensional broadcasting path.
+    x3_data = np.arange(8).reshape(2, 2, 2)
+    x3 = Fxp(x3_data, signed=False, n_word=4, n_frac=0)
+
+    assert np.array_equal((x3 & 0b0011)(), x3_data & 0b0011)
+    assert np.array_equal((x3 | 0b0101)(), x3_data | 0b0101)
+    assert np.array_equal((x3 ^ 0b0110)(), x3_data ^ 0b0110)
+    assert np.array_equal((~x3)(), ((~x3_data) & 0b1111))
 
 def test_operations_with_combinations():
     """Exhaustively compare Fxp-vs-Fxp arithmetic against Python numeric results over mixed signed values."""

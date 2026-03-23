@@ -40,7 +40,6 @@ from . import utils
 from . import _n_word_max, _max_error
 
 _NUMPY_HANDLED_FUNCTIONS = {}
-
 try:
     from decimal import Decimal
     from decimal import getcontext
@@ -1823,16 +1822,53 @@ class Fxp():
     
     __ilshift__ = __lshift__
 
+    def _bitwise_prepare_operand(self, x):
+        """Validate and normalize right-side operand for bitwise operations."""
+        if isinstance(x, Fxp):
+            if self.n_word != x.n_word:
+                raise ValueError("Operands dont't have same word size!")
+            return x.val
+
+        return x
+
+    def _bitwise_binary_op(self, x, op):
+        """Apply a binary bitwise helper with mixed/complex operand support."""
+        x_val = self._bitwise_prepare_operand(x)
+        out_val, force_complex_result = utils.binary_op_componentwise(
+            self.val,
+            x_val,
+            op=op,
+            n_word=self.n_word,
+            warn_mixed=True,
+            warning_stacklevel=5,
+        )
+
+        if self.signed:
+            out_val = utils.twos_complement_componentwise(out_val, nbits=self.n_word)
+
+        y = self.deepcopy()
+        y.set_val(
+            out_val,
+            raw=True,
+            vdtype=utils.bitwise_result_dtype(self.vdtype, force_complex=force_complex_result),
+        )
+        return y
+
     def __invert__(self):
         # inverted_val = ~ self.val
 
         """Apply bitwise inversion over represented raw values."""
-        inverted_val = utils.binary_invert(self.val, n_word=self.n_word)
+        inverted_val, force_complex_result = utils.binary_invert_componentwise(self.val, n_word=self.n_word)
+
         if self.signed:
-            inverted_val = utils.twos_complement_repr(inverted_val, nbits=self.n_word)
-        
+            inverted_val = utils.twos_complement_componentwise(inverted_val, nbits=self.n_word)
+
         y = self.deepcopy()
-        y.set_val(inverted_val, raw=True, vdtype=self.vdtype)   # set raw val inverted
+        y.set_val(
+            inverted_val,
+            raw=True,
+            vdtype=utils.bitwise_result_dtype(self.vdtype, force_complex=force_complex_result),
+        )
         return y
 
     def __and__(self, x):
@@ -1847,21 +1883,7 @@ class Fxp():
         ---
         Fxp
             New fixed-point object containing the operation result."""
-        if isinstance(x, Fxp):
-            if self.n_word != x.n_word:
-                raise ValueError("Operands dont't have same word size!")
-            else:
-                x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
-        else:
-            x_val = x
-
-        added_val = utils.binary_and(self.val, x_val, n_word=self.n_word)
-        if self.signed:
-            added_val = utils.twos_complement_repr(added_val, nbits=self.n_word)
-
-        y = self.deepcopy()
-        y.set_val(added_val, raw=True, vdtype=self.vdtype)   # set raw val with AND operation  
-        return y
+        return self._bitwise_binary_op(x, utils.binary_and)
 
     __rand__ = __and__
 
@@ -1879,21 +1901,7 @@ class Fxp():
         ---
         Fxp
             New fixed-point object containing the operation result."""
-        if isinstance(x, Fxp):
-            if self.n_word != x.n_word:
-                raise ValueError("Operands dont't have same word size!")
-            else:
-                x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
-        else:
-            x_val = x
-
-        ored_val = utils.binary_or(self.val.astype(self.val.dtype), x_val, n_word=self.n_word)
-        if self.signed:
-            ored_val = utils.twos_complement_repr(ored_val, nbits=self.n_word)
-
-        y = self.deepcopy()
-        y.set_val(ored_val, raw=True, vdtype=self.vdtype)   # set raw val with OR operation  
-        return y
+        return self._bitwise_binary_op(x, utils.binary_or)
 
     __ror__ = __or__
 
@@ -1911,25 +1919,11 @@ class Fxp():
         ---
         Fxp
             New fixed-point object containing the operation result."""
-        if isinstance(x, Fxp):
-            if self.n_word != x.n_word:
-                raise ValueError("Operands dont't have same word size!")
-            else:
-                x_val = x.val.astype(self.val.dtype) # if it doen't care data type difference
-        else:
-            x_val = x
-
-        xored_val = utils.binary_xor(self.val.astype(self.val.dtype), x_val, n_word=self.n_word)
-        if self.signed:
-            xored_val = utils.twos_complement_repr(xored_val, nbits=self.n_word)
-
-        y = self.deepcopy()
-        y.set_val(xored_val, raw=True, vdtype=self.vdtype)   # set raw val with XOR operation  
-        return y  
+        return self._bitwise_binary_op(x, utils.binary_xor)
 
     __rxor__ = __xor__
 
-    __ixor__ = __xor__    
+    __ixor__ = __xor__
 
 
     # comparisons
