@@ -16,6 +16,7 @@ version 0.5.0-dev0
 * Add regression test for complex `uraw` conversion parity (`tests/test_issues.py::test_issue_102_v0_4_9`).
 * Fix scalar integer casting after repeated in-place increments by using scalar-safe int conversion in `astype` and object-cast `set_val` paths (issue #98).
 * Add regression test for repeated `int()` casting across 32-bit and 64-bit Linux sizing paths (`tests/test_issues.py::test_issue_98_v0_4_9`).
+* Cleanup development plan tracking by removing duplicated #86 rounding status entry to keep roadmap state unambiguous.
 
 version 0.4.8
 --------------------------------------------------

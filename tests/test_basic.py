@@ -408,6 +408,41 @@ def test_rounding():
     for i, o in zip(vi, vo):
         assert x(i) == o
 
+    # nearest_posinf (ties toward +infinity)
+    x = Fxp(None, True, 8, 2, rounding='nearest_posinf')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50, 1.375, -1.375]
+    vo = [0.00, 1.00, 1.25, 1.25, 1.25, 1.50, 1.50, -1.00, -1.25, -1.25, -1.25, -1.50, -1.50, 1.50, -1.25]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
+    # nearest_neginf (ties toward -infinity)
+    x = Fxp(None, True, 8, 2, rounding='nearest_neginf')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50, 1.375, -1.375]
+    vo = [0.00, 1.00, 1.25, 1.25, 1.25, 1.50, 1.50, -1.00, -1.25, -1.25, -1.25, -1.50, -1.50, 1.25, -1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
+    # nearest_zero (ties toward zero)
+    x = Fxp(None, True, 8, 2, rounding='nearest_zero')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50, 1.375, -1.375]
+    vo = [0.00, 1.00, 1.25, 1.25, 1.25, 1.50, 1.50, -1.00, -1.25, -1.25, -1.25, -1.50, -1.50, 1.25, -1.25]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
+    # nearest_away (ties away from zero)
+    x = Fxp(None, True, 8, 2, rounding='nearest_away')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50, 1.375, -1.375]
+    vo = [0.00, 1.00, 1.25, 1.25, 1.25, 1.50, 1.50, -1.00, -1.25, -1.25, -1.25, -1.50, -1.50, 1.50, -1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
+    # bit_trunc (bit-style truncation)
+    x = Fxp(None, True, 8, 2, rounding='bit_trunc')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50]
+    vo = [0.00, 1.00, 1.00, 1.25, 1.25, 1.25, 1.50, -1.00, -1.25, -1.25, -1.50, -1.50, -1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
 def test_scaling():
     """Validates scaling by checking status-flag propagation, scale/bias conversion behavior."""
     x = Fxp(4.5, scale=2.0, bias=-1.5)

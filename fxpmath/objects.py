@@ -1258,8 +1258,44 @@ class Fxp():
         ---
         numpy.ndarray
             Rounded intermediate values using the configured rounding rule."""
-        if isinstance(val, int) or np.issubdtype(np.array(val).dtype, np.integer) or np.issubdtype(np.array(val).dtype, np.object_):
+        # NOTE ABOUT PASSTHROUGH FOR int/object INPUTS:
+        # _round receives values in the raw-domain scale (val * conv_factor).
+        # For >64-bit paths, set_val promotes arrays to dtype=object to preserve exact
+        # integer precision, and those values are expected to already represent integer
+        # raw quanta. For that reason we intentionally keep legacy passthrough behavior
+        # for integer/object dtypes and skip fractional rounding logic in this branch.
+        # If a non-integer value reaches this branch, conversion to stored raw integers
+        # still occurs downstream in set_val via utils.int_array, preserving the
+        # existing execution flow.
+        val_dtype = getattr(val, 'dtype', None)
+        if val_dtype is None and isinstance(val, np.generic):
+            val_dtype = val.dtype
+
+        is_integer = isinstance(val, int) or (val_dtype is not None and np.issubdtype(val_dtype, np.integer))
+        is_object_dtype = val_dtype is not None and np.issubdtype(val_dtype, np.object_)
+
+        if is_object_dtype and self.n_word < _n_word_max:
+            import warnings as _warnings
+            _warnings.warn('Object dtype reached rounding while n_word ({}) is smaller than n_word_max ({}). This usually indicates an unexpected object-typed input path and may bypass fractional rounding behavior.'.format(self.n_word, _n_word_max), RuntimeWarning, stacklevel=2)
+
+        if is_integer or is_object_dtype:
             rval = val
+        elif method == 'nearest_posinf' or method == 'nearest_neginf' or method == 'nearest_zero' or method == 'nearest_away':
+            f = np.floor(val)
+            frac = val - f
+            gt = frac > 0.5
+            eq = frac == 0.5
+            if method == 'nearest_posinf':
+                inc = gt | eq
+            elif method == 'nearest_neginf':
+                inc = gt
+            elif method == 'nearest_zero':
+                inc = gt | (eq & (val < 0))
+            else:
+                inc = gt | (eq & (val >= 0))
+            rval = f + inc.astype(f.dtype)
+        elif method == 'bit_trunc':
+            rval = np.floor(val)
         elif method == 'around':
             rval = np.around(val)
         elif method == 'floor':
@@ -3181,12 +3217,44 @@ class Config():
     # rounding
     @property
     def _rounding_list(self):
-        """Return valid values for `rounding`."""
-        return ['around', 'floor', 'ceil', 'fix', 'trunc']
+        """Return canonical valid values for `rounding`."""
+        return ['around', 'nearest_posinf', 'nearest_neginf', 'nearest_zero', 'nearest_away', 'bit_trunc', 'floor', 'ceil', 'fix', 'trunc']
+
+    @property
+    def _rounding_aliases(self):
+        """Return supported aliases for `rounding`."""
+        return {
+            # IEEE 754 + canonical names
+            'nearest_even': 'around',
+            'roundTiesToEven': 'around',
+            'up': 'ceil',
+            'roundTowardPositive': 'ceil',
+            'down': 'floor',
+            'roundTowardNegative': 'floor',
+            'to_zero': 'trunc',
+            'roundTowardZero': 'trunc',
+            # IEEE 1666 / SystemC names where semantics match existing modes
+            'SC_RND_CONV': 'around',
+            'SC_RND': 'nearest_posinf',
+            'SC_TRN_ZERO': 'trunc',
+            # Descriptive aliases for SC_RND semantics
+            'nearest_ties_to_posinf': 'nearest_posinf',
+            'roundTiesToPositive': 'nearest_posinf',
+            # Additional nearest tie-breaking modes
+            'SC_RND_MIN_INF': 'nearest_neginf',
+            'SC_RND_ZERO': 'nearest_zero',
+            'SC_RND_INF': 'nearest_away',
+            'SC_TRN': 'bit_trunc',
+            'nearest_ties_to_neginf': 'nearest_neginf',
+            'nearest_ties_to_zero': 'nearest_zero',
+            'nearest_ties_away': 'nearest_away',
+            'roundTiesToAway': 'nearest_away',
+            'bit_truncation': 'bit_trunc',
+        }
 
     @property
     def rounding(self):
-        """Return the selected rounding mode."""
+        """Return the selected canonical rounding mode."""
         return self._rounding
     
     @rounding.setter
@@ -3195,17 +3263,37 @@ class Config():
         
         Parameters
         ---
-        val : {'around', 'floor', 'ceil', 'fix', 'trunc'}
+        val : str
             Rounding policy applied when represented values must be quantized to raw integers.
+            Canonical modes are {'around', 'nearest_posinf', 'nearest_neginf', 'nearest_zero', 'nearest_away', 'bit_trunc', 'floor', 'ceil', 'fix', 'trunc'}.
+            Accepted aliases include IEEE 754, IEEE 1666/SystemC, and canonical shorthand names where
+            semantics match existing fxpmath modes.
         
         Side Effects
         ---
         Validates and stores rounding mode."""
-        if isinstance(val, str) and val in self._rounding_list:
-            self._rounding = val
-        else:
-            raise ValueError('rounding must be str type with following valid values: {}'.format(self._rounding_list))
+        if not isinstance(val, str):
+            raise ValueError('rounding must be str type with following valid values: {} and aliases: {}'.format(
+                self._rounding_list, sorted(self._rounding_aliases.keys())
+            ))
 
+        if val in self._rounding_list:
+            self._rounding = val
+            return
+
+        if val in self._rounding_aliases:
+            self._rounding = self._rounding_aliases[val]
+            return
+
+        val_lower = val.lower()
+        lower_aliases = {k.lower(): v for k, v in self._rounding_aliases.items()}
+        if val_lower in lower_aliases:
+            self._rounding = lower_aliases[val_lower]
+            return
+
+        raise ValueError('rounding must be str type with following valid values: {} and aliases: {}'.format(
+            self._rounding_list, sorted(self._rounding_aliases.keys())
+        ))
     # shifting
     @property
     def _shifting_list(self):

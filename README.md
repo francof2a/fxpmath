@@ -457,6 +457,25 @@ But, if we want to change the value of our Fxp to -7.3, the precision is not eno
 * *floor* : The floor of the scalar `x` is the largest fractional supported value `i`, such that i <= x. It is often denoted as $\lfloor x \rfloor$.
 * *ceil* :  The ceil of the scalar `x` is the smallest fractional supported value `i`, such that i >= x. It is often denoted as \lceil x \rceil.
 * *fix* : Round to nearest fractional supported value towards zero.
+* *nearest_posinf* : Round to nearest fractional supported value, with exact half-way ties rounded toward +infinity (SystemC `SC_RND` behavior).
+* *nearest_neginf* : Round to nearest fractional supported value, with exact half-way ties rounded toward -infinity (SystemC `SC_RND_MIN_INF`).
+* *nearest_zero* : Round to nearest fractional supported value, with exact half-way ties rounded toward zero (SystemC `SC_RND_ZERO`).
+* *nearest_away* : Round to nearest fractional supported value, with exact half-way ties rounded away from zero (SystemC `SC_RND_INF`, IEEE `roundTiesToAway`).
+* *bit_trunc* : Bit-style truncation mode (SystemC `SC_TRN`), equivalent to floor at this quantization stage.
+
+Cross-reference of rounding-mode naming across ecosystems:
+
+| fxpmath nominal name | fxpmath alias names | Description | NumPy name(s) | IEEE 754 name | IEEE 1666 / SystemC | Canonical name | Supported now by fxpmath |
+|---|---|---|---|---|---|---|---|
+| `around` | `nearest_even`, `roundTiesToEven`, `SC_RND_CONV` | Round to nearest; exact half-way ties go to even. | `np.around`, `np.round` | `roundTiesToEven` | `SC_RND_CONV` | `nearest_even` | Yes |
+| `ceil` | `up`, `roundTowardPositive` | Always round toward +infinity. | `np.ceil` | `roundTowardPositive` | n/a (no exact SystemC quantization-mode equivalent) | `up` | Yes |
+| `floor` | `down`, `roundTowardNegative` | Always round toward -infinity. | `np.floor` | `roundTowardNegative` | n/a (no exact SystemC quantization-mode equivalent) | `down` | Yes |
+| `trunc` | `fix`, `to_zero`, `roundTowardZero`, `SC_TRN_ZERO` | Always round toward zero. | `np.trunc`, `np.fix` | `roundTowardZero` | `SC_TRN_ZERO` | `to_zero` | Yes |
+| `nearest_posinf` | `SC_RND`, `nearest_ties_to_posinf`, `roundTiesToPositive` | Round to nearest; exact half-way ties go toward +infinity. | no direct single-mode API | not a required rounding-direction attribute | `SC_RND` | `nearest_posinf` | Yes |
+| `nearest_away` | `SC_RND_INF`, `nearest_ties_away`, `roundTiesToAway` | Round to nearest; exact half-way ties go away from zero. | no direct single-mode API | `roundTiesToAway` | `SC_RND_INF` | `nearest_away` | Yes |
+| `nearest_zero` | `SC_RND_ZERO`, `nearest_ties_to_zero` | Round to nearest; exact half-way ties go toward zero. | no direct single-mode API | not a required rounding-direction attribute | `SC_RND_ZERO` | `nearest_zero` | Yes |
+| `nearest_neginf` | `SC_RND_MIN_INF`, `nearest_ties_to_neginf` | Round to nearest; exact half-way ties go toward -infinity. | no direct single-mode API | not a required rounding-direction attribute | `SC_RND_MIN_INF` | `nearest_neginf` | Yes |
+| `bit_trunc` | `SC_TRN`, `bit_truncation` | Bit-level truncation (drop fractional bits); differs from numeric toward-zero for negatives. | no exact equivalent | — | `SC_TRN` | `bit_trunc` | Yes |
 
 We can change this behavior doing:
 
@@ -471,6 +490,11 @@ x.rounding = 'around'
 x.rounding = 'floor'
 x.rounding = 'ceil'
 x.rounding = 'fix'
+x.rounding = 'nearest_posinf'
+x.rounding = 'nearest_neginf'
+x.rounding = 'nearest_zero'
+x.rounding = 'nearest_away'
+x.rounding = 'bit_trunc'
 ```
 
 If we want to know what is the **precision** of our Fxp, we can do:
