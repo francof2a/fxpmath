@@ -557,6 +557,19 @@ def test_issue_97_v0_4_9():
     assert c() == d() == e()
 
 
+def test_issue_98_v0_4_9():
+    """Regression for issue #98 in v0.4.9: repeated `int()` casting must work for both 32-bit and 64-bit Linux paths."""
+    cases = ((32, 40), (64, 2))
+
+    for n_word, loops in cases:
+        incremented = Fxp(0.0, signed=True, n_word=n_word, n_frac=8, rounding='around')
+        step = Fxp(0.5, signed=True, n_word=n_word, n_frac=8, rounding='around')
+
+        for _ in range(loops):
+            incremented += step
+            assert int(incremented) == int(incremented())
+
+
 def test_issue_102_v0_4_9():
     """Regression for issue #102 in v0.4.9: complex `uraw` must convert real/imag parts independently."""
     num = -1.8186004967338193e-16 - 0.99j

@@ -996,7 +996,7 @@ class Fxp():
 
             if val_dtype == object:       
                 # convert each element to int
-                new_val = np.array(list(map(int, new_val.flatten()))).reshape(new_val.shape).astype(val_dtype)
+                new_val = utils.int_array(new_val).astype(val_dtype)
             
             if index is not None:
                 self.val[index] = new_val
@@ -1031,8 +1031,8 @@ class Fxp():
 
             if val_dtype == object:       
                 # convert each element to int
-                new_val_real = np.array(list(map(int, new_val_real.flatten()))).reshape(new_val_real.shape)
-                new_val_imag = np.array(list(map(int, new_val_imag.flatten()))).reshape(new_val_imag.shape)
+                new_val_real = utils.int_array(new_val_real)
+                new_val_imag = utils.int_array(new_val_imag)
             
             # rebuild complex
             new_val = new_val_real + 1j * new_val_imag
@@ -1116,7 +1116,7 @@ class Fxp():
                     val = raw_val
                 else:
                     val = raw_val // self._get_conv_factor()
-                    val = np.array(list(map(int, val.flatten()))).reshape(val.shape)
+                    val = utils.int_array(val)
                 
             elif dtype == complex or np.issubdtype(dtype, np.complexfloating):
                 val = (raw_val.real + 1j * raw_val.imag) / self._get_conv_factor()
