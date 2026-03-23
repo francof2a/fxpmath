@@ -7,6 +7,8 @@ from fxpmath.objects import Fxp, Config
 from fxpmath import functions
 
 import numpy as np
+import pathlib
+import tomllib
 
 def test_issue_9_v0_3_6():
     """Regression test for issue #9; verifies NumPy interoperability."""
@@ -525,6 +527,21 @@ def test_issue_91_v0_4_9():
 
     assert np.all(y() == ya)
 
+
+def test_issue_94_v0_4_9():
+    """Regression for issue #94 in v0.4.9: project must declare and ship py.typed for typed-package consumers."""
+    repo_root = pathlib.Path(__file__).resolve().parents[1]
+
+    # 1) Marker file must exist in package sources.
+    assert (repo_root / 'fxpmath' / 'py.typed').is_file()
+
+    # 2) Packaging config must include marker in built distributions.
+    with (repo_root / 'pyproject.toml').open('rb') as fh:
+        pyproject = tomllib.load(fh)
+
+    package_data = pyproject['tool']['setuptools']['package-data']
+    assert 'fxpmath' in package_data
+    assert 'py.typed' in package_data['fxpmath']
 
 def test_issue_95_v0_4_9():
     """Regression for issue #95 in v0.4.9: binary point outside word should be accepted consistently."""

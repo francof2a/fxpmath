@@ -34,3 +34,6 @@ include = ["fxpmath*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "fxpmath.__version__" }
+
+[tool.setuptools.package-data]
+fxpmath = ["py.typed"]
