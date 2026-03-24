@@ -148,6 +148,27 @@ If we want to resize our fxp variable we can do:
 x.resize(True, 8, 6)    # signed=True, n_word=8, n_frac=6
 ```
 
+For NumPy reshape dispatch, use:
+
+```python
+np.reshape(x, (1, 4))
+```
+
+With NumPy >= 2.4, this is also supported:
+
+```python
+np.reshape(x, shape=(1, 4))
+```
+
+If you call `fxpmath.functions.reshape` directly, both keyword styles are accepted:
+
+```python
+from fxpmath import functions
+
+functions.reshape(x, shape=(1, 4))
+functions.reshape(x, newshape=(1, 4))
+```
+
 ## data types supported
 
 Fxp can handle following input data types:
@@ -321,11 +342,30 @@ Until now we had been storing values in our Fxp that were represented without lo
 
 But, if we want to change the value of our Fxp to -7.3, the precision is not enough and Fxp will store -7.25 again. That is because Fxp is **rounding** the value before storing as a fractional fixed point value. Fxp allows different types of rounding methods:
 
-* *trunc* (default): The truncated value of the scalar (let's say `x`) will be the nearest fractional supported value which is closer to zero than `x` is. In short, the fractional part of the signed number `x` that is not supported, is discarded. Round to nearest fractional supported value towards zero.
+* *trunc* (default): Round to the nearest fractional supported value toward zero (same criterion as `numpy.trunc`/`numpy.fix`). The unsupported fractional part is discarded in the **numerical-value** sense, not by applying a bitwise right shift to raw storage. For negative values this differs from *floor* (and from arithmetic right-shift): for example, reducing precision for `-2046.3867` gives `trunc -> -2046`, while `floor -> -2047`.
 * *around* : Evenly round of the given value to the nearest fractional supported value, for example: 1.5 is rounded to 2.0.
 * *floor* : The floor of the scalar `x` is the largest fractional supported value `i`, such that i <= x. It is often denoted as $\lfloor x \rfloor$.
 * *ceil* :  The ceil of the scalar `x` is the smallest fractional supported value `i`, such that i >= x. It is often denoted as \lceil x \rceil.
 * *fix* : Round to nearest fractional supported value towards zero.
+* *nearest_posinf* : Round to nearest fractional supported value, with exact half-way ties rounded toward +infinity (SystemC `SC_RND` behavior).
+* *nearest_neginf* : Round to nearest fractional supported value, with exact half-way ties rounded toward -infinity (SystemC `SC_RND_MIN_INF`).
+* *nearest_zero* : Round to nearest fractional supported value, with exact half-way ties rounded toward zero (SystemC `SC_RND_ZERO`).
+* *nearest_away* : Round to nearest fractional supported value, with exact half-way ties rounded away from zero (SystemC `SC_RND_INF`, IEEE `roundTiesToAway`).
+* *bit_trunc* : Bit-style truncation mode (SystemC `SC_TRN`), equivalent to floor at this quantization stage.
+
+Cross-reference of rounding-mode naming across ecosystems:
+
+| fxpmath nominal name | fxpmath alias names | Description | NumPy name(s) | IEEE 754 name | IEEE 1666 / SystemC | Canonical name | Supported now by fxpmath |
+|---|---|---|---|---|---|---|---|
+| `around` | `nearest_even`, `roundTiesToEven`, `SC_RND_CONV` | Round to nearest; exact half-way ties go to even. | `np.around`, `np.round` | `roundTiesToEven` | `SC_RND_CONV` | `nearest_even` | Yes |
+| `ceil` | `up`, `roundTowardPositive` | Always round toward +infinity. | `np.ceil` | `roundTowardPositive` | n/a (no exact SystemC quantization-mode equivalent) | `up` | Yes |
+| `floor` | `down`, `roundTowardNegative` | Always round toward -infinity. | `np.floor` | `roundTowardNegative` | n/a (no exact SystemC quantization-mode equivalent) | `down` | Yes |
+| `trunc` | `fix`, `to_zero`, `roundTowardZero`, `SC_TRN_ZERO` | Always round toward zero. | `np.trunc`, `np.fix` | `roundTowardZero` | `SC_TRN_ZERO` | `to_zero` | Yes |
+| `nearest_posinf` | `SC_RND`, `nearest_ties_to_posinf`, `roundTiesToPositive` | Round to nearest; exact half-way ties go toward +infinity. | no direct single-mode API | not a required rounding-direction attribute | `SC_RND` | `nearest_posinf` | Yes |
+| `nearest_away` | `SC_RND_INF`, `nearest_ties_away`, `roundTiesToAway` | Round to nearest; exact half-way ties go away from zero. | no direct single-mode API | `roundTiesToAway` | `SC_RND_INF` | `nearest_away` | Yes |
+| `nearest_zero` | `SC_RND_ZERO`, `nearest_ties_to_zero` | Round to nearest; exact half-way ties go toward zero. | no direct single-mode API | not a required rounding-direction attribute | `SC_RND_ZERO` | `nearest_zero` | Yes |
+| `nearest_neginf` | `SC_RND_MIN_INF`, `nearest_ties_to_neginf` | Round to nearest; exact half-way ties go toward -infinity. | no direct single-mode API | not a required rounding-direction attribute | `SC_RND_MIN_INF` | `nearest_neginf` | Yes |
+| `bit_trunc` | `SC_TRN`, `bit_truncation` | Bit-level truncation (drop fractional bits); differs from numeric toward-zero for negatives. | no exact equivalent | — | `SC_TRN` | `bit_trunc` | Yes |
 
 We can change this behavior doing:
 
@@ -340,6 +380,11 @@ x.rounding = 'around'
 x.rounding = 'floor'
 x.rounding = 'ceil'
 x.rounding = 'fix'
+x.rounding = 'nearest_posinf'
+x.rounding = 'nearest_neginf'
+x.rounding = 'nearest_zero'
+x.rounding = 'nearest_away'
+x.rounding = 'bit_trunc'
 ```
 
 If we want to know what is the **precision** of our Fxp, we can do:

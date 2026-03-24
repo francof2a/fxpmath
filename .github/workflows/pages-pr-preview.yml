@@ -1,0 +1,55 @@
+name: Pages PR Preview Build
+
+on:
+  pull_request:
+    branches: [gh-pages]
+    paths:
+      - '_config.yml'
+      - 'index.md'
+      - '404.md'
+      - 'assets/**'
+      - 'docs/**'
+      - '.github/workflows/pages-pr-preview.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+      - name: Upload preview bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-preview-pr-${{ github.event.pull_request.number }}
+          path: ./_site
+          retention-days: 7
+
+      - name: Add workflow summary
+        run: |
+          echo "## Pages Preview Artifact" >> $GITHUB_STEP_SUMMARY
+          echo "This run built the GitHub Pages site for this PR." >> $GITHUB_STEP_SUMMARY
+          echo "Download the artifact named \\`pages-preview-pr-${{ github.event.pull_request.number }}\\` from this run to inspect the rendered files." >> $GITHUB_STEP_SUMMARY

@@ -164,3 +164,7 @@ docker/
 
 # temp
 temp/
+
+# local workspace artifacts
+.venv*/
+development-plan.md
