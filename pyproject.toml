@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fxpmath"
+dynamic = ["version"]
+description = "A python library for fractional fixed-point (base 2) arithmetic and binary manipulation with Numpy compatibility."
+readme = "README.md"
+requires-python = ">=3.7"
+authors = [
+  { name = "francof2a", email = "empty@empty.com" }
+]
+license = "MIT"
+keywords = ["fixed point", "fractional", "math", "python", "fxpmath", "fxp", "arithmetic", "FPGA", "DSP"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  "Topic :: Scientific/Engineering :: Physics"
+]
+dependencies = ["numpy"]
+
+[project.urls]
+Homepage = "https://github.com/francof2a/fxpmath"
+Repository = "https://github.com/francof2a/fxpmath"
+Download = "https://github.com/francof2a/fxpmath/releases"
+
+[tool.setuptools.packages.find]
+include = ["fxpmath*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "fxpmath.__version__" }
+
+[tool.setuptools.package-data]
+fxpmath = ["py.typed"]

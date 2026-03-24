@@ -9,6 +9,7 @@ import numpy as np
 
 
 def test_bugs_0_2_1():
+    """Verify multiplication preserves expected numeric result and grows fractional/word sizes correctly."""
     a = Fxp(0.5)
     b = Fxp(0.5)
     c = a * b
@@ -31,6 +32,7 @@ def test_bugs_0_2_1():
     assert c.n_word == 8
 
 def test_bugs_0_2_2():
+    """Validates bugs 0 2 2 by checking binary representation/interpretation paths."""
     x = Fxp('0b1100')
     assert x() == -4
     assert x.n_word == 4
@@ -45,11 +47,13 @@ def test_bugs_0_2_2():
 
 def test_bugs_0_3_0():
     # fail in Win32 because numpy astype(int) behavior
+    """Verify decimal input assignment keeps fractional precision instead of truncating to an integer."""
     x = Fxp(4.001)
     assert x() == 4.001
 
 def test_bugs_0_3_2():
     # fail in Win32 because numpy astype(int) behavior
+    """Validates bugs 0 3 2 by checking overflow/wrap/saturate behavior, NumPy interoperability, modular wrap-around behavior."""
     x = Fxp(1.25, False, 3, 1)
     assert (x >> 1)() == 0.5
 
@@ -62,10 +66,12 @@ def test_bugs_0_3_2():
 
 def test_bugs_0_3_3():
     # wrap error
+    """Validates bugs 0 3 3 by checking overflow/wrap/saturate behavior, modular wrap-around behavior."""
     x = Fxp(12.5, False, 11, 8, overflow='wrap')
     assert x() == 4.5
 
 def test_bugs_0_3_4():
     # wrap error for ndarrays
+    """Validates bugs 0 3 4 by checking overflow/wrap/saturate behavior, NumPy interoperability, modular wrap-around behavior."""
     x = Fxp([[1, 1]], False, 17 + 3, 9, overflow='wrap')
     assert (x() == np.array([[1, 1]])).all()

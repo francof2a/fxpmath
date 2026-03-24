@@ -6,5 +6,6 @@ import fxpmath as fxp
 from fxpmath import Fxp
 
 def test_aliveness():
+    """Smoke test basic value assignment and retrieval on a minimal fixed-point instance."""
     x = Fxp(0.0, signed=True, n_word=8, n_frac=2)
     assert x(4.75) == 4.75

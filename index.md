@@ -22,5 +22,6 @@ Some key features:
 
 - [install](docs/install)
 - [quick start](docs/quick_start)
+- [generalized sizing](docs/generalized_sizing)
 - [behavioral configuration](docs/config)
 

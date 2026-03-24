@@ -8,9 +8,11 @@ from fxpmath.objects import Fxp
 import numpy as np
 
 def test_temp():
+    """Placeholder test kept to preserve test-module structure."""
     pass
 
 def test_instances():
+    """Validates instances by checking binary representation/interpretation paths, complex fixed-point behavior, NumPy interoperability."""
     x = Fxp()
     assert type(x) == Fxp
     assert x.dtype == 'fxp-s16/15'
@@ -169,6 +171,7 @@ def test_instances():
 
 def test_signed():
     # signed
+    """Verify signed and unsigned formats handle negative assignments according to saturation rules."""
     x_fxp = Fxp(0.0, True, 8, 7)
 
     x_fxp(0.5)
@@ -188,6 +191,7 @@ def test_signed():
 
 def test_misc_values():
     # huges
+    """Validates misc values by checking NumPy interoperability."""
     x = Fxp(2**31 - 1)
     assert x() == 2**31 - 1
     x = Fxp(-2**31)
@@ -226,6 +230,7 @@ def test_misc_values():
     assert x()[2] == 2**32
 
 def test_base_representations():
+    """Validates base representations by checking hexadecimal parsing/formatting paths, binary representation/interpretation paths, complex fixed-point behavior."""
     x = Fxp(0.0, True, 8, 4)
 
     # decimal positive
@@ -310,6 +315,7 @@ def test_base_representations():
 
 
 def test_like():
+    """Verify `like=` copies sizing/sign configuration while creating a distinct object instance."""
     ref = Fxp(0.0, True, 16, 4)
     x = Fxp(4.5, like=ref)
     assert x is not ref
@@ -319,12 +325,14 @@ def test_like():
     assert x.signed == ref.signed
 
 def test_kwargs():
+    """Validates kwargs by checking overflow/wrap/saturate behavior, rounding behavior and quantization effects, modular wrap-around behavior."""
     x = Fxp(-2.125, True, 16, 4, overflow='wrap')
     assert x.config.overflow == 'wrap'
     y = Fxp(3.2, True, 16, 8, rounding='fix')
     assert y.config.rounding == 'fix'
 
 def test_strvals():
+    """Validates strvals by checking hexadecimal parsing/formatting paths, binary representation/interpretation paths."""
     x = Fxp('0b0110')
     assert x() == 6
     x = Fxp('0b110', True, 4, 0)
@@ -339,6 +347,7 @@ def test_strvals():
     assert x() == -7.25
 
 def test_saturate():
+    """Validates saturate by checking overflow/wrap/saturate behavior, status-flag propagation."""
     x = Fxp(0.0, True, 8, 2)
     assert x.upper == 31.75
     assert x.lower == -32.00
@@ -363,6 +372,7 @@ def test_saturate():
 
 def test_rounding():
     # trunc
+    """Validates rounding by checking rounding behavior and quantization effects."""
     x = Fxp(None, True, 8, 2, rounding='trunc')
     vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50]
     vo = [0.00, 1.00, 1.00, 1.25, 1.25, 1.25, 1.50]
@@ -398,7 +408,43 @@ def test_rounding():
     for i, o in zip(vi, vo):
         assert x(i) == o
 
+    # nearest_posinf (ties toward +infinity)
+    x = Fxp(None, True, 8, 2, rounding='nearest_posinf')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50, 1.375, -1.375]
+    vo = [0.00, 1.00, 1.25, 1.25, 1.25, 1.50, 1.50, -1.00, -1.25, -1.25, -1.25, -1.50, -1.50, 1.50, -1.25]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
+    # nearest_neginf (ties toward -infinity)
+    x = Fxp(None, True, 8, 2, rounding='nearest_neginf')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50, 1.375, -1.375]
+    vo = [0.00, 1.00, 1.25, 1.25, 1.25, 1.50, 1.50, -1.00, -1.25, -1.25, -1.25, -1.50, -1.50, 1.25, -1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
+    # nearest_zero (ties toward zero)
+    x = Fxp(None, True, 8, 2, rounding='nearest_zero')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50, 1.375, -1.375]
+    vo = [0.00, 1.00, 1.25, 1.25, 1.25, 1.50, 1.50, -1.00, -1.25, -1.25, -1.25, -1.50, -1.50, 1.25, -1.25]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
+    # nearest_away (ties away from zero)
+    x = Fxp(None, True, 8, 2, rounding='nearest_away')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50, 1.375, -1.375]
+    vo = [0.00, 1.00, 1.25, 1.25, 1.25, 1.50, 1.50, -1.00, -1.25, -1.25, -1.25, -1.50, -1.50, 1.50, -1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
+    # bit_trunc (bit-style truncation)
+    x = Fxp(None, True, 8, 2, rounding='bit_trunc')
+    vi = [0.00, 1.00, 1.24, 1.25, 1.26, 1.49, 1.50, -1.00, -1.24, -1.25, -1.26, -1.49, -1.50]
+    vo = [0.00, 1.00, 1.00, 1.25, 1.25, 1.25, 1.50, -1.00, -1.25, -1.25, -1.50, -1.50, -1.50]
+    for i, o in zip(vi, vo):
+        assert x(i) == o
+
 def test_scaling():
+    """Validates scaling by checking status-flag propagation, scale/bias conversion behavior."""
     x = Fxp(4.5, scale=2.0, bias=-1.5)
     assert x() == 4.5
     assert x.n_word == 3
@@ -425,6 +471,7 @@ def test_scaling():
     assert x.get_status(str) == ''   
 
 def test_wrap():
+    """Validates wrap by checking overflow/wrap/saturate behavior, status-flag propagation, modular wrap-around behavior."""
     x = Fxp(3.75, False, 4, 2, overflow='wrap')
     assert x() == 3.75
     assert x.status['overflow'] == False
@@ -458,6 +505,7 @@ def test_wrap():
     assert x.status['underflow'] == True
 
 def test_init_by_raw():
+    """Validates init by raw by checking binary representation/interpretation paths, raw fixed-point input/output handling."""
     x = Fxp(16, True, 8, 4, raw=True)
     assert x() == 1.0
 
@@ -468,6 +516,7 @@ def test_init_by_raw():
     assert x() == -0.5
 
 def test_resize():
+    """Validates resize by checking overflow/wrap/saturate behavior, dtype parsing and conversion behavior, modular wrap-around behavior."""
     x = Fxp(12.5, True, 16, 4)
     assert x() == 12.5
 

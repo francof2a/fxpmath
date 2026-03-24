@@ -1,5 +1,4 @@
-"""
-fxpmath
+"""fxpmath
 
 ---
 
@@ -29,16 +28,45 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
+SOFTWARE."""
 
 #%%
 import numpy as np
+import warnings
 from . import _n_word_max
+
+_mixed_complex_bitwise_warned = False
+
+class ComplexBitwiseOperationWarning(UserWarning):
+    """Warning emitted once when mixing complex and non-complex bitwise operands."""
 
 #%% 
 def array_support(func):
+    """Decorate scalar helpers to operate element-wise on arrays.
+    
+    Parameters
+    ---
+    func : Callable
+        Scalar helper function to decorate with array support.
+    
+    Returns
+    ---
+    Callable
+        Decorator wrapper that adds recursive array handling to a scalar helper."""
     def iterator(*args, **kwargs):
+        """Recursively apply the wrapped scalar helper element-wise over array-like inputs.
+        
+        Parameters
+        ---
+        *args : tuple
+            Extra positional arguments forwarded to the wrapped callable.
+        **kwargs : dict
+            Extra keyword arguments forwarded to the underlying NumPy operation.
+        
+        Returns
+        ---
+        object
+            Computed value."""
         if isinstance(args[0], (list, np.ndarray)) and np.asarray(args[0]).ndim > 0:
             vals = []
             for v in args[0]:
@@ -54,6 +82,19 @@ def array_support(func):
 #%%
 @array_support
 def twos_complement_repr(val, nbits):
+    """Convert values to signed two's-complement representation.
+    
+    Parameters
+    ---
+    val : int or numpy.ndarray
+        Input integer value(s).
+    nbits : int
+        Bit width used for two's-complement interpretation.
+    
+    Returns
+    ---
+    int or numpy.ndarray
+        Value represented in signed two's-complement form."""
     if val < 0:
         val = (1 << nbits) + val
     else:
@@ -64,6 +105,23 @@ def twos_complement_repr(val, nbits):
 
 def strbin2int(x, signed=True, n_word=None, return_sizes=False):
 
+    """Convert binary string input into integer values.
+    
+    Parameters
+    ---
+    x : str
+        Binary string to parse (prefix/spaces accepted).
+    signed : bool, optional
+        Whether to interpret the value using signed two's-complement rules.
+    n_word : int, optional
+        Expected word length. When omitted, it is inferred from the string length.
+    return_sizes : bool, optional
+        When `True`, return parsed value together with inferred size metadata.
+    
+    Returns
+    ---
+    int or tuple
+        Parsed integer value, optionally with inferred sizes."""
     x = x.replace('0b', 'b').replace('b', '')       # remove 0b at the begining
     x = x.replace(' ', '').replace('+', '')         # remove spacing and +
 
@@ -103,6 +161,25 @@ def strbin2int(x, signed=True, n_word=None, return_sizes=False):
         return val
 
 def strbin2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
+    """Convert binary string input into floating-point values.
+    
+    Parameters
+    ---
+    x : str
+        Binary fixed-point string to parse.
+    signed : bool, optional
+        Whether to interpret the value using signed two's-complement rules.
+    n_word : int, optional
+        Expected word length.
+    n_frac : int, optional
+        Number of fractional bits; inferred from radix point when omitted.
+    return_sizes : bool, optional
+        When `True`, return parsed value together with inferred size metadata.
+    
+    Returns
+    ---
+    float or tuple
+        Parsed fixed-point value, optionally with inferred sizes."""
     if n_frac is None:
         if '.' in x:
             point_idx = x.find('.')
@@ -124,6 +201,25 @@ def strbin2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
         return val
 
 def strbin2complex(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
+    """Convert binary string input into complex values.
+    
+    Parameters
+    ---
+    x : str
+        Complex binary string in forms like `0b01+0b10j`.
+    signed : bool, optional
+        Whether to interpret components with signed two's-complement rules.
+    n_word : int, optional
+        Expected word length for each component.
+    n_frac : int, optional
+        Number of fractional bits for each component.
+    return_sizes : bool, optional
+        When `True`, return parsed value together with inferred size metadata.
+    
+    Returns
+    ---
+    complex or tuple
+        Parsed complex value, optionally with inferred sizes."""
     x = x.replace(' ', '').replace('+', '|').replace('-', '|-').split('|')
 
     if len(x) == 1  and isinstance(x[0], str) and 'j' in x[0]:
@@ -153,6 +249,23 @@ def strbin2complex(x, signed=True, n_word=None, n_frac=None, return_sizes=False)
 
 
 def strhex2int(x, signed=True, n_word=None, return_sizes=False):
+    """Convert hexadecimal string input into integer values.
+    
+    Parameters
+    ---
+    x : str
+        Hexadecimal string to parse.
+    signed : bool, optional
+        Whether to interpret the value using signed two's-complement rules.
+    n_word : int, optional
+        Expected word length in bits.
+    return_sizes : bool, optional
+        When `True`, return parsed value together with inferred size metadata.
+    
+    Returns
+    ---
+    int or tuple
+        Parsed integer value from hexadecimal input."""
     x = x.replace('0x', '')
     if n_word is None:
         n_word = len(x)*4
@@ -170,6 +283,25 @@ def strhex2int(x, signed=True, n_word=None, return_sizes=False):
         return val
 
 def strhex2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
+    """Convert hexadecimal string input into floating-point values.
+    
+    Parameters
+    ---
+    x : str
+        Hexadecimal fixed-point string to parse.
+    signed : bool, optional
+        Whether to interpret the value using signed two's-complement rules.
+    n_word : int, optional
+        Expected word length in bits.
+    n_frac : int, optional
+        Number of fractional bits used to scale the parsed value.
+    return_sizes : bool, optional
+        When `True`, return parsed value together with inferred size metadata.
+    
+    Returns
+    ---
+    float or tuple
+        Parsed fixed-point value from hexadecimal input."""
     x = x.replace('0x', '')
     if n_word is None:
         n_word = len(x)*4
@@ -187,6 +319,27 @@ def strhex2float(x, signed=True, n_word=None, n_frac=None, return_sizes=False):
         return val
 
 def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=False):
+    """Parse string input into numeric values.
+    
+    Parameters
+    ---
+    x : str, list, numpy.ndarray, or object
+        Input literal(s) to convert to numeric values.
+    signed : bool, optional
+        Signed interpretation used for binary/hex literals.
+    n_word : int, optional
+        Expected word length for binary/hex literals.
+    n_frac : int, optional
+        Fractional-bit width for fixed-point literals.
+    base : int, optional
+        Explicit integer base used for generic string conversion.
+    return_sizes : bool, optional
+        When `True`, include inferred sizing metadata in results.
+    
+    Returns
+    ---
+    number, complex, list, numpy.ndarray, or None
+        Converted numeric value(s) preserving container shape when possible."""
     if isinstance(x, (list, tuple)):
         _signed_max = False
         _n_word_max = None
@@ -252,6 +405,19 @@ def str2num(x, signed=True, n_word=None, n_frac=None, base=10, return_sizes=Fals
         return val
 
 def insert_frac_point(x_bin, n_frac):
+    """Insert a binary point into a bit-string representation at the requested fractional position.
+    
+    Parameters
+    ---
+    x_bin : str
+        Binary digit string without spacing normalization issues.
+    n_frac : int
+        Number of digits placed after the inserted radix point.
+    
+    Returns
+    ---
+    str
+        Input bit string with radix point inserted at requested fractional position."""
     if n_frac is not None:
         x_bin = x_bin.replace('0b', '')
         # sign
@@ -278,6 +444,23 @@ def insert_frac_point(x_bin, n_frac):
 
 @array_support
 def binary_repr(x, n_word=None, n_frac=None, prefix=None):
+    """Return a binary representation string.
+    
+    Parameters
+    ---
+    x : int
+        Integer value to format in binary.
+    n_word : int, optional
+        Minimum word length used for output padding and wrapping.
+    n_frac : int, optional
+        Fractional-bit count used to insert a radix point.
+    prefix : str or None, optional
+        Prefix prepended to each formatted output string.
+    
+    Returns
+    ---
+    str
+        Binary representation string."""
     if n_frac is None:
         val = np.binary_repr(int(x), width=n_word)
     else:
@@ -289,6 +472,25 @@ def binary_repr(x, n_word=None, n_frac=None, prefix=None):
 
 @array_support
 def hex_repr(x, n_word=None, padding=None, base=10, prefix='0x'):
+    """Return a hexadecimal representation string.
+    
+    Parameters
+    ---
+    x : int
+        Integer value to format in hexadecimal.
+    n_word : int, optional
+        Word length used to determine hexadecimal digit padding.
+    padding : int, optional
+        Minimum number of hexadecimal digits in the output.
+    base : int, optional
+        Numeric base, kept for compatibility with shared formatter logic.
+    prefix : str or None, optional
+        Prefix prepended to output (for example `0x`).
+    
+    Returns
+    ---
+    str
+        Hexadecimal representation string."""
     if base == 2:
         x = int(x, 2)
     elif base == 10:
@@ -307,6 +509,23 @@ def hex_repr(x, n_word=None, padding=None, base=10, prefix='0x'):
 
 @array_support
 def base_repr(x, n_word=None, base=2, n_frac=None):
+    """Return a base-N representation string.
+    
+    Parameters
+    ---
+    x : int
+        Integer value to format.
+    n_word : int, optional
+        Word length used when zero-padding binary/hex outputs.
+    base : int, optional
+        Output base (2..36).
+    n_frac : int, optional
+        Fractional-bit count used for radix-point insertion.
+    
+    Returns
+    ---
+    str
+        Base-N representation string."""
     if n_frac is None:
         val = np.base_repr(x, base=base)
     elif base == 2:
@@ -317,6 +536,19 @@ def base_repr(x, n_word=None, base=2, n_frac=None):
 
 @array_support
 def add_binary_prefix(x, prefix='0b'):
+    """Normalize binary strings so they include a `0b` prefix for each component.
+    
+    Parameters
+    ---
+    x : str, list[str], or numpy.ndarray
+        Binary string(s) that may or may not already include a `0b` prefix.
+    prefix : str or None, optional
+        Prefix token inserted ahead of each binary token.
+    
+    Returns
+    ---
+    str or numpy.ndarray
+        Input string(s) with normalized binary prefixes."""
     if isinstance(x, np.ndarray) and x.ndim == 0:
         x = x.item()
 
@@ -340,6 +572,19 @@ def add_binary_prefix(x, prefix='0b'):
     return x
 
 def complex_repr(r, i):
+    """Return a formatted complex representation string.
+    
+    Parameters
+    ---
+    r : str or array_like
+        Real-part string(s) used to build complex literals.
+    i : str or array_like
+        Imaginary-part string(s) used to build complex literals.
+    
+    Returns
+    ---
+    str or numpy.ndarray
+        Complex-number string assembled from real and imaginary parts."""
     r = np.asarray(r)
     i = np.asarray(i)
 
@@ -360,6 +605,19 @@ def complex_repr(r, i):
     return c
 
 def bits_len(x, signed=None):
+    """Return the minimum number of bits required to represent the integer part of a value.
+    
+    Parameters
+    ---
+    x : int
+        Integer value whose required bit width is measured.
+    signed : bool, optional
+        When `True`, include one sign bit in the returned length.
+    
+    Returns
+    ---
+    int
+        Minimum bit width needed to represent the value."""
     if signed is None and x < 0:
         signed = True
     elif signed is None:
@@ -371,6 +629,19 @@ def bits_len(x, signed=None):
     return n_bits
 
 def min_pow2(x, n_frac=0):
+    """Return the smallest exponent `p` such that `2**p >= value` in magnitude.
+    
+    Parameters
+    ---
+    x : float
+        Positive value used to compute floor(log2(x)).
+    n_frac : int, optional
+        Reference fractional scaling, used when values are already quantized.
+    
+    Returns
+    ---
+    int
+        Greatest integer exponent `n` such that `2**n <= x`."""
     _pow = 1
     x = np.array(x)
 
@@ -384,45 +655,216 @@ def min_pow2(x, n_frac=0):
     return _pow
     
 
-@array_support
-def binary_invert(x, n_word=None):
+def _bitwise_infer_n_word(*vals):
+    """Infer bit width for bitwise ops when n_word is omitted."""
+    inferred = 0
+    for val in vals:
+        arr = np.asarray(val)
+        if arr.ndim == 0:
+            inferred = max(inferred, bits_len(arr.item()))
+        elif arr.size > 0:
+            for item in arr.flat:
+                inferred = max(inferred, bits_len(item))
+    return inferred
+
+
+def _bitwise_binary_apply(x, y, n_word, pyop):
+    """Apply a binary bitwise op with NumPy broadcasting semantics."""
     if n_word is None:
-        n_word = bits_len(x)
-    return int((1 << n_word) - 1 - x)
+        n_word = _bitwise_infer_n_word(x, y)
+    n_word = int(n_word)
+    mod = 1 << n_word
 
-@array_support
+    xa = np.asarray(x)
+    ya = np.asarray(y)
+    x_b, y_b = np.broadcast_arrays(xa, ya)
+
+    op = np.frompyfunc(lambda a, b: pyop(int(a) % mod, int(b) % mod), 2, 1)
+    z = np.asarray(op(x_b, y_b), dtype=object)
+
+    if xa.ndim == 0 and ya.ndim == 0:
+        return int(z.item())
+    return z
+
+
+def _bitwise_unary_apply(x, n_word, pyop):
+    """Apply a unary bitwise op over scalar or array inputs."""
+    if n_word is None:
+        n_word = _bitwise_infer_n_word(x)
+    n_word = int(n_word)
+    mod = 1 << n_word
+
+    xa = np.asarray(x)
+    op = np.frompyfunc(lambda a: pyop(int(a) % mod), 1, 1)
+    z = np.asarray(op(xa), dtype=object)
+
+    if xa.ndim == 0:
+        return int(z.item())
+    return z
+
+
+def binary_invert(x, n_word=None):
+    """Apply bitwise NOT with broadcasting-friendly behavior."""
+    if n_word is None:
+        n_word = _bitwise_infer_n_word(x)
+    n_word = int(n_word)
+    mod_minus_one = (1 << n_word) - 1
+    return _bitwise_unary_apply(x, n_word=n_word, pyop=lambda a: mod_minus_one - a)
+
+
 def binary_and(x, y, n_word=None):
-    xm = int(x) % (1 << n_word)
-    ym = int(y) % (1 << n_word)
-    z = xm & ym
-    return z
+    """Apply bitwise AND with NumPy broadcasting semantics."""
+    return _bitwise_binary_apply(x, y, n_word=n_word, pyop=lambda a, b: a & b)
 
-@array_support
+
 def binary_or(x, y, n_word=None):
-    xm = int(x) % (1 << n_word)
-    ym = int(y) % (1 << n_word)
-    z = xm | ym
-    return z
+    """Apply bitwise OR with NumPy broadcasting semantics."""
+    return _bitwise_binary_apply(x, y, n_word=n_word, pyop=lambda a, b: a | b)
 
-@array_support
+
 def binary_xor(x, y, n_word=None):
-    xm = int(x) % (1 << n_word)
-    ym = int(y) % (1 << n_word)
-    z = xm ^ ym
-    return z
+    """Apply bitwise XOR with NumPy broadcasting semantics."""
+    return _bitwise_binary_apply(x, y, n_word=n_word, pyop=lambda a, b: a ^ b)
+
+def is_complex_data(x):
+    """Return True when an operand contains complex values."""
+    return isinstance(x, complex) or np.iscomplexobj(x)
+
+
+def bitwise_result_dtype(base_vdtype, force_complex=False):
+    """Preserve base vdtype unless operation requires complex output."""
+    if force_complex:
+        return complex
+    return base_vdtype
+
+
+def reset_mixed_complex_bitwise_warning_state():
+    """Reset the one-time mixed-complex bitwise warning flag."""
+    global _mixed_complex_bitwise_warned
+    _mixed_complex_bitwise_warned = False
+
+
+def warn_mixed_complex_bitwise_once(stacklevel=2):
+    """Warn once when bitwise ops mix complex and non-complex operands."""
+    global _mixed_complex_bitwise_warned
+    if not _mixed_complex_bitwise_warned:
+        warnings.warn(
+            'Bitwise operation mixed complex and non-complex operands; applying the real operand to both real and imaginary parts.',
+            ComplexBitwiseOperationWarning,
+            stacklevel=stacklevel,
+        )
+        _mixed_complex_bitwise_warned = True
+
+
+def twos_complement_componentwise(val, nbits):
+    """Apply two's-complement conversion to real/imag parts independently."""
+    if is_complex_data(val):
+        real_val = twos_complement_repr(np.real(val), nbits=nbits)
+        imag_val = twos_complement_repr(np.imag(val), nbits=nbits)
+        return real_val + 1j * imag_val
+    return twos_complement_repr(val, nbits=nbits)
+
+
+def binary_invert_componentwise(x, n_word=None):
+    """Apply bitwise invert, including component-wise handling for complex values."""
+    if is_complex_data(x):
+        real_val = binary_invert(np.real(x), n_word=n_word)
+        imag_val = binary_invert(np.imag(x), n_word=n_word)
+        return real_val + 1j * imag_val, True
+
+    return binary_invert(x, n_word=n_word), False
+
+
+def binary_op_componentwise(x, y, op, n_word=None, warn_mixed=True, warning_stacklevel=2):
+    """Apply a binary bitwise op with complex component-wise semantics."""
+    x_is_complex = is_complex_data(x)
+    y_is_complex = is_complex_data(y)
+    force_complex = x_is_complex or y_is_complex
+
+    if not force_complex:
+        return op(x, y, n_word=n_word), False
+
+    if x_is_complex and y_is_complex:
+        left_real = np.real(x)
+        left_imag = np.imag(x)
+        right_real = np.real(y)
+        right_imag = np.imag(y)
+    elif x_is_complex:
+        if warn_mixed:
+            warn_mixed_complex_bitwise_once(stacklevel=warning_stacklevel)
+        left_real = np.real(x)
+        left_imag = np.imag(x)
+        right_real = y
+        right_imag = y
+    else:
+        if warn_mixed:
+            warn_mixed_complex_bitwise_once(stacklevel=warning_stacklevel)
+        left_real = x
+        left_imag = x
+        right_real = np.real(y)
+        right_imag = np.imag(y)
+
+    out_real = op(left_real, right_real, n_word=n_word)
+    out_imag = op(left_imag, right_imag, n_word=n_word)
+    return out_real + 1j * out_imag, True
 
 @np.vectorize
 def clip(x, val_min, val_max):
+    """Clip fixed-point values to minimum and maximum bounds.
+    
+    Parameters
+    ---
+    x : scalar or numpy.ndarray
+        Input value(s) to clip.
+    val_min : scalar
+        Lower clipping bound.
+    val_max : scalar
+        Upper clipping bound.
+    
+    Returns
+    ---
+    scalar or numpy.ndarray
+        Clipped value(s) within [`val_min`, `val_max`]."""
     x_clipped = np.array(max(val_min, min(val_max, x)))
     return x_clipped
 
 @np.vectorize
 def int_clip(x, val_min, val_max):
+    """Clip integer values between minimum and maximum limits.
+    
+    Parameters
+    ---
+    x : int or numpy.ndarray
+        Integer value(s) to clip.
+    val_min : int
+        Lower clipping bound.
+    val_max : int
+        Upper clipping bound.
+    
+    Returns
+    ---
+    int or numpy.ndarray
+        Integer-clipped value(s) within bounds."""
     x_clipped = np.array(max(val_min, min(val_max, int(x))))
     return x_clipped
 
 def wrap(x, signed, n_word):
 
+    """Wrap integers into the representable range using modular arithmetic.
+    
+    Parameters
+    ---
+    x : int or numpy.ndarray
+        Raw integer value(s) to wrap to fixed-point range.
+    signed : bool
+        Whether to wrap to signed or unsigned range.
+    n_word : int
+        Word length that defines wrapping period.
+    
+    Returns
+    ---
+    int or numpy.ndarray
+        Wrapped integer value(s) constrained to fixed-point range."""
     m = (1 << n_word)
     if n_word >= _n_word_max:
         dtype = object
@@ -439,6 +881,17 @@ def wrap(x, signed, n_word):
     return x
 
 def get_sizes_from_dtype(dtype):
+    """Parse dtype notation and return fixed-point size information.
+    
+    Parameters
+    ---
+    dtype : str or None, optional
+        Fixed-point dtype string used for result construction.
+    
+    Returns
+    ---
+    tuple[bool, int, int, int]
+        Parsed `(signed, n_word, n_int, n_frac)` tuple extracted from dtype."""
     if isinstance(dtype, str):
         head, props = dtype.split('-')
         if head == 'fxp':
@@ -477,6 +930,17 @@ def get_sizes_from_dtype(dtype):
 #     return y
 
 def int_array(x):
+    """Convert inputs to integer ndarrays using safe dtypes for large values.
+    
+    Parameters
+    ---
+    x : scalar or array_like
+        Input numeric values to cast to integer storage form.
+    
+    Returns
+    ---
+    int or numpy.ndarray
+        Integer-cast scalar or array."""
     if not isinstance(x, np.ndarray):
         x = np.array(x)
 

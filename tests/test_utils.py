@@ -8,6 +8,7 @@ from fxpmath.utils import *
 import numpy as np
 
 def test_strbin2int():
+    """Validates strbin2int by checking binary representation/interpretation paths."""
     assert strbin2int('0000') == 0
     assert strbin2int('0001') == 1
     assert strbin2int('1000', signed=False) == 8
@@ -24,6 +25,7 @@ def test_strbin2int():
     assert strbin2int('0b1000', n_word=8) == strbin2int('0b1111 1000', n_word=8)
 
 def test_strbin2float():
+    """Validates strbin2float by checking binary representation/interpretation paths."""
     assert strbin2float('0001') == 1.0
     assert strbin2float('0b1000 0000') == -128.0
     assert strbin2float('0b0111 1111') == 127.0
@@ -35,6 +37,7 @@ def test_strbin2float():
     assert strbin2float('000.1', n_frac=4) == 0.5
 
 def test_strbin2complex():
+    """Validates strbin2complex by checking binary representation/interpretation paths, complex fixed-point behavior."""
     assert strbin2complex('0001') == 1.0 + 1j*0
     assert strbin2complex('0b10000000j') == -1j*128.0
     assert strbin2complex('0b01+0b10000000j') == 1.0 - 1j*128.0
@@ -42,6 +45,7 @@ def test_strbin2complex():
     assert strbin2complex('0b1 - 0b1000 0000j', signed=False) == 1.0 - 1j*128.0
 
 def test_strhex2int():
+    """Validates strhex2int by checking hexadecimal parsing/formatting paths."""
     assert strhex2int('0x00') == 0
     assert strhex2int('0x0A') == 10
     assert strhex2int('0x7F') == 127
@@ -53,6 +57,7 @@ def test_strhex2int():
     assert strhex2int('0x100') == 256
 
 def test_strhex2float():
+    """Validates strhex2float by checking hexadecimal parsing/formatting paths."""
     assert strhex2float('0x00') == 0.0
     assert strhex2float('0x0A') == 10.0
     assert strhex2float('0x7F') == 127.0
@@ -69,6 +74,7 @@ def test_strhex2float():
 
 def test_str2num():
     # int
+    """Validates str2num by checking hexadecimal parsing/formatting paths, binary representation/interpretation paths, NumPy interoperability."""
     assert str2num('0') == 0
     assert str2num('10') == 10
     assert str2num('253') == 253
@@ -90,6 +96,7 @@ def test_str2num():
     assert str2num(None) is None
 
 def test_binary_repr():
+    """Verify binary formatter output across padding and fractional-point placement scenarios."""
     assert binary_repr(6, n_word=8) == '00000110'
     assert binary_repr(6, n_word=8, n_frac=3) == '00000.110'
     assert binary_repr(6, n_word=8, n_frac=0) == '00000110.'
@@ -99,6 +106,7 @@ def test_binary_repr():
     assert binary_repr(-1, n_word=4) == '1111'
 
 def test_base_repr():
+    """Verify generic base formatter for positive/negative integers and fractional-point formatting."""
     assert base_repr(6) == '110'
     assert base_repr(6, base=2, n_frac=3) == '.110'
     assert base_repr(6, n_frac=0) == '110.'
@@ -113,6 +121,7 @@ def test_base_repr():
     assert base_repr(-30, base=16) == '-1E'
 
 def test_bits_len():
+    """Verify bit-length helper for positive and negative integers with optional signed-bit accounting."""
     assert bits_len(1) == 1
     assert bits_len(-1) == 1
     assert bits_len(1, signed=True) == 2
@@ -123,6 +132,7 @@ def test_bits_len():
 
 def test_add_binary_prefix():
     # single values
+    """Validates add binary prefix by checking binary representation/interpretation paths, complex fixed-point behavior, NumPy interoperability."""
     assert add_binary_prefix('0') == '0b0'
     assert add_binary_prefix('1') == '0b1'
     assert add_binary_prefix('b0') == '0b0'
@@ -167,6 +177,7 @@ def test_add_binary_prefix():
             assert False
 
 def test_complex_repr():
+    """Validates complex repr by checking complex fixed-point behavior, NumPy interoperability."""
     assert complex_repr('2', '-4.5') == '2-4.5j'
     assert complex_repr('2', '4.5') == '2+4.5j'
     assert complex_repr('-2', '4.5') == '-2+4.5j'
