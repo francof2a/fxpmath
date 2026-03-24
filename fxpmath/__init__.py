@@ -1,4 +1,4 @@
-__version__ = '0.4.10-dev0'
+__version__ = '0.5.0-dev0'
 
 import sys
 import os
@@ -51,7 +51,10 @@ except:
 from . import objects
 from . import functions
 from .objects import (
-    Fxp,
+    Fxp
+)
+
+from .config import (
     Config
 )
 
