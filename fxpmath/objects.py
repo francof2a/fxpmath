@@ -35,6 +35,7 @@ import numpy as np
 import math
 import copy
 import re
+import warnings
 
 from . import utils
 from . import _n_word_max, _max_error
@@ -337,6 +338,16 @@ class Fxp():
     def shape(self):
         """Return the shape of the stored value array."""
         return self.val.shape
+
+    @shape.setter
+    def shape(self, shape):
+        """Set shape in place with a deprecation warning; prefer `reshape` or `reshape_inplace`."""
+        warnings.warn(
+            "Assigning to `shape` is deprecated and may be removed in a future release. Use `reshape()` or `reshape_inplace()` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.reshape_inplace(shape=shape)
 
     @property
     def ndim(self):
@@ -726,8 +737,31 @@ class Fxp():
         ---
         Fxp
             New `Fxp` instance with reshaped underlying values and preserved format/configuration."""
-        
-        self.val = self.val.reshape(shape=shape, order=order)
+
+        x = self.copy()
+        x.reshape_inplace(shape=shape, order=order)
+        return x
+
+    def reshape_inplace(self, shape, order='C'):
+        """Reshape the fixed-point array in place.
+
+        Parameters
+        ---
+        shape : int or tuple[int, ...]
+            Target shape for array reinterpretation.
+        order : {'C', 'F', 'A', 'K'}, optional
+            Memory order used by reshape/flatten operations.
+
+        Returns
+        ---
+        Fxp
+            This instance after reshaping its stored values in place."""
+
+        self.val = self.val.reshape(shape, order=order)
+        if isinstance(self.real, np.ndarray):
+            self.real = self.real.reshape(shape, order=order)
+        if isinstance(self.imag, np.ndarray):
+            self.imag = self.imag.reshape(shape, order=order)
         return self
     
     def flatten(self, order='C'):
