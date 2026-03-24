@@ -344,6 +344,14 @@ def test_arrays():
     assert np.array_equal((x2 ^ m2)(), exp_xor_2d)
     assert np.array_equal((~x2)(), exp_inv_2d)
 
+    # 2D array-vs-array bitwise checks (same shape).
+    m2_arr_data = np.array([[0b11110000, 0b11110000], [0b00001111, 0b00001111]])
+    m2_arr = Fxp(m2_arr_data, signed=False, n_word=8, n_frac=0)
+
+    assert np.array_equal((x2 & m2_arr)(), np.bitwise_and(np.array([[0b00110101, 0b10101100], [0b11110000, 0b00001111]]), m2_arr_data))
+    assert np.array_equal((x2 | m2_arr)(), np.bitwise_or(np.array([[0b00110101, 0b10101100], [0b11110000, 0b00001111]]), m2_arr_data))
+    assert np.array_equal((x2 ^ m2_arr)(), np.bitwise_xor(np.array([[0b00110101, 0b10101100], [0b11110000, 0b00001111]]), m2_arr_data))
+
     # 3D array with scalar masks for multidimensional broadcasting path.
     x3_data = np.arange(8).reshape(2, 2, 2)
     x3 = Fxp(x3_data, signed=False, n_word=4, n_frac=0)
@@ -351,6 +359,13 @@ def test_arrays():
     assert np.array_equal((x3 & 0b0011)(), x3_data & 0b0011)
     assert np.array_equal((x3 | 0b0101)(), x3_data | 0b0101)
     assert np.array_equal((x3 ^ 0b0110)(), x3_data ^ 0b0110)
+
+    m3_data = np.array([[[0b0011], [0b0101]]])
+    m3 = Fxp(m3_data, signed=False, n_word=4, n_frac=0)
+
+    assert np.array_equal((x3 & m3)(), np.bitwise_and(x3_data, m3_data))
+    assert np.array_equal((x3 | m3)(), np.bitwise_or(x3_data, m3_data))
+    assert np.array_equal((x3 ^ m3)(), np.bitwise_xor(x3_data, m3_data))
     assert np.array_equal((~x3)(), ((~x3_data) & 0b1111))
 
 def test_operations_with_combinations():
@@ -582,3 +597,61 @@ def test_abs():
     x = Fxp(3.5, True, 32, 16)
     assert abs(x)() == 3.5
     
+
+def test_bitwise_large_word_scalar_and_arrays():
+    """Validates >64-bit bitwise ops for scalar and array cases across all bitwise operators."""
+    n_word = 80
+    full_mask = (1 << n_word) - 1
+
+    x_val = (1 << 79) + (1 << 40) + 0x12345
+    y_val = (1 << 78) + (1 << 40) + 0x00FF00FF00FF
+    m_val = (1 << 79) + (1 << 12) + 0xAAAA
+
+    x = Fxp(x_val, signed=False, n_word=n_word, n_frac=0)
+    y = Fxp(y_val, signed=False, n_word=n_word, n_frac=0)
+
+    # Scalar Fxp-vs-Fxp
+    assert (x & y)() == (x_val & y_val)
+    assert (x | y)() == (x_val | y_val)
+    assert (x ^ y)() == (x_val ^ y_val)
+    assert (~x)() == (full_mask - x_val)
+
+    # Scalar Fxp-vs-int and reversed int-vs-Fxp paths.
+    assert (x & m_val)() == (x_val & m_val)
+    assert (x | m_val)() == (x_val | m_val)
+    assert (x ^ m_val)() == (x_val ^ m_val)
+    assert (m_val & x)() == (m_val & x_val)
+    assert (m_val | x)() == (m_val | x_val)
+    assert (m_val ^ x)() == (m_val ^ x_val)
+
+    # Array (same-shape) Fxp-vs-Fxp
+    xa_data = np.array(
+        [[x_val, y_val], [full_mask, 0]],
+        dtype=object,
+    )
+    ya_data = np.array(
+        [[m_val, x_val], [y_val, full_mask]],
+        dtype=object,
+    )
+
+    xa = Fxp(xa_data, signed=False, n_word=n_word, n_frac=0)
+    ya = Fxp(ya_data, signed=False, n_word=n_word, n_frac=0)
+
+    and_expected = np.frompyfunc(lambda a, b: a & b, 2, 1)(xa_data, ya_data)
+    or_expected = np.frompyfunc(lambda a, b: a | b, 2, 1)(xa_data, ya_data)
+    xor_expected = np.frompyfunc(lambda a, b: a ^ b, 2, 1)(xa_data, ya_data)
+    inv_expected = np.frompyfunc(lambda a: full_mask - a, 1, 1)(xa_data)
+
+    assert np.array_equal((xa & ya)(), and_expected)
+    assert np.array_equal((xa | ya)(), or_expected)
+    assert np.array_equal((xa ^ ya)(), xor_expected)
+    assert np.array_equal((~xa)(), inv_expected)
+
+    # Array broadcast path (2x2 with 1x2)
+    yb_data = np.array([[m_val, y_val]], dtype=object)
+    yb = Fxp(yb_data, signed=False, n_word=n_word, n_frac=0)
+    yb_broadcast = np.broadcast_to(yb_data, xa_data.shape)
+
+    assert np.array_equal((xa & yb)(), np.frompyfunc(lambda a, b: a & b, 2, 1)(xa_data, yb_broadcast))
+    assert np.array_equal((xa | yb)(), np.frompyfunc(lambda a, b: a | b, 2, 1)(xa_data, yb_broadcast))
+    assert np.array_equal((xa ^ yb)(), np.frompyfunc(lambda a, b: a ^ b, 2, 1)(xa_data, yb_broadcast))

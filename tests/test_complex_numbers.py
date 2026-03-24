@@ -190,6 +190,15 @@ def test_complex_bitwise_diverse_scalar_array_mixed():
     assert np.all(arr_xor() == np.array([2+2j, 0+1j]))
     assert np.all(arr_inv() == np.array([0+2j, 2+1j]))
 
+    b = Fxp(np.array([0b01+0b11*1j, 0b10+0b01*1j]), dtype='fxp-u2/0-complex')
+    arr_arr_and = a & b
+    arr_arr_or = a | b
+    arr_arr_xor = a ^ b
+
+    assert np.all(arr_arr_and() == np.array([1+1j, 0+0j]))
+    assert np.all(arr_arr_or() == np.array([3+3j, 3+3j]))
+    assert np.all(arr_arr_xor() == np.array([2+2j, 3+3j]))
+
     # Size diversity: unsigned fractional complex (u4/1).
     u = Fxp(1.5 + 0.5j, dtype='fxp-u4/1-complex')
     v = Fxp(0.5 + 1.5j, dtype='fxp-u4/1-complex')

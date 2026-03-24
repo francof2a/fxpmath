@@ -655,91 +655,76 @@ def min_pow2(x, n_frac=0):
     return _pow
     
 
-@array_support
-def binary_invert(x, n_word=None):
-    """Apply bitwise NOT to binary strings and preserve the original prefix/sign style.
-    
-    Parameters
-    ---
-    x : int or numpy.ndarray
-        Input value(s) for bitwise inversion.
-    n_word : int, optional
-        Word length used to mask inversion results.
-    
-    Returns
-    ---
-    int or numpy.ndarray
-        Bitwise inversion result masked to `n_word` bits."""
+def _bitwise_infer_n_word(*vals):
+    """Infer bit width for bitwise ops when n_word is omitted."""
+    inferred = 0
+    for val in vals:
+        arr = np.asarray(val)
+        if arr.ndim == 0:
+            inferred = max(inferred, bits_len(arr.item()))
+        elif arr.size > 0:
+            for item in arr.flat:
+                inferred = max(inferred, bits_len(item))
+    return inferred
+
+
+def _bitwise_binary_apply(x, y, n_word, pyop):
+    """Apply a binary bitwise op with NumPy broadcasting semantics."""
     if n_word is None:
-        n_word = bits_len(x)
-    return int((1 << n_word) - 1 - x)
+        n_word = _bitwise_infer_n_word(x, y)
+    n_word = int(n_word)
+    mod = 1 << n_word
 
-@array_support
+    xa = np.asarray(x)
+    ya = np.asarray(y)
+    x_b, y_b = np.broadcast_arrays(xa, ya)
+
+    op = np.frompyfunc(lambda a, b: pyop(int(a) % mod, int(b) % mod), 2, 1)
+    z = np.asarray(op(x_b, y_b), dtype=object)
+
+    if xa.ndim == 0 and ya.ndim == 0:
+        return int(z.item())
+    return z
+
+
+def _bitwise_unary_apply(x, n_word, pyop):
+    """Apply a unary bitwise op over scalar or array inputs."""
+    if n_word is None:
+        n_word = _bitwise_infer_n_word(x)
+    n_word = int(n_word)
+    mod = 1 << n_word
+
+    xa = np.asarray(x)
+    op = np.frompyfunc(lambda a: pyop(int(a) % mod), 1, 1)
+    z = np.asarray(op(xa), dtype=object)
+
+    if xa.ndim == 0:
+        return int(z.item())
+    return z
+
+
+def binary_invert(x, n_word=None):
+    """Apply bitwise NOT with broadcasting-friendly behavior."""
+    if n_word is None:
+        n_word = _bitwise_infer_n_word(x)
+    n_word = int(n_word)
+    mod_minus_one = (1 << n_word) - 1
+    return _bitwise_unary_apply(x, n_word=n_word, pyop=lambda a: mod_minus_one - a)
+
+
 def binary_and(x, y, n_word=None):
-    """Apply bitwise AND to binary strings and preserve representation style.
-    
-    Parameters
-    ---
-    x : int or numpy.ndarray
-        Left operand for bitwise AND.
-    y : int or numpy.ndarray
-        Right operand for bitwise AND.
-    n_word : int, optional
-        Word length used to mask result bits.
-    
-    Returns
-    ---
-    int or numpy.ndarray
-        Bitwise AND result masked to `n_word` bits."""
-    xm = int(x) % (1 << n_word)
-    ym = int(y) % (1 << n_word)
-    z = xm & ym
-    return z
+    """Apply bitwise AND with NumPy broadcasting semantics."""
+    return _bitwise_binary_apply(x, y, n_word=n_word, pyop=lambda a, b: a & b)
 
-@array_support
+
 def binary_or(x, y, n_word=None):
-    """Apply bitwise OR to binary strings and preserve representation style.
-    
-    Parameters
-    ---
-    x : int or numpy.ndarray
-        Left operand for bitwise OR.
-    y : int or numpy.ndarray
-        Right operand for bitwise OR.
-    n_word : int, optional
-        Word length used to mask result bits.
-    
-    Returns
-    ---
-    int or numpy.ndarray
-        Bitwise OR result masked to `n_word` bits."""
-    xm = int(x) % (1 << n_word)
-    ym = int(y) % (1 << n_word)
-    z = xm | ym
-    return z
+    """Apply bitwise OR with NumPy broadcasting semantics."""
+    return _bitwise_binary_apply(x, y, n_word=n_word, pyop=lambda a, b: a | b)
 
-@array_support
+
 def binary_xor(x, y, n_word=None):
-    """Apply bitwise XOR to binary strings and preserve representation style.
-    
-    Parameters
-    ---
-    x : int or numpy.ndarray
-        Left operand for bitwise XOR.
-    y : int or numpy.ndarray
-        Right operand for bitwise XOR.
-    n_word : int, optional
-        Word length used to mask result bits.
-    
-    Returns
-    ---
-    int or numpy.ndarray
-        Bitwise XOR result masked to `n_word` bits."""
-    xm = int(x) % (1 << n_word)
-    ym = int(y) % (1 << n_word)
-    z = xm ^ ym
-    return z
-
+    """Apply bitwise XOR with NumPy broadcasting semantics."""
+    return _bitwise_binary_apply(x, y, n_word=n_word, pyop=lambda a, b: a ^ b)
 
 def is_complex_data(x):
     """Return True when an operand contains complex values."""
