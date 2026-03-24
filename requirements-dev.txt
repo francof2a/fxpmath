@@ -2,3 +2,5 @@
 pytest
 packaging
 flake8
+
+tomli; python_version < '3.11'

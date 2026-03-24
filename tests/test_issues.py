@@ -9,7 +9,10 @@ import fxpmath.utils as fxp_utils
 
 import numpy as np
 import pathlib
-import tomllib
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 import warnings
 
 def test_issue_9_v0_3_6():
