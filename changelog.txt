@@ -17,6 +17,11 @@ version 0.5.0-dev0
 * Fix scalar integer casting after repeated in-place increments by using scalar-safe int conversion in `astype` and object-cast `set_val` paths (issue #98).
 * Add regression test for repeated `int()` casting across 32-bit and 64-bit Linux sizing paths (`tests/test_issues.py::test_issue_98_v0_4_9`).
 * Cleanup development plan tracking by removing duplicated #86 rounding status entry to keep roadmap state unambiguous.
+* Define complex bitwise semantics and implement issue #55 behavior: mixed complex/non-complex operands now warn once and apply the real operand to both real and imaginary parts; complex/complex applies part-wise bitwise operations.
+* Refactor bitwise internals in `utils.py` to support array-vs-array operands with NumPy broadcasting semantics for `&`, `|`, `^`, and `~`.
+* Keep issue #55 regression minimal in `tests/test_issues.py` and move broad behavior coverage to a dedicated complex bitwise test in `tests/test_complex_numbers.py`.
+* Expand bitwise operator coverage in `tests/test_operators.py` for multidimensional arrays (2D/3D), array-vs-array and broadcast paths, and scalar-mask combinations.
+* Add >64-bit regression coverage for all bitwise operators across scalar, same-shape array, and broadcasted array cases.
 
 version 0.4.8
 --------------------------------------------------
