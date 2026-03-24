@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose a new feature or API improvement.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea.
+        Please describe the problem first, then the proposed solution.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve?
+      placeholder: Describe the user/developer pain point.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should be added or changed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternatives or workarounds you evaluated?
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact and compatibility
+      description: API impact, backward compatibility, performance, or docs/testing implications.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked existing issues/discussions for duplicates.
+          required: true
+        - label: I can help with implementation or validation.
+          required: false

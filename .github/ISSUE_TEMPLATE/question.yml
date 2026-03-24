@@ -1,0 +1,31 @@
+name: Question / support
+description: Ask a usage or design question.
+title: "[Question]: "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For broader conversations, GitHub Discussions is preferred.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What do you need help understanding?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Include code, current behavior, and what you've already tried.
+      render: python
+
+  - type: input
+    id: version
+    attributes:
+      label: fxpmath version (if relevant)
+      placeholder: e.g. 0.4.10

@@ -1,6 +1,17 @@
 
 # How to contribute to fxpmath
 
+## Templates
+
+Use GitHub templates when opening issues and pull requests:
+
+- Bug reports: `.github/ISSUE_TEMPLATE/bug_report.yml`
+- Feature requests: `.github/ISSUE_TEMPLATE/feature_request.yml`
+- Questions/support: `.github/ISSUE_TEMPLATE/question.yml`
+- Pull requests: `.github/pull_request_template.md`
+
+If your topic is exploratory or design-heavy, prefer [Discussions](https://github.com/francof2a/fxpmath/discussions) first.
+
 ## **Bugs**
 
 * **Ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/francof2a/fxpmath/issues).
