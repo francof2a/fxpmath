@@ -1,14 +1,5 @@
-version 0.5.0-dev0
+version 0.4.10
 --------------------------------------------------
-* Fix wrap fuction over n_word_max (issue #41).
-* Inaccuracy flag is propagated to a new Fxp or resulting Fxp if one or more input Fxp are inaccurate (issue #48).
-* New `from_bin` method and function. Set value or create new Fxp from a binary string (issue #49).
-* Support to complex binary strings as input format.
-* Force to `config.op_input_size='best'` when power operation has an constant operator (non-Fxp). Add warning message. (issue #89).
-* Selection of `prefix` for binary and hexadecimal representations.
-* Fix `cumsum` function bug when dealing with sizes bigger than 32 bits (windows) / 64 bits (linux) (issue #76).
-* Fix `numpy.reshape` function handling. This function was returning optimal size instead of same by default (issue #77).
-* Fix negative number parsing in `dtype` string (issue #80).
 * Modernize packaging to PEP 517/PEP 621 using `pyproject.toml` as canonical metadata source (issue #79).
 * Add dynamic versioning from `fxpmath.__version__` and setuptools package discovery via `find`.
 * Add installation smoke test suite in `tests/test_installation.py` that creates an isolated virtual environment, installs from source, and verifies import path/version.
@@ -26,6 +17,18 @@ version 0.5.0-dev0
 * Add `Fxp.reshape_inplace(shape, order='C')` as the explicit in-place reshape API.
 * Deprecate `Fxp.shape = ...` assignment with `DeprecationWarning`; use `reshape()` or `reshape_inplace()` instead.
 * Improve reshape compatibility by using positional ndarray reshape arguments across NumPy versions.
+
+version 0.4.9
+--------------------------------------------------
+* Fix wrap fuction over n_word_max (issue #41).
+* Inaccuracy flag is propagated to a new Fxp or resulting Fxp if one or more input Fxp are inaccurate (issue #48).
+* New `from_bin` method and function. Set value or create new Fxp from a binary string (issue #49).
+* Support to complex binary strings as input format.
+* Force to `config.op_input_size='best'` when power operation has an constant operator (non-Fxp). Add warning message. (issue #89).
+* Selection of `prefix` for binary and hexadecimal representations.
+* Fix `cumsum` function bug when dealing with sizes bigger than 32 bits (windows) / 64 bits (linux) (issue #76).
+* Fix `numpy.reshape` function handling. This function was returning optimal size instead of same by default (issue #77).
+* Fix negative number parsing in `dtype` string (issue #80).
 
 version 0.4.8
 --------------------------------------------------
