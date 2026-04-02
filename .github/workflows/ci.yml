@@ -14,8 +14,11 @@ permissions:
   contents: read
 
 jobs:
-  lint-and-test:
-    name: Lint and test (Python ${{ matrix.python-version }}, NumPy ${{ matrix.numpy-version }}, ${{ matrix.os }})
+  # Stable gate job names below are intended for branch protection required checks:
+  # - Required NumPy compatibility
+  # - Required installation smoke
+  numpy-compatibility-matrix:
+    name: NumPy compatibility matrix (Python ${{ matrix.python-version }}, NumPy ${{ matrix.numpy-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
@@ -45,17 +48,149 @@ jobs:
           cache: pip
 
       - name: Install dependencies
+        shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-          pip install "numpy==${{ matrix.numpy-version }}"
-          pip install flake8 pytest
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+          python -m pip install "numpy==${{ matrix.numpy-version }}"
+          python -m pip install flake8 pytest
+          mkdir -p reports
 
-      - name: Lint
+      - name: Lint fatal checks
+        shell: bash
         run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          set -o pipefail
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics | tee reports/flake8-fatal.txt
 
-      - name: Test
-        run: pytest -q
+      - name: Lint report
+        shell: bash
+        run: |
+          set -o pipefail
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics | tee reports/flake8-report.txt
+
+      - name: Test suite
+        shell: bash
+        run: |
+          set -o pipefail
+          pytest -q | tee reports/pytest.txt
+
+      - name: Build job summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY' > reports/summary.md
+          import sys
+          import numpy
+          import fxpmath
+
+          print('# CI summary')
+          print('')
+          print(f'- OS: ${{ matrix.os }}')
+          print(f'- Python: {sys.version.split()[0]}')
+          print(f'- NumPy: {numpy.__version__}')
+          print(f'- fxpmath: {fxpmath.__version__}')
+          print(f'- Matrix target NumPy: ${{ matrix.numpy-version }}')
+          PY
+          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload CI reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-reports-${{ matrix.os }}-py${{ matrix.python-version }}-np${{ matrix.numpy-version }}
+          path: reports/
+          if-no-files-found: error
+          retention-days: 14
+
+  required-numpy-compatibility:
+    name: Required NumPy compatibility
+    runs-on: ubuntu-24.04
+    if: always()
+    needs: [numpy-compatibility-matrix]
+    steps:
+      - name: Enforce compatibility matrix success
+        shell: bash
+        run: |
+          if [ "${{ needs.numpy-compatibility-matrix.result }}" != "success" ]; then
+            echo "NumPy compatibility matrix result: ${{ needs.numpy-compatibility-matrix.result }}"
+            exit 1
+          fi
+          echo "NumPy compatibility matrix completed successfully."
+
+  installation-smoke:
+    name: Installation smoke (Python 3.12, NumPy ${{ matrix.numpy-version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        numpy-version: ["1.26.4", "2.4.3"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+          python -m pip install "numpy==${{ matrix.numpy-version }}"
+          mkdir -p reports
+
+      - name: Run installation smoke suite
+        shell: bash
+        run: |
+          set -o pipefail
+          pytest -q tests/test_installation.py | tee reports/pytest-installation.txt
+
+      - name: Build job summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY' > reports/summary.md
+          import sys
+          import numpy
+          import fxpmath
+
+          print('# Installation smoke summary')
+          print('')
+          print('- OS: ubuntu-24.04')
+          print(f'- Python: {sys.version.split()[0]}')
+          print(f'- NumPy: {numpy.__version__}')
+          print(f'- fxpmath: {fxpmath.__version__}')
+          print(f'- Matrix target NumPy: ${{ matrix.numpy-version }}')
+          PY
+          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload installation smoke reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installation-smoke-py3.12-np${{ matrix.numpy-version }}
+          path: reports/
+          if-no-files-found: error
+          retention-days: 14
+
+  required-installation-smoke:
+    name: Required installation smoke
+    runs-on: ubuntu-24.04
+    if: always()
+    needs: [installation-smoke]
+    steps:
+      - name: Enforce installation smoke success
+        shell: bash
+        run: |
+          if [ "${{ needs.installation-smoke.result }}" != "success" ]; then
+            echo "Installation smoke result: ${{ needs.installation-smoke.result }}"
+            exit 1
+          fi
+          echo "Installation smoke suite completed successfully."

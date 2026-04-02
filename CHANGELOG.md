@@ -37,6 +37,8 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 
 ### Validation
 - Validated targeted compatibility test groups on NumPy `1.26.4` and latest `2.x`.
+- Added stable CI gate jobs for required NumPy compatibility and installation smoke checks, plus artifact uploads for lint/test traceability.
+- Added a scheduled nightly workflow against NumPy pre-release wheels.
 - Ran the full suite successfully on the primary environment (`141 passed, 1 warning`).
 
 ## [0.4.10]

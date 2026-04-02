@@ -1,0 +1,85 @@
+name: Nightly NumPy Pre-release
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-numpy-prerelease-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  numpy-prerelease:
+    name: NumPy pre-release (Python 3.12, ubuntu-24.04)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies and NumPy pre-release wheels
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python -m pip install --upgrade --pre --only-binary=:all: \
+            --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple \
+            numpy
+          mkdir -p reports
+
+      - name: Verify pre-release NumPy is installed
+        shell: bash
+        run: |
+          python - <<'PY' | tee reports/numpy-version.txt
+          from packaging.version import Version
+          import numpy
+
+          version = Version(numpy.__version__)
+          print(numpy.__version__)
+          if not (version.is_prerelease or version.is_devrelease):
+              raise SystemExit(f'Expected a NumPy pre-release or nightly wheel, got {numpy.__version__}')
+          PY
+
+      - name: Run nightly test suite
+        shell: bash
+        run: |
+          set -o pipefail
+          pytest -q | tee reports/pytest.txt
+
+      - name: Build nightly summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY' > reports/summary.md
+          import sys
+          import numpy
+          import fxpmath
+
+          print('# Nightly NumPy pre-release summary')
+          print('')
+          print('- OS: ubuntu-24.04')
+          print(f'- Python: {sys.version.split()[0]}')
+          print(f'- NumPy: {numpy.__version__}')
+          print(f'- fxpmath: {fxpmath.__version__}')
+          PY
+          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload nightly reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-numpy-prerelease-reports
+          path: reports/
+          if-no-files-found: error
+          retention-days: 14
