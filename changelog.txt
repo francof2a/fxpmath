@@ -1,3 +1,13 @@
+version 0.5.0
+--------------------------------------------------
+* Internal module reorganization started for 0.5.0 with a new `fxpmath/operators/` package split by responsibility: `core`, `arithmetic`, `reduction`, and `array`.
+* Convert `fxpmath/functions.py` into a backward-compatible public facade that re-exports operator functions from `fxpmath.operators`.
+* Convert monolithic `fxpmath/utils.py` into a package-based layout under `fxpmath/utils/` with domain modules: `common`, `parse`, `repr`, `bitwise`, and `numeric`.
+* Preserve compatibility for `from fxpmath import utils` and existing utility symbol access through `fxpmath.utils.__init__` re-exports.
+* Extract `Config` class from `fxpmath/objects.py` into new `fxpmath/config.py` module to reduce object-module concentration and improve maintainability.
+* Preserve compatibility for public imports: `from fxpmath import Config` and `from fxpmath.objects import Config`.
+* Keep NumPy dispatch registrations and public operation signatures stable during reorganization.
+
 version 0.4.10
 --------------------------------------------------
 * Modernize packaging to PEP 517/PEP 621 using `pyproject.toml` as canonical metadata source (issue #79).
