@@ -1,5 +1,12 @@
 version 0.5.0
 --------------------------------------------------
+* Normalize `out=...` handling across operator helpers so NumPy ellipsis is treated as an omitted output argument.
+* Keep strict `Fxp`-only `out` contract for fxpmath-managed dispatch and raise explicit errors for invalid `out`/`out_like` types.
+* Update `_wrapped_numpy_func` output routing to make `__array_ufunc__` and `__array_function__` paths consistent for `out`/`out_like`.
+* Modernize NumPy protocol hooks: `Fxp.__array__` now supports NumPy 2.x `dtype`/`copy` while keeping legacy positional argument compatibility.
+* Remove legacy `__array_prepare__` hook and extend `Fxp.__array_wrap__` signature with `return_scalar` support for NumPy 2.x compatibility.
+* Add focused feature tests for `out=...`, scalar/0-D output paths, strict error behavior, and array protocol compatibility in `tests/test_numpy_functions.py` and `tests/test_functions.py`.
+* Validate targeted compatibility test group on NumPy `1.26.4` and latest `2.x`, plus full suite on latest (`134 passed, 1 warning`).
 * Internal module reorganization started for 0.5.0 with a new `fxpmath/operators/` package split by responsibility: `core`, `arithmetic`, `reduction`, and `array`.
 * Convert `fxpmath/functions.py` into a backward-compatible public facade that re-exports operator functions from `fxpmath.operators`.
 * Convert monolithic `fxpmath/utils.py` into a package-based layout under `fxpmath/utils/` with domain modules: `common`, `parse`, `repr`, `bitwise`, and `numeric`.

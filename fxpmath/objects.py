@@ -1425,71 +1425,83 @@ class Fxp():
 
     # numpy array representation - numpy hooks
     
-    def __array__(self, *args, **kwargs):
+    def __array__(self, *args, dtype=None, copy=None, **kwargs):
         """Convert the represented value to a NumPy array.
-        
+
         Parameters
         ---
         *args : tuple
-            Positional arguments passed to wrapped NumPy handlers.
+            Legacy positional arguments accepted for backward compatibility.
+            The first positional argument maps to `dtype`, and the second to
+            `copy` when these are not explicitly provided.
+        dtype : numpy.dtype or str or None, optional
+            Desired NumPy dtype for conversion.
+        copy : bool or None, optional
+            Copy policy compatible with NumPy 2.x array protocol expectations.
         **kwargs : dict
-            Extra keyword arguments propagated to lower-level conversion or NumPy handlers.
-        
+            Legacy keyword arguments forwarded to NumPy array constructors when
+            applicable (for example, `order` or `like`).
+
         Returns
         ---
         numpy.ndarray
             NumPy array view/copy of represented values."""
-        if self.config.array_op_method == 'raw':
-            return np.asarray(self.val, *args, **kwargs)
-        else:
-            return np.asarray(self.get_val(), *args, **kwargs)
-    
-    def __array_wrap__(self, out_arr, context=None):
-        """Wrap NumPy ufunc outputs back into `Fxp` when required.
-        
+        source = self.val if self.config.array_op_method == 'raw' else self.get_val()
+
+        passthrough_args = args
+        if len(passthrough_args) > 0 and dtype is None:
+            dtype = passthrough_args[0]
+            passthrough_args = passthrough_args[1:]
+
+        if len(passthrough_args) > 0 and copy is None:
+            copy = passthrough_args[0]
+            passthrough_args = passthrough_args[1:]
+
+        if copy is None:
+            return np.asarray(source, *passthrough_args, dtype=dtype, **kwargs)
+
+        if copy is True:
+            return np.array(source, *passthrough_args, dtype=dtype, copy=True, **kwargs)
+
+        if copy is False:
+            source_arr = np.asarray(source, *passthrough_args, **kwargs)
+
+            if dtype is not None and source_arr.dtype != np.dtype(dtype):
+                raise ValueError('Unable to avoid copy while creating an array as requested.')
+
+            return source_arr
+
+        raise TypeError('`copy` must be one of: None, True, or False.')
+
+    def __array_wrap__(self, out_arr, context=None, return_scalar=False):
+        """Wrap NumPy ufunc outputs back into Fxp when required.
+
         Parameters
         ---
         out_arr : numpy.ndarray
             Array produced by NumPy ufunc machinery before wrapping.
         context : tuple or None, optional
             NumPy array protocol context tuple.
-        
+        return_scalar : bool, optional
+            NumPy 2.x flag indicating whether NumPy would return a scalar.
+
         Returns
         ---
-        Fxp or numpy.ndarray
+        Fxp or numpy.ndarray or scalar
             Wrapped output according to NumPy protocol and fxpmath output rules."""
         raw = True if self.config.array_op_method == 'raw' else False
 
         if self.config.array_output_type == 'fxp':
             if self.config.array_op_out is not None:
                 return self.config.array_op_out.set_val(out_arr, raw=raw)
-            elif self.config.array_op_out_like is not None:
+            if self.config.array_op_out_like is not None:
                 return self.__class__(out_arr, like=self.config.array_op_out_like, raw=raw)
-            else:
-                return self.__class__(out_arr)
-        else:
-            return out_arr
+            return self.__class__(out_arr)
 
-    def __array_prepare__(self, context=None, *args, **kwargs):
-        """Prepare NumPy ufunc outputs before computation.
-        
-        Parameters
-        ---
-        context : tuple or None, optional
-            NumPy array protocol context tuple.
-        *args : tuple
-            Positional arguments passed to wrapped NumPy handlers.
-        **kwargs : dict
-            Extra keyword arguments propagated to lower-level conversion or NumPy handlers.
-        
-        Returns
-        ---
-        numpy.ndarray
-            Prepared output array passed to NumPy ufunc execution."""
-        if self.config.array_op_method == 'raw':
-            return np.asarray(self.val, *args, **kwargs)
-        else:
-            return np.asarray(self.get_val(), *args, **kwargs)
+        if return_scalar:
+            return np.asarray(out_arr)[()]
+
+        return out_arr
 
     def __array_finalize__(self, obj):
         """Finalize metadata after NumPy creates array views.
@@ -2438,27 +2450,43 @@ class Fxp():
             Normalized result of a wrapped NumPy-compatible function."""
         args = [np.asarray(arg) if isinstance(arg, self.__class__) else arg for arg in args]
 
-        # out parameter extraction if Fxp
+        # out parameter extraction for fxpmath-managed output routing
         out = None
         if 'out' in kwargs:
-            if isinstance(kwargs['out'], self.__class__):
-                out = kwargs.pop('out', None)
-            elif (isinstance(kwargs['out'], tuple) and isinstance(kwargs['out'][0], self.__class__)):
-                out = kwargs.pop('out', None)[0]
-            else:
-                out = None
-                kwargs.pop('out')
+            out_kwarg = kwargs.pop('out')
 
-        # out parameter extraction if Fxp
+            if out_kwarg is Ellipsis:
+                out = None
+            elif isinstance(out_kwarg, self.__class__):
+                out = out_kwarg
+            elif isinstance(out_kwarg, tuple):
+                if len(out_kwarg) == 0 or out_kwarg[0] is Ellipsis:
+                    out = None
+                elif isinstance(out_kwarg[0], self.__class__):
+                    out = out_kwarg[0]
+                else:
+                    raise TypeError('`out` must be a Fxp object!')
+            else:
+                raise TypeError('`out` must be a Fxp object!')
+
+        # out_like parameter extraction for fxpmath-managed output routing
         out_like = None
         if 'out_like' in kwargs:
-            if isinstance(kwargs['out_like'], self.__class__):
-                out_like = kwargs.pop('out_like', None)
-            elif (isinstance(kwargs['out_like'], tuple) and isinstance(kwargs['out_like'][0], self.__class__)):
-                out_like = kwargs.pop('out_like', None)
-            else:
+            out_like_kwarg = kwargs.pop('out_like')
+
+            if out_like_kwarg is Ellipsis:
                 out_like = None
-                kwargs.pop('out_like')
+            elif isinstance(out_like_kwarg, self.__class__):
+                out_like = out_like_kwarg
+            elif isinstance(out_like_kwarg, tuple):
+                if len(out_like_kwarg) == 0 or out_like_kwarg[0] is Ellipsis:
+                    out_like = None
+                elif isinstance(out_like_kwarg[0], self.__class__):
+                    out_like = out_like_kwarg[0]
+                else:
+                    raise TypeError('`out_like` must be a Fxp object!')
+            else:
+                raise TypeError('`out_like` must be a Fxp object!')
 
         # get function if a method is specified
         if 'method' in kwargs  and isinstance (kwargs['method'], str):

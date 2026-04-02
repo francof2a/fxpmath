@@ -7,6 +7,7 @@ from fxpmath.utils import *
 from fxpmath.functions import *
 
 import numpy as np
+import pytest
 
 def test_fxp_sum():
     """Validates fxp sum by checking NumPy reduction interoperability, NumPy interoperability, dtype parsing and conversion behavior."""
@@ -122,3 +123,51 @@ def test_boundary_precision_scaling_in_raw_functions():
     y = np.dot(x, Fxp(np.array([1.0, 1.0, 1.0]), signed=True, n_word=16, n_frac=0), out=Fxp(None, signed=True, n_word=96, n_frac=n_frac))
     assert y() == 2.0
     
+
+
+def test_functions_out_ellipsis_add():
+    """Validates fxpmath add by checking out=... compatibility."""
+    x = Fxp([1, 2, 3], True, 16, 0)
+    y = fxp.add(x, 2, out=...)
+
+    assert isinstance(y, Fxp)
+    assert np.all(y() == np.array([3, 4, 5]))
+
+
+def test_functions_out_ellipsis_sum():
+    """Validates fxpmath sum by checking out=... compatibility."""
+    x = Fxp([1, 2, 3], True, 16, 0)
+    y = fxp.sum(x, out=...)
+
+    assert isinstance(y, Fxp)
+    assert y() == 6
+
+
+def test_functions_out_ellipsis_dot():
+    """Validates fxpmath dot by checking out=... compatibility."""
+    x = Fxp([1, 2, 3], True, 16, 0)
+    z = Fxp([1, 1, 1], True, 16, 0)
+    y = fxp.dot(x, z, out=...)
+
+    assert isinstance(y, Fxp)
+    assert y() == 6
+
+
+def test_functions_out_ellipsis_with_out_like():
+    """Validates fxpmath add by checking out=... falls back to out_like."""
+    x = Fxp([1, 2, 3], True, 16, 0)
+    like_ref = Fxp(None, True, 24, 8)
+    y = fxp.add(x, 2, out=..., out_like=like_ref)
+
+    assert isinstance(y, Fxp)
+    assert y.n_frac == like_ref.n_frac
+    assert y.n_int == like_ref.n_int
+    assert np.all(y() == np.array([3, 4, 5]))
+
+
+def test_functions_out_invalid_type_raises_typeerror():
+    """Validates fxpmath add by checking invalid out type raises TypeError."""
+    x = Fxp([1, 2, 3], True, 16, 0)
+
+    with pytest.raises(TypeError, match='`out` must be a Fxp object!'):
+        fxp.add(x, 2, out=np.empty(3, dtype=float))
