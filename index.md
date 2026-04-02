@@ -24,4 +24,5 @@ Some key features:
 - [quick start](docs/quick_start)
 - [generalized sizing](docs/generalized_sizing)
 - [behavioral configuration](docs/config)
+- [compatibility notes](docs/compatibility_notes)
 

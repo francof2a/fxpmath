@@ -1,5 +1,12 @@
 version 0.5.0
 --------------------------------------------------
+* Remove default import-time mutation of `NUMPY_EXPERIMENTAL_ARRAY_FUNCTION` and fix its env parsing bug.
+* Add isolated import regression coverage to verify `import fxpmath` preserves absent, `0`, and `1` env states for `NUMPY_EXPERIMENTAL_ARRAY_FUNCTION`.
+* Add mixed-input NumPy divide regression coverage and explicit dispatch tests for `out_like` and invalid kwargs behavior.
+* Narrow fallback conversion retries in `_wrapped_numpy_func` so unsupported kwargs raise cleanly instead of being retried through implicit coercion.
+* Define support policy for Python `3.9`-`3.14` and NumPy `1.26.4` to `<3` in packaging metadata and dependency files.
+* Expand CI and release-gate workflows with explicit NumPy compatibility matrix lanes for `1.26.4` and latest `2.x` across valid Python versions.
+* Document supported Python/NumPy ranges and finalized NumPy dispatch `out` behavior in the README.
 * Normalize `out=...` handling across operator helpers so NumPy ellipsis is treated as an omitted output argument.
 * Keep strict `Fxp`-only `out` contract for fxpmath-managed dispatch and raise explicit errors for invalid `out`/`out_like` types.
 * Update `_wrapped_numpy_func` output routing to make `__array_ufunc__` and `__array_function__` paths consistent for `out`/`out_like`.

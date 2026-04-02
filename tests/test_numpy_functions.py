@@ -327,3 +327,40 @@ def test_numpy_array_protocol_legacy_array_args_backward_compatibility():
     arr_legacy = x.__array__(np.float64)
     assert arr_legacy.dtype == np.float64
     assert np.all(arr_legacy == np.array([1.0, 2.0, 3.0]))
+
+
+
+def test_numpy_divide_mixed_input_regression():
+    """Validates mixed-input NumPy divide dispatch regression coverage."""
+    nx = np.asarray([2.0, 4.0, 8.0])
+    fy = Fxp([1.0, 2.0, 4.0], True, 16, 4)
+
+    z = np.divide(nx, fy)
+
+    assert isinstance(z, Fxp)
+    assert np.all(z() == np.array([2.0, 2.0, 2.0]))
+
+
+def test_numpy_out_like_sum_dispatch_raises_typeerror():
+    """Validates NumPy sum dispatch by checking fxpmath-only kwargs fail explicitly."""
+    x = Fxp([1, 2, 3], True, 16, 0)
+    like_ref = Fxp(None, True, 24, 4)
+
+    with pytest.raises(TypeError):
+        np.sum(x, out_like=like_ref)
+
+
+def test_numpy_invalid_kwarg_raises_typeerror_sum_dispatch():
+    """Validates handled NumPy dispatch by checking unknown kwargs raise TypeError."""
+    x = Fxp([1, 2, 3], True, 16, 0)
+
+    with pytest.raises(TypeError):
+        np.sum(x, unsupported_kw=True)
+
+
+def test_numpy_invalid_kwarg_raises_typeerror_mean_fallback():
+    """Validates NumPy fallback dispatch by checking unknown kwargs raise TypeError."""
+    x = Fxp([1, 2, 3], True, 16, 0)
+
+    with pytest.raises(TypeError):
+        np.mean(x, unsupported_kw=True)

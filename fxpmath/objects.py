@@ -2496,21 +2496,24 @@ class Fxp():
         # calculate (call original numpy function)
         try:
             val = func(*args, **kwargs)
-        except TypeError:
-            # call function converting args to float type (this is because numpy issue about pass object type to ufunc)
-            # args = [arg.astype(float) if isinstance(arg, np.ndarray) else arg for arg in args]
+        except TypeError as exc:
+            # Retry with numeric dtypes only when NumPy rejects object-dtype arrays.
+            if not any(isinstance(arg, np.ndarray) for arg in args):
+                raise
 
             args_converted = []
             for arg in args:
                 if isinstance(arg, np.ndarray):
-                    if isinstance(arg.item(0), complex):
+                    if np.iscomplexobj(arg):
                         args_converted.append(arg.astype(complex))
                     else:
                         args_converted.append(arg.astype(float))
                 else:
                     args_converted.append(arg)
-            # call func
-            val = func(*args_converted, **kwargs)
+            try:
+                val = func(*args_converted, **kwargs)
+            except TypeError:
+                raise exc
 
         if out is not None:
             return out(val)
