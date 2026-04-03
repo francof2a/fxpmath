@@ -5,6 +5,16 @@ import numpy as np
 from ..objects import Fxp
 from .. import utils
 from ..helpers import _cast_func, _use_object_cast
+
+
+def _normalize_out_arg(out):
+    """Normalize out so NumPy ellipsis sentinel behaves like an omitted argument."""
+    if isinstance(out, tuple):
+        out = out[0] if len(out) > 0 else None
+
+    return None if out is Ellipsis else out
+
+
 def _get_sizing(vars, sizing, method, optimal_size=None):
         """Resolve output signedness and size parameters for an operation.
         
@@ -96,9 +106,9 @@ def _function_over_one_var(repr_func, raw_func, x, out=None, out_like=None, sizi
 
     signed, _, n_int, n_frac = _get_sizing([x], sizing=sizing, method=method, optimal_size=optimal_size)
 
+    out = _normalize_out_arg(out)
+
     if out is not None:
-        if isinstance(out, tuple):
-            out = out[0] # recover only firts element
         if not isinstance(out, Fxp):
             raise TypeError('`out` must be a Fxp object!')
         if not out.signed and signed:
@@ -177,9 +187,9 @@ def _function_over_two_vars(repr_func, raw_func, x, y, out=None, out_like=None, 
 
     signed, _, n_int, n_frac = _get_sizing([x, y], sizing=sizing, method=method, optimal_size=optimal_size)
 
+    out = _normalize_out_arg(out)
+
     if out is not None:
-        if isinstance(out, tuple):
-            out = out[0] # recover only firts element
         if not isinstance(out, Fxp):
             raise TypeError('`out` must be a Fxp object!')
         if not out.signed and signed:

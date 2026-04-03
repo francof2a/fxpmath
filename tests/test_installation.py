@@ -19,6 +19,67 @@ def _source_version(repo_root: Path) -> str:
     return match.group(1)
 
 
+def _create_installed_venv(tmp_path: Path, repo_root: Path) -> Path:
+    venv_dir = tmp_path / "install-venv"
+    subprocess.run(
+        [sys.executable, "-m", "venv", str(venv_dir)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    venv_python = _venv_python(venv_dir)
+
+    install = subprocess.run(
+        [str(venv_python), "-m", "pip", "install", str(repo_root)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=str(tmp_path),
+    )
+    assert install.returncode == 0, (
+        "pip install from source failed\n"
+        f"stdout:\n{install.stdout}\n"
+        f"stderr:\n{install.stderr}"
+    )
+
+    return venv_python
+
+
+def _run_import_probe(venv_python: Path, tmp_path: Path, env_value):
+    env = os.environ.copy()
+    if env_value is None:
+        env.pop("NUMPY_EXPERIMENTAL_ARRAY_FUNCTION", None)
+    else:
+        env["NUMPY_EXPERIMENTAL_ARRAY_FUNCTION"] = env_value
+
+    probe = subprocess.run(
+        [
+            str(venv_python),
+            "-c",
+            (
+                "import os; "
+                "before = os.environ.get('NUMPY_EXPERIMENTAL_ARRAY_FUNCTION'); "
+                "import fxpmath; "
+                "after = os.environ.get('NUMPY_EXPERIMENTAL_ARRAY_FUNCTION'); "
+                "print('before=' + str(before)); "
+                "print('after=' + str(after));"
+            ),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=str(tmp_path),
+        env=env,
+    )
+    assert probe.returncode == 0, (
+        "Import env probe failed\n"
+        f"stdout:\n{probe.stdout}\n"
+        f"stderr:\n{probe.stderr}"
+    )
+    return [line.strip() for line in probe.stdout.splitlines() if line.strip()]
+
+
 def test_install_from_source_in_isolated_venv(tmp_path: Path):
     repo_root = Path(__file__).resolve().parents[1]
     expected_version = _source_version(repo_root)
@@ -77,3 +138,31 @@ def test_install_from_source_in_isolated_venv(tmp_path: Path):
     assert installed_version == expected_version
     assert str(repo_root) not in str(imported_from)
     assert "site-packages" in str(imported_from).replace("\\", "/")
+
+
+
+def test_import_preserves_numpy_experimental_array_function_env_unset(tmp_path: Path):
+    repo_root = Path(__file__).resolve().parents[1]
+    venv_python = _create_installed_venv(tmp_path, repo_root)
+
+    lines = _run_import_probe(venv_python, tmp_path, None)
+
+    assert lines == ["before=None", "after=None"]
+
+
+def test_import_preserves_numpy_experimental_array_function_env_zero(tmp_path: Path):
+    repo_root = Path(__file__).resolve().parents[1]
+    venv_python = _create_installed_venv(tmp_path, repo_root)
+
+    lines = _run_import_probe(venv_python, tmp_path, "0")
+
+    assert lines == ["before=0", "after=0"]
+
+
+def test_import_preserves_numpy_experimental_array_function_env_one(tmp_path: Path):
+    repo_root = Path(__file__).resolve().parents[1]
+    venv_python = _create_installed_venv(tmp_path, repo_root)
+
+    lines = _run_import_probe(venv_python, tmp_path, "1")
+
+    assert lines == ["before=1", "after=1"]

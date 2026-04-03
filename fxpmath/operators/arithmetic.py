@@ -130,6 +130,10 @@ def sub(x, y, out=None, out_like=None, sizing='optimal', method='raw', **kwargs)
         x_shift = n_frac - x.n_frac
         y_shift = n_frac - y.n_frac
         use_object = _use_object_cast(scale_terms=[(x.n_word, x_shift), (y.n_word, y_shift)])
+        # Unsigned subtraction requires signed-capable intermediates; native unsigned
+        # array arithmetic can wrap underflow before overflow handling is applied.
+        if not x.signed and not y.signed:
+            use_object = True
         cast = _cast_func(use_object)
         return cast(x.val) * cast(2**x_shift) - cast(y.val) * cast(2**y_shift)
 

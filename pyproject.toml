@@ -7,7 +7,7 @@ name = "fxpmath"
 dynamic = ["version"]
 description = "A python library for fractional fixed-point (base 2) arithmetic and binary manipulation with Numpy compatibility."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 authors = [
   { name = "francof2a", email = "empty@empty.com" }
 ]
@@ -22,7 +22,7 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Mathematics",
   "Topic :: Scientific/Engineering :: Physics"
 ]
-dependencies = ["numpy"]
+dependencies = ["numpy>=1.26.4,<3"]
 
 [project.urls]
 Homepage = "https://github.com/francof2a/fxpmath"

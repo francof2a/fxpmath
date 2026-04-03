@@ -3,6 +3,7 @@ name: Master Release Gate
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 concurrency:
   group: master-release-gate-${{ github.ref }}
@@ -13,7 +14,7 @@ permissions:
 
 jobs:
   test-before-release:
-    name: Test before release (Python ${{ matrix.python-version }}, ${{ matrix.os }})
+    name: Test before release (Python ${{ matrix.python-version }}, NumPy ${{ matrix.numpy-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 50
     strategy:
@@ -21,6 +22,16 @@ jobs:
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04, macos-14, windows-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        numpy-version: ["1.26.4", "2.4.3"]
+        exclude:
+          - python-version: "3.9"
+            numpy-version: "2.4.3"
+          - python-version: "3.10"
+            numpy-version: "2.4.3"
+          - python-version: "3.13"
+            numpy-version: "1.26.4"
+          - python-version: "3.14"
+            numpy-version: "1.26.4"
 
     steps:
       - name: Check out repository
@@ -37,6 +48,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+          pip install "numpy==${{ matrix.numpy-version }}"
           pip install pytest build
 
       - name: Run tests

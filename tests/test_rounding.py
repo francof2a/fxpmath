@@ -50,9 +50,9 @@ def test_rounding_remaining_modes_comprehensive():
     """Validates remaining new modes across scalar/array/complex and >64-bit configurations."""
 
     def expected_real(values, n_frac, mode):
-        scale = 2 ** n_frac
-        vals = np.asarray(values)
-        scaled = vals * scale
+        vals = np.asarray(values, dtype=np.float64)
+        # Use ldexp to avoid object-dtype promotion differences across NumPy versions.
+        scaled = np.ldexp(vals, n_frac)
         if mode == 'nearest_neginf':
             q = np.ceil(scaled - 0.5)
         elif mode == 'nearest_zero':
@@ -63,7 +63,7 @@ def test_rounding_remaining_modes_comprehensive():
             q = np.floor(scaled)
         else:
             raise ValueError(mode)
-        return q / scale
+        return np.ldexp(q, -n_frac)
 
     def expected_complex(values, n_frac, mode):
         vals = np.asarray(values)
@@ -136,9 +136,9 @@ def test_rounding_nearest_posinf_comprehensive():
     """Validates nearest_posinf for ties/non-ties across scalar, array, complex, aliases, and >64-bit sizes."""
 
     def nearest_posinf_expected_real(values, n_frac):
-        scale = 2 ** n_frac
-        vals = np.asarray(values)
-        return np.floor(vals * scale + 0.5) / scale
+        vals = np.asarray(values, dtype=np.float64)
+        scaled = np.ldexp(vals, n_frac)
+        return np.ldexp(np.floor(scaled + 0.5), -n_frac)
 
     def nearest_posinf_expected_complex(values, n_frac):
         vals = np.asarray(values)

@@ -6,6 +6,8 @@ import fxpmath as fxp
 from fxpmath.objects import Fxp, Config
 from fxpmath import functions
 import fxpmath.utils as fxp_utils
+import fxpmath.objects as fxp_objects
+import fxpmath.helpers as fxp_helpers
 
 import numpy as np
 import pathlib
@@ -421,20 +423,60 @@ def test_issue_67_v0_4_8():
     # testing the function to see if it matches the manual computation
     F_fft = FFT(f)
     
-def test_issue_73_v0_4_8():
-    # single unsigned value does work
-    """Regression test for issue #73; verifies unsigned subtraction saturates per-element for scalar and vector operands."""
+def _assert_issue_73_unsigned_subtraction():
+    """Shared regression checks for issue #73 unsigned subtraction behavior."""
     a = Fxp(10, False, 14, 3)
     b = Fxp(15, False, 14, 3)
     c = a - b
-    assert c() == 0.0  # 0.0 --> correct
+    assert c() == 0.0  # scalar unsigned subtraction saturates to 0
 
-    # unsigned list does not work
     d = Fxp([10, 21], False, 14, 3)
     e = Fxp([15, 15], False, 14, 3)
     f = d - e
-    assert f[0]() == 0.0  # [4095.875 6.0] --> 4095.875 is the upper limit
+    assert f[0]() == 0.0  # first element should saturate to 0, not max
     assert f[1]() == 6.0
+
+
+def test_issue_73_v0_4_8():
+    """Regression test for issue #73 under default platform precision settings."""
+    _assert_issue_73_unsigned_subtraction()
+
+
+def test_issue_73_v0_4_8_emulated_32bit_n_word_max_path():
+    """Regression test for issue #73 under emulated 32-bit n_word_max path on any OS."""
+    _prev_core = fxp._n_word_max
+    _prev_obj = fxp_objects._n_word_max
+    _prev_helpers = fxp_helpers._n_word_max
+    fxp._n_word_max = 32
+    fxp_objects._n_word_max = 32
+    fxp_helpers._n_word_max = 32
+    try:
+        _assert_issue_73_unsigned_subtraction()
+    finally:
+        fxp._n_word_max = _prev_core
+        fxp_objects._n_word_max = _prev_obj
+        fxp_helpers._n_word_max = _prev_helpers
+
+def test_issue_73_v0_4_8_emulated_64bit_boundary_path():
+    """Regression test for issue #73 on emulated 64-bit n_word_max boundary conditions."""
+    _prev_core = fxp._n_word_max
+    _prev_obj = fxp_objects._n_word_max
+    _prev_helpers = fxp_helpers._n_word_max
+    fxp._n_word_max = 64
+    fxp_objects._n_word_max = 64
+    fxp_helpers._n_word_max = 64
+    try:
+        # Boundary case: unsigned 63-bit inputs produce unsigned 64-bit output sizing.
+        # Under current bug, vector subtraction can wrap and yield a huge positive value.
+        d = Fxp([10, 21], False, 63, 3)
+        e = Fxp([15, 15], False, 63, 3)
+        f = d - e
+        assert f[0]() == 0.0
+        assert f[1]() == 6.0
+    finally:
+        fxp._n_word_max = _prev_core
+        fxp_objects._n_word_max = _prev_obj
+        fxp_helpers._n_word_max = _prev_helpers
 
 def test_issue_76_v0_4_8():
     # Numpy Issue with Bigger bit sizes
