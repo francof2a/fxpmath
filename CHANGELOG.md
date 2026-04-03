@@ -31,6 +31,12 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Preserved compatibility for `from fxpmath import utils`, `from fxpmath import Config`, and `from fxpmath.objects import Config` during the reorganization.
 - Kept NumPy dispatch registrations and public operation signatures stable during the refactor.
 
+### Fixed
+- Fixed unsigned subtraction underflow in raw arithmetic dispatch by forcing object-backed intermediates when both operands are unsigned, preventing pre-saturation wraparound on 32-bit paths and 64-bit boundary cases (issue `#73`).
+
+### Tests
+- Expanded issue `#73` regression coverage with explicit cross-platform paths in `tests/test_issues.py`: default behavior, emulated `n_word_max=32`, and emulated `n_word_max=64` boundary conditions.
+
 ### Documentation
 - Documented supported Python and NumPy ranges plus finalized NumPy dispatch output behavior.
 - Moved compatibility guidance out of the README into dedicated documentation.
@@ -39,7 +45,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Validated targeted compatibility test groups on NumPy `1.26.4` and latest `2.x`.
 - Added stable CI gate jobs for required NumPy compatibility and installation smoke checks, plus artifact uploads for lint/test traceability.
 - Added a scheduled nightly workflow against NumPy pre-release wheels.
-- Ran the full suite successfully on the primary environment (`141 passed, 1 warning`).
+- Ran full-suite validation successfully on NumPy `1.26.4` and latest `2.x` environments (`143 passed`).
 
 ## [0.4.10]
 
