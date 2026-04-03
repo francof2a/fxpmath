@@ -166,3 +166,6 @@ docker/
 
 # local planning docs
 /development-plan.md
+
+# local tmp artifacts
+/tmp/

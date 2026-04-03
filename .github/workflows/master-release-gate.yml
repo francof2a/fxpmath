@@ -3,6 +3,7 @@ name: Master Release Gate
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 concurrency:
   group: master-release-gate-${{ github.ref }}
