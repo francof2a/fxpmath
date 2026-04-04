@@ -655,3 +655,38 @@ def test_bitwise_large_word_scalar_and_arrays():
     assert np.array_equal((xa & yb)(), np.frompyfunc(lambda a, b: a & b, 2, 1)(xa_data, yb_broadcast))
     assert np.array_equal((xa | yb)(), np.frompyfunc(lambda a, b: a | b, 2, 1)(xa_data, yb_broadcast))
     assert np.array_equal((xa ^ yb)(), np.frompyfunc(lambda a, b: a ^ b, 2, 1)(xa_data, yb_broadcast))
+
+
+def test_op_input_size_default_same_for_constant_ops():
+    """Validate default op_input_size='same' behavior for constant operands."""
+    x = Fxp(2.0, True, 16, 2)
+
+    z = x * 2.125
+
+    assert z() == 4.0
+
+
+def test_op_input_size_best_for_constant_ops_when_configured():
+    """Validate explicit op_input_size='best' preserves constant precision before operation."""
+    x = Fxp(2.0, True, 16, 2)
+    x.config.op_input_size = 'best'
+
+    z = x * 2.125
+
+    assert z() == 4.25
+
+
+def test_pow_forces_best_input_size_for_non_fxp_exponent():
+    """Validate __pow__ forces best-sized conversion for non-Fxp exponents."""
+    x = Fxp(3.0, True, 16, 2)
+    x.config.op_input_size = 'same'
+
+    exp_same = x._convert_op_input_value(2.125, op_input_size='same')
+    exp_best = x._convert_op_input_value(2.125, op_input_size='best')
+
+    y_same = fxp.pow(x, exp_same, sizing=x.config.const_op_sizing, method=x.config.op_method)
+    y_best = fxp.pow(x, exp_best, sizing=x.config.const_op_sizing, method=x.config.op_method)
+    y_runtime = x ** 2.125
+
+    assert y_runtime() == y_best()
+    assert y_runtime() != y_same()

@@ -6,6 +6,9 @@ import fxpmath as fxp
 from fxpmath.utils import *
 
 import numpy as np
+import warnings
+
+import fxpmath.utils.numeric as numeric_utils
 
 def test_strbin2int():
     """Validates strbin2int by checking binary representation/interpretation paths."""
@@ -184,3 +187,47 @@ def test_complex_repr():
 
     assert np.all(complex_repr(['1', '-2.5'], ['4.5', '0']) == np.array(['1+4.5j', '-2.5+0j']))
     
+
+
+def test_clip_fast_path_where_preserves_unmasked_values():
+    """Verify ndarray fast-path clipping keeps unmasked values when `where` is used."""
+    x = np.array([1.0, 5.0, 3.0])
+    y = numeric_utils.clip(x, val_min=2.0, val_max=4.0, where=np.array([True, False, True]))
+
+    assert isinstance(y, np.ndarray)
+    assert np.all(y == np.array([2.0, 5.0, 3.0]))
+
+
+def test_clip_fallback_matches_vectorized_for_legacy_inputs():
+    """Verify list, tuple, scalar, and object-array inputs keep legacy clip semantics."""
+    cases = [
+        [1, 9, -3],
+        (1, 9, -3),
+        2**70,
+        np.array([2**70, -(2**70), 5], dtype=object),
+    ]
+
+    for x in cases:
+        y = numeric_utils.clip(x, val_min=-2, val_max=4)
+        y_ref = numeric_utils.clip_vectorized(x, val_min=-2, val_max=4)
+        assert np.array_equal(np.asarray(y, dtype=object), np.asarray(y_ref, dtype=object))
+
+
+def test_clip_fallback_warns_once_when_kwargs_are_ignored():
+    """Verify unsupported kwargs are ignored once on the legacy fallback path with a one-time warning."""
+    numeric_utils._CLIP_KWARGS_WARNING_SHOWN = False
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        y_list = numeric_utils.clip([1, 5, 3], val_min=2, val_max=4, where=[True, False, True])
+        y_tuple = numeric_utils.clip((1, 5, 3), val_min=2, val_max=4, where=[True, False, True])
+        y_object = numeric_utils.clip(np.array([1, 5, 3], dtype=object), val_min=2, val_max=4, where=[True, False, True])
+
+    assert len(caught) == 1
+    assert 'ignored keyword arguments' in str(caught[0].message)
+    assert np.array_equal(np.asarray(y_list), np.asarray(numeric_utils.clip_vectorized([1, 5, 3], 2, 4)))
+    assert np.array_equal(np.asarray(y_tuple), np.asarray(numeric_utils.clip_vectorized((1, 5, 3), 2, 4)))
+    assert np.array_equal(
+        np.asarray(y_object, dtype=object),
+        np.asarray(numeric_utils.clip_vectorized(np.array([1, 5, 3], dtype=object), 2, 4), dtype=object),
+    )

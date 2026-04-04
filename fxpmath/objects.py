@@ -1231,9 +1231,13 @@ class Fxp():
         
         if isinstance(x, Fxp):
             if index is None:
-                raw_val = x.val[index]
-            else:
                 raw_val = x.val
+            else:
+                x_val = x.val
+                if np.isscalar(x_val) or isinstance(x_val, np.generic) or (isinstance(x_val, np.ndarray) and x_val.ndim == 0):
+                    raw_val = x_val
+                else:
+                    raw_val = x_val[index]
 
             new_val_raw = raw_val * 2**(self.n_frac - x.n_frac)
             self.set_val(new_val_raw, raw=True, index=index)
@@ -2538,16 +2542,22 @@ class Fxp():
         if self.config._array_output_type == 'fxp':
             raw = True if self.config.array_op_method == 'raw' else False
 
-            if self.config.array_op_out is not None:
-                return self.config.array_op_out.set_val(out_arr, raw=raw)
-            elif self.config.array_op_out_like is not None:
-                return self.__class__(out_arr, like=self.config.array_op_out_like, raw=raw)
-            elif not isinstance(out_arr, self.__class__):
-                return self.__class__(out_arr)
+            # Normalize tuple inputs so Fxp wrapping follows the same path as list inputs.
+            out_arr_fxp = list(out_arr) if isinstance(out_arr, tuple) else out_arr
 
-        elif self.config._array_output_type == 'array' and isinstance(out_arr, self.__class__):
-            return np.asarray(out_arr.get_val())
-        
+            if self.config.array_op_out is not None:
+                return self.config.array_op_out.set_val(out_arr_fxp, raw=raw)
+            elif self.config.array_op_out_like is not None:
+                return self.__class__(out_arr_fxp, like=self.config.array_op_out_like, raw=raw)
+            elif not isinstance(out_arr, self.__class__):
+                return self.__class__(out_arr_fxp)
+
+        elif self.config._array_output_type == 'array':
+            if isinstance(out_arr, self.__class__):
+                return np.asarray(out_arr.get_val())
+            elif not isinstance(out_arr, np.ndarray):
+                return np.asarray(out_arr)
+
         return out_arr
 
 

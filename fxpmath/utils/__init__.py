@@ -37,7 +37,7 @@ from .bitwise import (
     binary_invert_componentwise,
     binary_op_componentwise,
 )
-from .numeric import clip, int_clip, wrap
+from .numeric import clip, clip_vectorized, int_clip, wrap
 
 __all__ = [
     "ComplexBitwiseOperationWarning",
@@ -69,6 +69,7 @@ __all__ = [
     "binary_invert_componentwise",
     "binary_op_componentwise",
     "clip",
+    "clip_vectorized",
     "int_clip",
     "wrap",
     "get_sizes_from_dtype",

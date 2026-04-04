@@ -364,3 +364,79 @@ def test_numpy_invalid_kwarg_raises_typeerror_mean_fallback():
 
     with pytest.raises(TypeError):
         np.mean(x, unsupported_kw=True)
+
+
+def _dispatch_sample_builders():
+    """Return per-target argument builders for all registered NumPy dispatch functions."""
+    return {
+        np.add: lambda: ((Fxp([1, 2, 3], True, 16, 0), Fxp([3, 2, 1], True, 16, 0)), {}),
+        np.subtract: lambda: ((Fxp([4, 5, 6], True, 16, 0), Fxp([1, 2, 3], True, 16, 0)), {}),
+        np.multiply: lambda: ((Fxp([1, 2, 3], True, 16, 0), Fxp([2, 3, 4], True, 16, 0)), {}),
+        np.floor_divide: lambda: ((Fxp([4, 6, 8], True, 16, 0), Fxp([2, 2, 2], True, 16, 0)), {}),
+        np.true_divide: lambda: ((Fxp([4, 6, 8], True, 16, 0), Fxp([2, 2, 2], True, 16, 0)), {}),
+        np.divide: lambda: ((Fxp([4, 6, 8], True, 16, 0), Fxp([2, 2, 2], True, 16, 0)), {}),
+        np.mod: lambda: ((Fxp([5, 7, 9], True, 16, 0), Fxp([2, 3, 4], True, 16, 0)), {}),
+        np.power: lambda: ((Fxp([2, 3, 4], True, 16, 0), Fxp([2, 2, 2], True, 16, 0)), {}),
+        np.max: lambda: ((Fxp([1, 3, 2], True, 16, 0),), {}),
+        np.min: lambda: ((Fxp([1, 3, 2], True, 16, 0),), {}),
+        np.sum: lambda: ((Fxp([1, 2, 3], True, 16, 0),), {}),
+        np.cumsum: lambda: ((Fxp([1, 2, 3], True, 16, 0),), {}),
+        np.cumprod: lambda: ((Fxp([1, 2, 3], True, 16, 0),), {}),
+        np.prod: lambda: ((Fxp([1, 2, 3], True, 16, 0),), {}),
+        np.sort: lambda: ((Fxp([3, 1, 2], True, 16, 0),), {}),
+        np.conjugate: lambda: ((Fxp([1 + 2j, 3 - 4j], dtype='fxp-s16/8-complex'),), {}),
+        np.conj: lambda: ((Fxp([1 + 2j, 3 - 4j], dtype='fxp-s16/8-complex'),), {}),
+        np.transpose: lambda: ((Fxp([[1, 2], [3, 4]], True, 16, 0),), {}),
+        np.clip: lambda: ((Fxp([1, 5, 3], True, 16, 0), 2, 4), {}),
+        np.diagonal: lambda: ((Fxp([[1, 2], [3, 4]], True, 16, 0),), {}),
+        np.trace: lambda: ((Fxp([[1, 2], [3, 4]], True, 16, 0),), {}),
+        np.dot: lambda: ((Fxp([1, 2, 3], True, 16, 0), Fxp([3, 2, 1], True, 16, 0)), {}),
+        np.nonzero: lambda: ((Fxp([0, 1, 0, 2], True, 16, 0),), {}),
+        np.reshape: lambda: ((Fxp([1, 2, 3, 4], True, 16, 0), (2, 2)), {}),
+    }
+
+
+DISPATCH_SAMPLE_BUILDERS = _dispatch_sample_builders()
+
+
+@pytest.mark.parametrize(
+    "np_func,builder",
+    list(DISPATCH_SAMPLE_BUILDERS.items()),
+    ids=[f.__name__ for f in DISPATCH_SAMPLE_BUILDERS.keys()],
+)
+def test_numpy_dispatch_matrix_smoke(np_func, builder):
+    """Validates each registered NumPy dispatch target with one representative smoke call."""
+    args, kwargs = builder()
+    out = np_func(*args, **kwargs)
+
+    assert isinstance(out, Fxp)
+
+
+def test_numpy_dispatch_matrix_covers_all_registered_targets():
+    """Validates dispatch sample matrix exactly covers the registered fxpmath NumPy targets."""
+    from fxpmath.objects import _NUMPY_HANDLED_FUNCTIONS
+
+    assert set(DISPATCH_SAMPLE_BUILDERS.keys()) == set(_NUMPY_HANDLED_FUNCTIONS.keys())
+
+
+@pytest.mark.parametrize(
+    "np_func,builder",
+    list(DISPATCH_SAMPLE_BUILDERS.items()),
+    ids=[f"unsupported_kw_{f.__name__}" for f in DISPATCH_SAMPLE_BUILDERS.keys()],
+)
+def test_numpy_dispatch_matrix_unsupported_kwarg_raises_typeerror(np_func, builder):
+    """Validates each registered NumPy dispatch target fails explicitly on unsupported kwargs."""
+    args, kwargs = builder()
+
+    with pytest.raises(TypeError):
+        np_func(*args, unsupported_kw=True, **kwargs)
+
+
+
+def test_numpy_clip_where_dispatch_preserves_unmasked_values():
+    """Validates NumPy clip dispatch by checking `where` is forwarded on the ndarray fast path."""
+    x = Fxp([1, 5, 3], True, 16, 0)
+    y = np.clip(x, 2, 4, where=np.array([True, False, True]))
+
+    assert isinstance(y, Fxp)
+    assert np.all(y() == np.array([2, 5, 3]))

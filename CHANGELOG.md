@@ -30,12 +30,17 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Converted monolithic `fxpmath/utils.py` into a package-based layout under `fxpmath/utils/` with `common`, `parse`, `repr`, `bitwise`, and `numeric` modules.
 - Preserved compatibility for `from fxpmath import utils`, `from fxpmath import Config`, and `from fxpmath.objects import Config` during the reorganization.
 - Kept NumPy dispatch registrations and public operation signatures stable during the refactor.
+- Split `fxpmath.utils.numeric.clip` into a hybrid implementation that preserves legacy big-value/object fallback semantics while accelerating numeric ndarray paths.
+- Added NumPy `where` handling in the clip fast path to preserve unmasked values when `out` is not provided.
+- Re-exported `clip_vectorized` from `fxpmath.utils` to keep the legacy clip implementation publicly accessible.
 
 ### Fixed
 - Fixed unsigned subtraction underflow in raw arithmetic dispatch by forcing object-backed intermediates when both operands are unsigned, preventing pre-saturation wraparound on 32-bit paths and 64-bit boundary cases (issue `#73`).
 
 ### Tests
 - Expanded issue `#73` regression coverage with explicit cross-platform paths in `tests/test_issues.py`: default behavior, emulated `n_word_max=32`, and emulated `n_word_max=64` boundary conditions.
+- Added clip corner-case regression coverage for list, tuple, scalar huge-int, and `dtype=object` array inputs to validate legacy fallback behavior.
+- Added `np.clip(..., where=...)` dispatch regression coverage to validate kwargs flow through the safe clip fast path.
 
 ### Documentation
 - Documented supported Python and NumPy ranges plus finalized NumPy dispatch output behavior.
@@ -257,36 +262,3 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 
 ### Fixed
 - Fixed initialization and `best_size_calc` behavior for Win32 platforms.
-
-## [0.3.0]
-
-### Added
-- Added logical (bitwise) operators.
-- Added binary shifting.
-- Added value scaling (scale and offset).
-- Added comparison support.
-- Added inaccuracy status flag to indicate stored value differs from input.
-- Added verbosity support to `info()`.
-- Added `reset()` to clear status flags.
-- Added raw-value support to `set_val()`.
-- Added power operator support.
-- Added inplace operator support.
-
-### Fixed
-- Fixed several bugs.
-
-## [0.2.0]
-
-### Added
-- Added binary, hexadecimal, and base representations.
-- Added upper, lower, and precision properties.
-- Added arithmetic operator support.
-- Added support for string inputs including binary, hexadecimal, and fractional formats.
-- Added `Fxp` copying.
-- Added initialization from another `Fxp`.
-- Added indexing support.
-
-## [0.1.0]
-
-### Added
-- First public release.

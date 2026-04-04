@@ -327,7 +327,9 @@ x ** 3      # power
 
 This math operations using a Fxp and a constant returns a **new Fxp** object with a precision that depends of configuration of Fxp object, `x.config` for examples above.
 
-**The constant is converted into a new Fxp object before math operation**, where the Fxp size for the constant operand is defined by `x.config.op_input_size` in examples above. The default value for `op_input_size` is 'best' (best enoguh precision to represent the constant value), but it could be used 'same' to force the constant's size equals to Fxp object size (x in the examples).
+**The constant is converted into a new Fxp object before math operation**, where the Fxp size for the constant operand is defined by `x.config.op_input_size` in examples above. The default value for `op_input_size` is `same` (constant converted with the same size as the `Fxp` operand). Use `best` when you want constant conversion to infer precision from the constant value.
+
+Power (`**`) with a non-`Fxp` exponent is an intentional exception: exponent conversion is forced to `best` to avoid pathological execution time and memory usage.
 
 > **Important note**: 
 > 

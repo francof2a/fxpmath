@@ -190,6 +190,7 @@ def clip(a, a_min=None, a_max=None, out=None, out_like=None, sizing='optimal', m
     ---
     Fxp or numpy.ndarray
         Operation result following `out`/`out_like` and array output configuration rules."""
+
     def _clip_raw(x, n_frac, **kwargs):
         """Clip raw integer values to the requested bounds.
         
@@ -212,10 +213,12 @@ def clip(a, a_min=None, a_max=None, out=None, out_like=None, sizing='optimal', m
         val_min = kwargs.pop('a_min', None)
         val_max = kwargs.pop('a_max', None)
 
-        if val_min is not None: val_min *= 2**x.n_frac
-        if val_max is not None: val_max *= 2**x.n_frac
+        if val_min is not None:
+            val_min = cast(val_min) * cast(2**x.n_frac)
+        if val_max is not None:
+            val_max = cast(val_max) * cast(2**x.n_frac)
 
-        return cast(utils.clip(cast(x.val), val_min=val_min, val_max=val_max)) * cast(2**shift)
+        return cast(utils.clip(cast(x.val), val_min=val_min, val_max=val_max, **kwargs)) * cast(2**shift)
 
     kwargs['a_min'] = a_min
     kwargs['a_max'] = a_max

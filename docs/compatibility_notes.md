@@ -66,6 +66,13 @@ A practical upgrade workflow is:
 3. Check failures first around array conversion, `out` handling, and unsupported keyword arguments.
 4. Replace top-level NumPy call sites with direct `fxpmath` APIs where you need fixed-point-specific behavior.
 
+## complex wrapping and casting behavior
+
+Complex values in wrap/overflow paths are handled component-wise (real and imaginary parts independently).
+
+* Supported complex wrap paths should not emit NumPy `ComplexWarning`.
+* Real/imaginary components are wrapped using the same signed/word-size policy as non-complex values.
+
 ## unsupported or unknown kwargs
 
 Unsupported keyword arguments should fail explicitly.

@@ -6,6 +6,7 @@ import fxpmath as fxp
 from fxpmath.objects import Fxp
 
 import numpy as np
+import warnings
 
 def test_temp():
     """Placeholder test kept to preserve test-module structure."""
@@ -582,3 +583,78 @@ def test_resize():
     assert x() == 12.5 - x.upper - x.precision + x.lower 
     assert x() == -3.5
         
+
+
+def test_equal_full_copy_index_none_cross_nfrac_scaling():
+    """Validates Fxp.equal full-copy path and raw scaling when index is None."""
+    dst = Fxp([0.0, 0.0, 0.0], True, 16, 4)
+    src = Fxp([1.25, -2.5, 0.75], True, 20, 2)
+
+    dst.equal(src)
+
+    assert np.all(dst() == src())
+    expected_raw = src.raw() * 2**(dst.n_frac - src.n_frac)
+    assert np.all(dst.raw() == expected_raw)
+
+
+def test_equal_scalar_index_uses_scalar_source_when_fxp_input_is_scalar():
+    """Validates Fxp.equal scalar index path when source Fxp input is scalar."""
+    dst = Fxp([0.0, 0.0], True, 16, 4)
+    src_scalar = Fxp(1.5, True, 24, 6)
+
+    dst.equal(src_scalar, index=1)
+
+    assert dst[1]() == src_scalar()
+    assert dst[0]() == 0.0
+
+
+def test_equal_scalar_index_uses_indexed_source_when_fxp_input_is_array():
+    """Validates Fxp.equal scalar index path when source Fxp input is array-like."""
+    dst = Fxp([0.0, 0.0, 0.0], True, 16, 3)
+    src = Fxp([0.125, 1.375, -2.25], True, 18, 5)
+
+    dst.equal(src, index=2)
+
+    assert dst[2]() == src[2]()
+    assert dst[0]() == 0.0
+    assert dst[1]() == 0.0
+
+
+def test_equal_slice_index_path_with_cross_nfrac_scaling():
+    """Validates Fxp.equal slice index path with array source and n_frac scaling."""
+    dst = Fxp([0.0, 0.0, 0.0, 0.0], True, 16, 3)
+    src = Fxp([1.25, 2.5, 3.75, -1.125], True, 24, 5)
+
+    dst.equal(src, index=slice(1, 3))
+
+    assert dst[0]() == 0.0
+    assert dst[1]() == src[1]()
+    assert dst[2]() == src[2]()
+    assert dst[3]() == 0.0
+
+    expected_raw = src.raw()[1:3] * 2**(dst.n_frac - src.n_frac)
+    assert np.all(dst.raw()[1:3] == expected_raw)
+
+
+def test_wrap_complex_componentwise_without_complexwarning():
+    """Validate utils.wrap wraps complex values component-wise without ComplexWarning."""
+    vals = np.array([9 + 10j, -9 - 10j], dtype=complex)
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        out = fxp.utils.wrap(vals, signed=True, n_word=4)
+
+    assert np.all(out == np.array([-7 - 6j, 7 + 6j]))
+    assert not any(w.category.__name__ == 'ComplexWarning' for w in caught)
+
+
+def test_set_val_complex_wrap_path_without_complexwarning():
+    """Validate set_val wrap path for complex input avoids ComplexWarning and preserves component-wise wrap."""
+    x = Fxp(0 + 0j, dtype='fxp-s4/0-complex', overflow='wrap')
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        x(9 + 10j)
+
+    assert x() == (-7 - 6j)
+    assert not any(w.category.__name__ == 'ComplexWarning' for w in caught)
