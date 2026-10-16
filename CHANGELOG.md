@@ -24,6 +24,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Added user-facing compatibility notes and NumPy migration guidance in `docs/compatibility_notes.md`.
 - Started internal module reorganization for `0.5.0` with `fxpmath/operators/` split into `core`, `arithmetic`, `reduction`, and `array`.
 - Extracted `Config` from `fxpmath/objects.py` into `fxpmath/config.py`.
+- Added a repeatable benchmark suite in `benchmarks/` based on `pytest-benchmark` (creation, `set_val`, scalar/array/extended operators, NumPy dispatch, helpers, indexing), and a `v0.5.0` baseline summary in `benchmarks/README.md` (roadmap M5). Result files are machine-specific and not versioned.
 
 ### Changed
 - Narrowed fallback conversion retries in `_wrapped_numpy_func` so unsupported kwargs raise cleanly instead of being retried through broad implicit coercion.
@@ -50,6 +51,9 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Added `op_input_size` tests for default `same`, explicit `best`, and the forced-`best` power exception (issue `#108`).
 - Added regression tests for complex `wrap`, `Config` Fxp-valued output options, `np.nonzero` with `array_op_out`, and `clip` kwargs in both methods (issue `#108`).
 - Added issue `#115` regression coverage for exact integer raw storage in mixed magnitude arrays (`int_array`, set_val, saturation, wrap).
+- Added saturation guardrail test checking exact max/min raw values at word boundaries (including word sizes whose limits are not representable in `float64`), for upcoming saturation optimizations.
+- Restricted default pytest collection to `tests/` (`testpaths`), so benchmarks only run explicitly.
+- Removed `tests/test_performace.py` (print-only timing checks run on every test suite), superseded by the benchmark suite.
 
 ### Documentation
 - Documented supported Python and NumPy ranges plus finalized NumPy dispatch output behavior.

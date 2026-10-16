@@ -630,3 +630,21 @@ def test_config_fxp_output_options_accept_fxp():
     z = np.cumsum(x)
     assert z.dtype == 'fxp-s32/4'
     assert np.all(z() == [1, 3])
+
+
+@pytest.mark.parametrize("n_word", [16, 53, 54, 55, 60, 63, 64])
+@pytest.mark.parametrize("signed", [True, False])
+def test_saturation_exact_at_word_boundary(n_word, signed):
+    """Validate saturation stores exactly the max/min raw value, including word sizes whose limits are not representable in float64 (guardrail for clip optimizations)."""
+    val_max = (1 << (n_word - 1)) - 1 if signed else (1 << n_word) - 1
+    val_min = -(1 << (n_word - 1)) if signed else 0
+
+    # values beyond limits (within int64 range, i.e. numeric non-object path, when n_word < 64)
+    big = 2.0**n_word
+    x = Fxp(np.array([big, -big, 1.0]), signed=signed, n_word=n_word, n_frac=0, overflow='saturate')
+    assert int(x.val[0]) == val_max
+    assert int(x.val[1]) == val_min
+    assert int(x.val[2]) == 1
+
+    s = Fxp(big, signed=signed, n_word=n_word, n_frac=0, overflow='saturate')
+    assert int(s.val) == val_max
