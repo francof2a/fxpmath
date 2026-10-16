@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use fxpmath in your work, please cite it using the metadata below."
+type: software
+title: "fxpmath: fixed-point arithmetic emulation in Python"
+abstract: >-
+  A python library for fractional fixed-point (base 2) arithmetic and binary
+  manipulation with Numpy compatibility.
+authors:
+  - family-names: Alcaraz
+    given-names: Franco Alberto
+    orcid: "https://orcid.org/0009-0003-8330-6223"
+version: 0.4.10
+date-released: 2026-03-24
+license: MIT
+repository-code: "https://github.com/francof2a/fxpmath"
+url: "https://francof2a.github.io/fxpmath/"
+keywords:
+  - fixed point
+  - fixed-point arithmetic
+  - numpy
+  - FPGA
+  - DSP
+  - quantization
+  - hardware modeling

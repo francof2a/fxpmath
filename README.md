@@ -88,18 +88,20 @@ pip install .
 
 ## citation
 
+If you use fxpmath in your work, please cite it. Citation metadata is available in [CITATION.cff](CITATION.cff) (use the *Cite this repository* button on GitHub to get APA or BibTeX).
+
 ```
-Alcaraz, F., 2020. Fxpmath. Available at: https://github.com/francof2a/fxpmath.
+Alcaraz, F. A. fxpmath: fixed-point arithmetic emulation in Python (Version 0.4.10) [Computer software]. https://github.com/francof2a/fxpmath
 ```
 
 **BibTex format**:
 
 ```
-@online{alcaraz2020fxpmath,
-  title={fxpmath},
-  author={Alcaraz, Franco},
+@software{alcaraz2020fxpmath,
+  title={fxpmath: fixed-point arithmetic emulation in Python},
+  author={Alcaraz, Franco Alberto},
   year={2020},
-  publisher={GitHub},
+  version={0.4.10},
   url={https://github.com/francof2a/fxpmath},
 }
 ```
