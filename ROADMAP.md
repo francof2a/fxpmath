@@ -44,8 +44,10 @@ It is intended for contributors and users who want visibility into project direc
 
 ### M4 - Feature Expansion
 - Expand NumPy dispatch coverage for high-value operations (`vecdot`, `matvec`, `vecmat`, norms)
+- Support matrix multiplication (`@` operator and `np.matmul`) with exact fixed-point accumulation
 - Improve behavior consistency for `out`/`out_like` and dispatch kwargs
-- Document feature behavior and compatibility caveats
+- Add a fixed-width hardware modeling profile (config preset where operation results keep the operand size and overflow is handled by the configured behavior), without changing current defaults
+- Document feature behavior and compatibility caveats, including a guide on modeling fixed-width hardware (`op_sizing`, overflow modes, flags)
 
 **Exit criteria**
 - Newly added dispatch features have tests and documentation
@@ -55,11 +57,24 @@ It is intended for contributors and users who want visibility into project direc
 - Add repeatable benchmark suite for arithmetic hot paths (`add`, `mul`, `truediv`, `pow`)
 - Record baseline metrics for `v0.5.0` development
 - Implement targeted optimizations and track deltas
+- Cover the slow paths reported by users: `Fxp` creation from large arrays (#46), per-element access and assignment in loops (#74), and `pow` (#65)
+- Publish comparative benchmarks against plain NumPy and other fixed-point libraries (e.g. APyTypes, numfi)
 - Add regression guardrails for performance in CI or release validation
 
 **Exit criteria**
 - Benchmarks are reproducible and versioned
 - Targeted hot paths show measurable, validated improvements
+- Comparative results are published in the documentation
+
+### M6 - Citability and Ecosystem Visibility
+- Add a `CITATION.cff` file and archive releases on Zenodo to get a DOI
+- Add a citation section to the README and documentation
+- Add a comparison page with other Python fixed-point libraries (features, semantics, performance)
+- Request corrections to third-party comparison tables that describe fxpmath inaccurately (e.g. implementation language, `@` support once available)
+
+**Exit criteria**
+- `v0.5.0` release has a citable DOI
+- Comparison page is published and linked from the README
 
 ## Release Readiness (v0.5.0)
 
@@ -68,16 +83,19 @@ It is intended for contributors and users who want visibility into project direc
 - Refactor changes (M3) are merged with no major regressions
 - Selected feature scope (M4) is complete with tests/docs
 - Performance milestone (M5) provides baseline + improvement evidence
+- Citability milestone (M6) provides a DOI for the release
 
 ## Looking Ahead (Post v0.5.0)
 
 After `v0.5.0`, roadmap priorities are expected to include:
 - Broader API/NumPy feature coverage
 - Additional performance optimization passes
+- Compiled engine for extended precision (>64-bit words)
+- Short software paper (e.g. JOSS) describing the library
 - Documentation depth and developer experience improvements toward `v1.0`
 
 ## Contribution Notes
 
 - Roadmap items may be adjusted based on bug reports, contributor bandwidth, and ecosystem changes.
-- If you want to help, open or comment on an issue and reference the milestone (`M1`-`M5`).
+- If you want to help, open or comment on an issue and reference the milestone (`M1`-`M6`).
 - Small, focused pull requests aligned to roadmap milestones are preferred.
