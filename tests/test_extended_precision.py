@@ -182,3 +182,43 @@ def test_numpy_ufunc():
         assert (ufunc(nx, ny) == ufunc(fx, fy)()).all()
         assert (ufunc(nx, ny) == ufunc(nx, fy)()).all()
         assert (ufunc(nx, ny) == ufunc(fx, ny)()).all()
+
+
+def test_astype_decimal():
+    """Verify `astype(Decimal)` returns exact values for scalars, arrays, indexing, and scaled Fxp."""
+    # Round trip from Decimal input beyond float64 precision.
+    d = Decimal('27670116110564327421.25')
+    x = Fxp(d, signed=True, n_int=65, n_frac=2)
+    assert x.astype(Decimal) == d
+    assert x.get_val(Decimal) == d
+    assert x() == float(d)  # default output type is unchanged
+
+    # Arrays return object arrays of Decimal; index/item return scalars.
+    y = Fxp(None, True, 80, 2)
+    y.set_val(np.array([2**74 + 1, -6, 5], dtype=object), raw=True)
+    y_dec = y.astype(Decimal)
+    assert y_dec.dtype == object
+    assert list(y_dec) == [Decimal(2**72) + Decimal('0.25'), Decimal('-1.5'), Decimal('1.25')]
+    assert y.astype(Decimal, index=0) == y_dec[0]
+    assert y.astype(Decimal, item=1) == Decimal('-1.5')
+    assert y[0].astype(Decimal) == y_dec[0]
+
+    # Non-extended and negative n_frac Fxp.
+    assert Fxp(-1.25, dtype='S16.8').astype(Decimal) == Decimal('-1.25')
+    assert Fxp(96, dtype='S16.-3').astype(Decimal) == Decimal(96)
+
+    # Scaling is applied exactly.
+    z = Fxp(2**70 + 1, dtype='S80.4', scale=0.5, bias=1)
+    assert z.astype(Decimal) == Decimal(2**70 + 1)
+
+    # Global decimal context is not modified.
+    prec = decimal.getcontext().prec
+    Fxp(1.0, True, 256, 248).astype(Decimal)
+    assert decimal.getcontext().prec == prec
+
+    # Complex values are not supported.
+    try:
+        Fxp(1 + 1j, dtype='S80.4').astype(Decimal)
+        assert False, 'TypeError expected'
+    except TypeError:
+        pass

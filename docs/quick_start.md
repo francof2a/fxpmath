@@ -103,11 +103,15 @@ In different types:
 x.astype(int)
 x.astype(float)
 x.astype(complex)
+x.astype(Decimal)       # from decimal import Decimal
 ```
 
 > -8  
 > -7.25  
 > (-7.25+0j)  
+> Decimal('-7.25')  
+
+`astype(Decimal)` returns the exact value, without float rounding. It is useful for extended precision Fxp (more than 64 bits), whose values could not be exactly represented as `float`.
 
 **Note** that if we do:
 
@@ -179,6 +183,7 @@ Fxp can handle following input data types:
 * list
 * ndarrays (n-dimensional numpy arrays)
 * strings (bin, hex, dec)
+* Decimal
 * Fxp objects
 
 Here some examples:

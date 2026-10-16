@@ -10,6 +10,7 @@ import fxpmath.objects as fxp_objects
 import fxpmath.helpers as fxp_helpers
 
 import numpy as np
+from decimal import Decimal
 import pathlib
 if sys.version_info >= (3, 11):
     import tomllib
@@ -733,3 +734,24 @@ def test_issue_109_equal_index_semantics():
     x.equal(y)
     assert x() == 1.75
     assert x.shape == ()
+
+
+def test_issue_110_v0_4_10():
+    """Regression for issue #110 in v0.4.10: values beyond float64 precision must stay exact when `n_frac > 0`."""
+    a = Fxp(None, signed=True, n_int=63, n_frac=0, round='around', saturate='overflow')
+    a.set_val(2**63 - 1)
+
+    b = Fxp(None, signed=True, n_int=65, n_frac=0, round='around', saturate='overflow')
+    b.set_val(a + a + a)
+
+    c = Fxp(None, signed=True, n_int=65, n_frac=2, round='around', saturate='overflow')
+    c.set_val(a + a + a)
+
+    expected = 3 * (2**63 - 1)
+    # Raw storage is exact.
+    assert c.val == expected * 2**2
+    assert b() == expected
+    # Exact value is available as Decimal, with and without fractional bits.
+    assert c.get_val(Decimal) == expected
+    assert c.astype(Decimal) == b.astype(Decimal)
+    assert isinstance(c.get_val(Decimal), Decimal)
