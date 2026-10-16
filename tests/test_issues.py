@@ -755,3 +755,21 @@ def test_issue_110_v0_4_10():
     assert c.get_val(Decimal) == expected
     assert c.astype(Decimal) == b.astype(Decimal)
     assert isinstance(c.get_val(Decimal), Decimal)
+
+
+def test_issue_115_v0_5_0():
+    """Regression for issue #115: raw values in [2**63, 2**64) must stay exact integers when mixed with smaller values."""
+    v = 2**63 + 1
+    a = Fxp(np.array([v, 1], dtype=object), signed=True, n_word=80, n_frac=0, raw=True)
+    assert a.val.tolist() == [v, 1]
+    assert all(isinstance(e, int) for e in a.val)
+    assert (a + a).val.tolist() == [2 * v, 2]
+
+    # unsigned 64-bit saturation keeps exact max value
+    u = Fxp(np.array([2.0**64 + 4096, 1.0]), signed=False, n_word=64, n_frac=0)
+    assert u.val.tolist() == [2**64 - 1, 1]
+    assert all(isinstance(e, int) for e in u.val)
+
+    # wrap path
+    w = Fxp(np.array([2**64 + 5, 1], dtype=object), signed=False, n_word=64, n_frac=0, raw=True, overflow='wrap')
+    assert w.val.tolist() == [5, 1]
