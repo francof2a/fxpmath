@@ -17,6 +17,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Removed legacy `__array_prepare__` hook and extended `Fxp.__array_wrap__` with `return_scalar` support for NumPy `2.x` compatibility.
 
 ### Added
+- Added exact `decimal.Decimal` output for `astype(Decimal)`/`get_val(Decimal)`, mirroring the existing `Decimal` input path; previously it silently returned `float` (issue `#110`).
 - Added isolated import regression coverage to verify `import fxpmath` preserves absent, `0`, and `1` states for `NUMPY_EXPERIMENTAL_ARRAY_FUNCTION`.
 - Added mixed-input NumPy divide regression coverage.
 - Added focused feature tests for `out=...`, scalar and 0-D output paths, strict output-type validation, and array protocol compatibility in NumPy-facing and function-level test files.
@@ -39,6 +40,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 ### Tests
 - Expanded issue `#73` regression coverage with explicit cross-platform paths in `tests/test_issues.py`: default behavior, emulated `n_word_max=32`, and emulated `n_word_max=64` boundary conditions.
 - Added issue `#109` regression coverage for `Fxp.equal` with `index=None`, scalar index, slice index, and cross `n_frac` scaling.
+- Added issue `#110` regression coverage and `astype(Decimal)` tests for scalars, arrays, indexing, negative `n_frac`, and scaling.
 
 ### Documentation
 - Documented supported Python and NumPy ranges plus finalized NumPy dispatch output behavior.

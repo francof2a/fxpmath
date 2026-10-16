@@ -44,7 +44,7 @@ from .config import Config
 _NUMPY_HANDLED_FUNCTIONS = {}
 try:
     from decimal import Decimal
-    from decimal import getcontext
+    from decimal import getcontext, localcontext, MAX_PREC
 except:
     Decimal = type(None)
 
@@ -1111,6 +1111,8 @@ class Fxp():
             Typecode or data-type to which the array is cast.
         
             `None` returns according to `vdtype` of Fxp, if last one is `None`, `float` is returned.
+
+            `decimal.Decimal` returns exact value(s), without float rounding (not supported for complex values).
         
         index : int, optional, default=None
             Index of the element to return from list or array of values cast according `dtype`.
@@ -1154,6 +1156,8 @@ class Fxp():
                 
             elif dtype == complex or np.issubdtype(dtype, np.complexfloating):
                 val = (raw_val.real + 1j * raw_val.imag) / self._get_conv_factor()
+            elif dtype is Decimal:
+                return self._decimal_val(raw_val)
             else:
                 val = raw_val / self._get_conv_factor()
         else:
@@ -1163,6 +1167,48 @@ class Fxp():
         if val is not None and self.scaled:
             val = val * self.scale + self.bias
         return val
+
+    def _decimal_val(self, raw_val):
+        """Return raw value(s) as exact `decimal.Decimal` value(s), including scaling.
+        
+        Parameters
+        ---
+        raw_val : int or numpy.ndarray
+            Raw fixed-point integer value(s).
+        
+        Returns
+        ---
+        decimal.Decimal or numpy.ndarray
+            Exact value(s); arrays are returned with `object` dtype."""
+        if self.vdtype == complex or np.iscomplexobj(raw_val):
+            raise TypeError('Decimal dtype is not supported for complex values')
+
+        def _to_decimal(r):
+            # Value is raw / 2**n_frac. Dividing (r / 2**n_frac) would produce a binary64 float
+            # (IEEE 754 double, 53-bit mantissa), losing precision for raw values wider than 53 bits.
+            # Instead, the value is built as a Decimal in its native format: an integer mantissa
+            # (coefficient, arbitrary precision) and a base-10 exponent, i.e. m * 10**e.
+            # Since 1 / 2**n = 5**n / 10**n, then raw / 2**n_frac = (raw * 5**n_frac) * 10**-n_frac,
+            # so: m = raw * 5**n_frac (exact integer), e = -n_frac.
+            r = int(r)
+            if self.n_frac >= 0:
+                m, e = r * 5**self.n_frac, -self.n_frac
+                # strip trailing zeros of the mantissa (m * 10**e == (m // 10) * 10**(e + 1))
+                while e < 0 and m % 10 == 0:
+                    m, e = m // 10, e + 1
+                # string constructor is exact (context precision is not applied)
+                d = Decimal('{}E{}'.format(m, e))
+            else:
+                d = Decimal(r << -self.n_frac)
+
+            if self.scaled:
+                # exact product and sum (no rounding)
+                with localcontext() as ctx:
+                    ctx.prec = MAX_PREC
+                    d = d * Decimal(self.scale) + Decimal(self.bias)
+            return d
+
+        return np.frompyfunc(_to_decimal, 1, 1)(raw_val)
 
     def get_val(self, dtype=None, index=None, item=None):
         """Returns non-fixed-point value cast to a specified type.
