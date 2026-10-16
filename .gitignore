@@ -169,3 +169,7 @@ docker/
 
 # local tmp artifacts
 /tmp/
+
+# pytest-benchmark results (machine-specific, kept local)
+.benchmarks/
+benchmarks/results/

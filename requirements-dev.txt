@@ -1,5 +1,6 @@
 -r requirements.txt
 pytest
+pytest-benchmark
 packaging
 flake8
 

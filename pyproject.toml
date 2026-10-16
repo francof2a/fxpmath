@@ -37,3 +37,7 @@ version = { attr = "fxpmath.__version__" }
 
 [tool.setuptools.package-data]
 fxpmath = ["py.typed"]
+
+[tool.pytest.ini_options]
+# benchmarks/ is excluded from the default run; use `pytest benchmarks` explicitly
+testpaths = ["tests"]
