@@ -7,7 +7,7 @@ def _is_fxp_instance(val):
     """Late-import Fxp to avoid circular imports with fxpmath.objects."""
     from .objects import Fxp
 
-    return _is_fxp_instance(val)
+    return isinstance(val, Fxp)
 
 class Config():
     """Configuration container that defines how an `Fxp` object behaves during conversion, arithmetic, and NumPy interoperability.

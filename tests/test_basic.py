@@ -6,6 +6,8 @@ import fxpmath as fxp
 from fxpmath.objects import Fxp
 
 import numpy as np
+import warnings
+import pytest
 
 def test_temp():
     """Placeholder test kept to preserve test-module structure."""
@@ -581,4 +583,50 @@ def test_resize():
     x.resize(dtype='S4.1')
     assert x() == 12.5 - x.upper - x.precision + x.lower 
     assert x() == -3.5
-        
+
+
+def test_wrap_complex_componentwise_without_complexwarning():
+    """Validate utils.wrap wraps complex values component-wise without ComplexWarning."""
+    vals = np.array([9 + 10j, -9 - 10j], dtype=complex)
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        out = fxp.utils.wrap(vals, signed=True, n_word=4)
+
+    assert np.all(out == np.array([-7 - 6j, 7 + 6j]))
+    assert not any(w.category.__name__ == 'ComplexWarning' for w in caught)
+
+
+def test_set_val_complex_wrap_path_without_complexwarning():
+    """Validate set_val wrap path for complex input avoids ComplexWarning and preserves component-wise wrap."""
+    x = Fxp(0 + 0j, dtype='fxp-s4/0-complex', overflow='wrap')
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        x(9 + 10j)
+
+    assert x() == (-7 - 6j)
+    assert not any(w.category.__name__ == 'ComplexWarning' for w in caught)
+
+
+def test_config_fxp_output_options_accept_fxp():
+    """Validate Config options holding Fxp objects (`op_out`, `op_out_like`, `array_op_out`, `array_op_out_like`) accept Fxp and reject other types."""
+    for option in ('op_out', 'op_out_like', 'array_op_out', 'array_op_out_like'):
+        x = Fxp([1, 2], True, 16, 0)
+        template = Fxp(None, True, 32, 4)
+
+        setattr(x.config, option, template)
+        assert getattr(x.config, option) is template
+
+        setattr(x.config, option, None)
+        assert getattr(x.config, option) is None
+
+        with pytest.raises(ValueError):
+            setattr(x.config, option, 1.0)
+
+    # array_op_out_like is applied to registered NumPy dispatch outputs
+    x = Fxp([1, 2], True, 16, 0)
+    x.config.array_op_out_like = Fxp(None, True, 32, 4)
+    z = np.cumsum(x)
+    assert z.dtype == 'fxp-s32/4'
+    assert np.all(z() == [1, 3])

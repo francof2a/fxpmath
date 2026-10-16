@@ -36,15 +36,24 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Fixed unsigned subtraction underflow in raw arithmetic dispatch by forcing object-backed intermediates when both operands are unsigned, preventing pre-saturation wraparound on 32-bit paths and 64-bit boundary cases (issue `#73`).
 - Fixed `Fxp.equal` adding an extra array dimension when copying another `Fxp` with `index=None`; `index` now selects destination elements and the source is `x[index]` for array-like `x` (issue `#109`).
 - Replaced deprecated `numpy.fix` (NumPy `2.5`) with `numpy.trunc` for the `fix` rounding alias.
+- Fixed `np.nonzero(Fxp)` failing with `TypeError`: tuple results from NumPy dispatch (index arrays) are now returned as-is instead of being wrapped as `Fxp` (issue `#108`).
+- Fixed `clip` silently ignoring unsupported keyword arguments with `method='raw'`; it now raises `TypeError`, consistent with `method='repr'` and documented kwargs policy (issue `#108`).
+- Fixed infinite recursion when assigning an `Fxp` to `Config.op_out`, `op_out_like`, `array_op_out`, or `array_op_out_like`, introduced by the `Config` extraction (issue `#108`).
+- `utils.wrap` now wraps complex arrays component-wise instead of discarding the imaginary part with a `ComplexWarning` (issue `#108`).
 
 ### Tests
 - Expanded issue `#73` regression coverage with explicit cross-platform paths in `tests/test_issues.py`: default behavior, emulated `n_word_max=32`, and emulated `n_word_max=64` boundary conditions.
 - Added issue `#109` regression coverage for `Fxp.equal` with `index=None`, scalar index, slice index, and cross `n_frac` scaling.
 - Added issue `#110` regression coverage and `astype(Decimal)` tests for scalars, arrays, indexing, negative `n_frac`, and scaling.
+- Added NumPy dispatch matrix tests covering every registered target: result values against NumPy on plain values, registry coverage, and `TypeError` on unsupported kwargs (issue `#108`).
+- Added `op_input_size` tests for default `same`, explicit `best`, and the forced-`best` power exception (issue `#108`).
+- Added regression tests for complex `wrap`, `Config` Fxp-valued output options, `np.nonzero` with `array_op_out`, and `clip` kwargs in both methods (issue `#108`).
 
 ### Documentation
 - Documented supported Python and NumPy ranges plus finalized NumPy dispatch output behavior.
 - Moved compatibility guidance out of the README into dedicated documentation.
+- Documented `op_input_size` default as `same` (README and quick start previously stated `best`) and the power forced-`best` exception (issue `#108`).
+- Documented complex wrapping and casting behavior in compatibility notes (issue `#108`).
 
 ### Validation
 - Validated targeted compatibility test groups on NumPy `1.26.4` and latest `2.x`.

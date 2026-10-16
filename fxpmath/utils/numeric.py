@@ -61,6 +61,12 @@ def wrap(x, signed, n_word):
     ---
     int or numpy.ndarray
         Wrapped integer value(s) constrained to fixed-point range."""
+    if np.iscomplexobj(x):
+        # wrap real and imaginary parts independently
+        wrapped_real = wrap(np.real(x), signed=signed, n_word=n_word)
+        wrapped_imag = wrap(np.imag(x), signed=signed, n_word=n_word)
+        return wrapped_real + 1j * wrapped_imag
+
     m = (1 << n_word)
     if n_word >= _n_word_max:
         dtype = object

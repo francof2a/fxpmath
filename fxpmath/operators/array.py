@@ -212,6 +212,9 @@ def clip(a, a_min=None, a_max=None, out=None, out_like=None, sizing='optimal', m
         val_min = kwargs.pop('a_min', None)
         val_max = kwargs.pop('a_max', None)
 
+        if kwargs:
+            raise TypeError('clip() got unsupported keyword argument(s) for raw method: {}'.format(', '.join(kwargs)))
+
         if val_min is not None: val_min *= 2**x.n_frac
         if val_max is not None: val_max *= 2**x.n_frac
 
