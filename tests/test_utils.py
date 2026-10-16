@@ -184,3 +184,31 @@ def test_complex_repr():
 
     assert np.all(complex_repr(['1', '-2.5'], ['4.5', '0']) == np.array(['1+4.5j', '-2.5+0j']))
     
+
+
+def test_int_array_keeps_exact_ints_in_mixed_ranges():
+    """Validate int_array never infers float for Python ints in [2**63, 2**64) mixed with smaller values (issue #115)."""
+    cases = [
+        [2**64 - 1, 1],
+        [2**63, 0],
+        [-1, 2**63],
+        [2**63 + 1, 1, -5],
+    ]
+    for vals in cases:
+        out = int_array(np.array(vals, dtype=object))
+        assert out.dtype.kind in 'iuO'
+        assert [int(v) for v in out.flatten()] == vals
+
+    # 2D shape is preserved
+    out = int_array(np.array([[2**63 + 1, 1], [2, 3]], dtype=object))
+    assert out.shape == (2, 2)
+    assert int(out[0, 0]) == 2**63 + 1
+
+    # dtypes for cases already exact are unchanged
+    assert int_array(np.array([1, 2, 3])).dtype == np.array([1, 2, 3]).dtype
+    assert int_array(np.array([2**63, 2**63 + 1], dtype=object)).dtype == np.uint64
+    assert int_array(np.array([2**64, 1], dtype=object)).dtype == object
+
+    # complex values keep exact components
+    out = int_array(np.array([complex(2**60, 1), complex(1, 2)]))
+    assert out.dtype == complex

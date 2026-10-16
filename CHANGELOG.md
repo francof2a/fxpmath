@@ -40,6 +40,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Fixed `clip` silently ignoring unsupported keyword arguments with `method='raw'`; it now raises `TypeError`, consistent with `method='repr'` and documented kwargs policy (issue `#108`).
 - Fixed infinite recursion when assigning an `Fxp` to `Config.op_out`, `op_out_like`, `array_op_out`, or `array_op_out_like`, introduced by the `Config` extraction (issue `#108`).
 - `utils.wrap` now wraps complex arrays component-wise instead of discarding the imaginary part with a `ComplexWarning` (issue `#108`).
+- Fixed `utils.int_array` converting raw values in `[2**63, 2**64)` to `float` when mixed with smaller values (NumPy dtype inference), which lost precision in extended precision and unsigned 64-bit raw storage, saturation, and wrapping (issue `#115`).
 
 ### Tests
 - Expanded issue `#73` regression coverage with explicit cross-platform paths in `tests/test_issues.py`: default behavior, emulated `n_word_max=32`, and emulated `n_word_max=64` boundary conditions.
@@ -48,6 +49,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Added NumPy dispatch matrix tests covering every registered target: result values against NumPy on plain values, registry coverage, and `TypeError` on unsupported kwargs (issue `#108`).
 - Added `op_input_size` tests for default `same`, explicit `best`, and the forced-`best` power exception (issue `#108`).
 - Added regression tests for complex `wrap`, `Config` Fxp-valued output options, `np.nonzero` with `array_op_out`, and `clip` kwargs in both methods (issue `#108`).
+- Added issue `#115` regression coverage for exact integer raw storage in mixed magnitude arrays (`int_array`, set_val, saturation, wrap).
 
 ### Documentation
 - Documented supported Python and NumPy ranges plus finalized NumPy dispatch output behavior.

@@ -105,11 +105,33 @@ def int_array(x):
         x = np.array(x)
 
     if x.dtype != complex:
-        x = np.array(list(map(int, x.flatten()))).reshape(x.shape)
+        x = _exact_int_array(x)
     else:
         x_real = np.vectorize(lambda v: v.real)(x)
         x_imag = np.vectorize(lambda v: v.imag)(x)
-        x_real = np.array(list(map(int, x_real.flatten()))).reshape(x_real.shape)
-        x_imag = np.array(list(map(int, x_imag.flatten()))).reshape(x_imag.shape)
+        x_real = _exact_int_array(x_real)
+        x_imag = _exact_int_array(x_imag)
         x = np.array(x_real + 1j*x_imag)
     return x
+
+def _exact_int_array(x):
+    """Cast elements to Python int and build an ndarray that keeps them exact.
+
+    NumPy infers `float64` from a list mixing ints in [2**63, 2**64) with smaller
+    (or negative) ints, because no single integer dtype fits all of them. In that
+    case an `object` array is used to keep exact values.
+
+    Parameters
+    ---
+    x : numpy.ndarray
+        Input numeric values (real).
+
+    Returns
+    ---
+    numpy.ndarray
+        Integer (`int64`/`uint64`) or `object` array with the same shape as `x`."""
+    ints = list(map(int, x.flatten()))
+    arr = np.array(ints)
+    if len(ints) > 0 and arr.dtype.kind == 'f':
+        arr = np.array(ints, dtype=object)
+    return arr.reshape(x.shape)
