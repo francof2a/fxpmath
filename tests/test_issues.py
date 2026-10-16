@@ -679,3 +679,57 @@ def test_issue_102_v0_4_9():
     assert x.raw() == (Fxp(num.real, dtype='s1.13').raw() + 1j * Fxp(num.imag, dtype='s1.13').raw())
     # Unsigned raw conversion must also be component-wise for complex values.
     assert x.uraw() == expected_uraw
+
+
+def test_issue_109_v0_4_10():
+    """Regression for issue #109 in v0.4.10: `y.equal(x)` must copy `x` as-is, without adding an array dimension."""
+    x1 = Fxp(-7.25, signed=True, n_word=16, n_frac=8)
+    x2 = Fxp(1.5, signed=True, n_word=16, n_frac=8)
+    x3 = Fxp(-0.5, signed=True, n_word=8, n_frac=7)
+
+    y = Fxp(None, signed=True, n_word=32, n_frac=16)
+    y.equal(x1*x3 - 3*x2)
+
+    assert repr(y) == 'fxp-s32/16(-0.875)'
+    assert y.shape == ()
+    assert y() == -0.875
+
+    # Quick start guide states these forms are equivalent.
+    z = Fxp(None, signed=True, n_word=32, n_frac=16)
+    z.set_val((x1*x3 - 3*x2).get_val())
+    assert repr(y) == repr(z)
+
+
+def test_issue_109_equal_index_semantics():
+    """Issue #109: `index` selects destination elements; source is `x.val[index]` when array-like, or the scalar `x`."""
+    # index=None with array source copies the full array.
+    x = Fxp(np.zeros(3), dtype='S16.8')
+    y = Fxp(np.array([1.25, -0.5, 2.0]), dtype='S16.4')
+    x.equal(y)
+    assert x.shape == (3,)
+    assert np.all(x() == y())
+
+    # Scalar index with scalar source (issue #66 usage).
+    x = Fxp(np.array([1.25, 0.5]), dtype='S8.4')
+    y = Fxp(np.array([2.25, 1.5]), dtype='S16.6')
+    x.equal(y[0], index=0)
+    assert np.all(x() == [2.25, 0.5])
+
+    # Scalar index with array source takes the same element from the source.
+    x = Fxp(np.zeros(3), dtype='S16.8')
+    y = Fxp(np.array([1.25, -0.5, 2.0]), dtype='S16.4')
+    x.equal(y, index=1)
+    assert np.all(x() == [0.0, -0.5, 0.0])
+
+    # Slice index with array source.
+    x = Fxp(np.zeros(4), dtype='S16.8')
+    y = Fxp(np.array([1.25, -0.5, 2.0, 3.5]), dtype='S16.4')
+    x.equal(y, index=slice(1, 3))
+    assert np.all(x() == [0.0, -0.5, 2.0, 0.0])
+
+    # Cross n_frac scaling: source with more fractional bits is quantized to destination.
+    x = Fxp(None, dtype='S16.2', rounding='trunc')
+    y = Fxp(1.875, dtype='S16.8')
+    x.equal(y)
+    assert x() == 1.75
+    assert x.shape == ()

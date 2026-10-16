@@ -1220,8 +1220,10 @@ class Fxp():
         x : Fxp object, None, int, float, complex, list of numbers, numpy array, str (bin, hex, dec)
             Value(s) to be stored in fractional fixed-point (base 2) format.
         
-        index : int, optional, default=None
-            Index of the element to be overwritten in list or array of values by `val` input.
+        index : int, slice, optional, default=None
+            Index of the element(s) to be overwritten in list or array of values by `x` input.
+            If `x` is an array-like Fxp, `x[index]` is used as source; if `x` is a scalar Fxp, `x` is used.
+            If `None`, the whole value of `x` is copied.
         
         Returns
         ---
@@ -1230,10 +1232,10 @@ class Fxp():
             Fxp with it's value modified."""
         
         if isinstance(x, Fxp):
-            if index is None:
-                raw_val = x.val[index]
-            else:
+            if index is None or np.ndim(x.val) == 0:
                 raw_val = x.val
+            else:
+                raw_val = x.val[index]
 
             new_val_raw = raw_val * 2**(self.n_frac - x.n_frac)
             self.set_val(new_val_raw, raw=True, index=index)
@@ -1337,7 +1339,7 @@ class Fxp():
         elif method == 'ceil':
             rval = np.ceil(val)
         elif method == 'fix':
-            rval = np.fix(val)
+            rval = np.trunc(val)
         elif method == 'trunc':
             rval = np.trunc(val)
         elif method is None or method == '':

@@ -33,9 +33,12 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 
 ### Fixed
 - Fixed unsigned subtraction underflow in raw arithmetic dispatch by forcing object-backed intermediates when both operands are unsigned, preventing pre-saturation wraparound on 32-bit paths and 64-bit boundary cases (issue `#73`).
+- Fixed `Fxp.equal` adding an extra array dimension when copying another `Fxp` with `index=None`; `index` now selects destination elements and the source is `x[index]` for array-like `x` (issue `#109`).
+- Replaced deprecated `numpy.fix` (NumPy `2.5`) with `numpy.trunc` for the `fix` rounding alias.
 
 ### Tests
 - Expanded issue `#73` regression coverage with explicit cross-platform paths in `tests/test_issues.py`: default behavior, emulated `n_word_max=32`, and emulated `n_word_max=64` boundary conditions.
+- Added issue `#109` regression coverage for `Fxp.equal` with `index=None`, scalar index, slice index, and cross `n_frac` scaling.
 
 ### Documentation
 - Documented supported Python and NumPy ranges plus finalized NumPy dispatch output behavior.
