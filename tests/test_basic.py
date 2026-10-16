@@ -648,3 +648,48 @@ def test_saturation_exact_at_word_boundary(n_word, signed):
 
     s = Fxp(big, signed=signed, n_word=n_word, n_frac=0, overflow='saturate')
     assert int(s.val) == val_max
+
+
+@pytest.mark.parametrize("n_word", [55, 60, 63])
+def test_overflow_flags_exact_at_word_boundary(n_word):
+    """Validate overflow/underflow flags detect values just beyond limits whose bounds are not representable in float64."""
+    val_max = (1 << (n_word - 1)) - 1
+    val_min = -(1 << (n_word - 1))
+
+    # float(val_max) rounds up to 2**(n_word-1); this value exceeds val_max by 1
+    x = Fxp(np.array([float(1 << (n_word - 1)), 1.0]), signed=True, n_word=n_word, n_frac=0)
+    assert x.status['overflow']
+    assert not x.status['underflow']
+    assert int(x.val[0]) == val_max
+
+    # within limits: no flags
+    y = Fxp(np.array([float(val_min), 1.0]), signed=True, n_word=n_word, n_frac=0)
+    assert not y.status['overflow']
+    assert not y.status['underflow']
+    assert int(y.val[0]) == val_min
+
+
+def test_saturation_special_values_and_input_kinds():
+    """Validate saturation keeps behavior for NaN/inf and for scalar, int, uint, raw and extended inputs."""
+    x = Fxp(np.array([np.nan, np.inf, -np.inf, 1.0]), True, 16, 8)
+    assert x.val.tolist() == [32767, 32767, -32768, 256]
+
+    s = Fxp(1000.0, True, 16, 8)
+    assert int(s.val) == 32767 and s.status['overflow']
+    assert Fxp(-1000.0, True, 16, 8).status['underflow']
+
+    i = Fxp(np.array([1, 2**20, -2**20]), True, 16, 0)
+    assert i.val.tolist() == [1, 32767, -32768]
+
+    u = Fxp(np.array([5, 2**40], dtype=np.uint64), False, 16, 0, raw=True)
+    assert u.val.tolist() == [5, 65535]
+
+    r = Fxp(np.array([5, 2**40, -2**40]), True, 16, 8, raw=True)
+    assert r.val.tolist() == [5, 32767, -32768]
+
+    e = Fxp(np.array([2.0**100, -2.0**100, 1.0]), True, 80, 8)
+    assert e.val.tolist() == [2**79 - 1, -2**79, 256]
+
+    # rounding before saturation is preserved
+    t = Fxp(np.array([1.999, -1.999]), True, 16, 0, rounding='trunc')
+    assert t.val.tolist() == [1, -1]
