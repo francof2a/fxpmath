@@ -1307,18 +1307,17 @@ class Fxp():
         ---
         numpy.ndarray
             Raw values after applying configured overflow handling."""
-        if np.any(new_val > val_max):
+        # exact masks (bounds wider than 53 bits are not representable in float64)
+        above, below = utils.overflow_masks(new_val, val_min, val_max)
+        if np.any(above):
             self.status['overflow'] = True
             self._run_callbacks('on_status_overflow')
-        if np.any(new_val < val_min):
+        if np.any(below):
             self.status['underflow'] = True
             self._run_callbacks('on_status_underflow')
         
         if self.config.overflow == 'saturate':
-            if isinstance(new_val, np.ndarray) and new_val.dtype == object:
-                val = np.clip(new_val, val_min, val_max)
-            else:
-                val = utils.clip(new_val, val_min, val_max)
+            val = utils.saturate(new_val, val_min, val_max, masks=(above, below))
 
         elif self.config.overflow == 'wrap':
             val = utils.wrap(new_val, self.signed, self.n_word)

@@ -25,6 +25,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Started internal module reorganization for `0.5.0` with `fxpmath/operators/` split into `core`, `arithmetic`, `reduction`, and `array`.
 - Extracted `Config` from `fxpmath/objects.py` into `fxpmath/config.py`.
 - Added a repeatable benchmark suite in `benchmarks/` based on `pytest-benchmark` (creation, `set_val`, scalar/array/extended operators, NumPy dispatch, helpers, indexing), and a `v0.5.0` baseline summary in `benchmarks/README.md` (roadmap M5). Result files are machine-specific and not versioned.
+- Replaced `np.vectorize`-based saturation in the overflow path with vectorized `utils.saturate`/`utils.overflow_masks` (exact integer bounds, also for word sizes over 53 bits): `set_val` on 1k arrays about 12x faster and array operators about 4.5x faster (roadmap M5).
 
 ### Changed
 - Narrowed fallback conversion retries in `_wrapped_numpy_func` so unsupported kwargs raise cleanly instead of being retried through broad implicit coercion.
@@ -42,6 +43,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Fixed infinite recursion when assigning an `Fxp` to `Config.op_out`, `op_out_like`, `array_op_out`, or `array_op_out_like`, introduced by the `Config` extraction (issue `#108`).
 - `utils.wrap` now wraps complex arrays component-wise instead of discarding the imaginary part with a `ComplexWarning` (issue `#108`).
 - Fixed `utils.int_array` converting raw values in `[2**63, 2**64)` to `float` when mixed with smaller values (NumPy dtype inference), which lost precision in extended precision and unsigned 64-bit raw storage, saturation, and wrapping (issue `#115`).
+- Fixed overflow/underflow status flags missing values just beyond limits for word sizes over 53 bits (bounds not representable in `float64`).
 
 ### Tests
 - Expanded issue `#73` regression coverage with explicit cross-platform paths in `tests/test_issues.py`: default behavior, emulated `n_word_max=32`, and emulated `n_word_max=64` boundary conditions.
@@ -54,6 +56,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Added saturation guardrail test checking exact max/min raw values at word boundaries (including word sizes whose limits are not representable in `float64`), for upcoming saturation optimizations.
 - Restricted default pytest collection to `tests/` (`testpaths`), so benchmarks only run explicitly.
 - Removed `tests/test_performace.py` (print-only timing checks run on every test suite), superseded by the benchmark suite.
+- Added saturation regression tests for exact overflow flags at word boundaries, NaN/inf handling, and scalar, int, uint, raw and extended inputs.
 
 ### Documentation
 - Documented supported Python and NumPy ranges plus finalized NumPy dispatch output behavior.
