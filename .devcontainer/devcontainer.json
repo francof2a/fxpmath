@@ -11,12 +11,13 @@
     "source=${localEnv:HOME}/.ssh,target=/home/ubuntu/.ssh,type=bind,consistency=cached"
   ],
   "remoteEnv": {
-    "SSH_AUTH_SOCK": "/ssh-agent"
+    "SSH_AUTH_SOCK": "/ssh-agent",
+    "PATH": "/home/ubuntu/.venv/bin:${containerEnv:PATH}"
   },
   "customizations": {
     "vscode": {
       "settings": {
-        "python.defaultInterpreterPath": "/usr/bin/python3"
+        "python.defaultInterpreterPath": "/home/ubuntu/.venv/bin/python"
       },
       "extensions": [
         "ms-python.python",

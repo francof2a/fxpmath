@@ -21,6 +21,13 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 RUN if ! id -u ubuntu >/dev/null 2>&1; then useradd -m -s /bin/bash ubuntu; fi \
     && usermod -aG sudo ubuntu
 
+# Python dev dependencies in a venv owned by the remote user
+COPY requirements.txt requirements-dev.txt /tmp/req/
+USER ubuntu
+RUN python3 -m venv /home/ubuntu/.venv \
+    && /home/ubuntu/.venv/bin/pip install --no-cache-dir -r /tmp/req/requirements-dev.txt
+USER root
+
 COPY .devcontainer/init-user.sh /usr/local/share/devcontainer/init-user.sh
 RUN chmod 755 /usr/local/share/devcontainer/init-user.sh
 
