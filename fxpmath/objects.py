@@ -2583,6 +2583,10 @@ class Fxp():
         ---
         Fxp or numpy.ndarray
             Result converted to configured array output type."""
+        if isinstance(out_arr, tuple):
+            # multiple outputs (e.g. index arrays from `nonzero`) are not fixed-point values
+            return out_arr
+
         if self.config._array_output_type == 'fxp':
             raw = True if self.config.array_op_method == 'raw' else False
 
