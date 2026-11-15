@@ -44,6 +44,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - `utils.wrap` now wraps complex arrays component-wise instead of discarding the imaginary part with a `ComplexWarning` (issue `#108`).
 - Fixed `utils.int_array` converting raw values in `[2**63, 2**64)` to `float` when mixed with smaller values (NumPy dtype inference), which lost precision in extended precision and unsigned 64-bit raw storage, saturation, and wrapping (issue `#115`).
 - Fixed overflow/underflow status flags missing values just beyond limits for word sizes over 53 bits (bounds not representable in `float64`).
+- Fixed `Fxp.__lshift__`/`__ilshift__` raising `ValueError` (ambiguous truth value) for array shift amounts: the result word size is now derived from the largest shift amount, so `a << shifts` shifts element-wise instead of crashing (issue `#120`).
 
 ### Tests
 - Expanded issue `#73` regression coverage with explicit cross-platform paths in `tests/test_issues.py`: default behavior, emulated `n_word_max=32`, and emulated `n_word_max=64` boundary conditions.
@@ -55,6 +56,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Added issue `#115` regression coverage for exact integer raw storage in mixed magnitude arrays (`int_array`, set_val, saturation, wrap).
 - Added saturation guardrail test checking exact max/min raw values at word boundaries (including word sizes whose limits are not representable in `float64`), for upcoming saturation optimizations.
 - Restricted default pytest collection to `tests/` (`testpaths`), so benchmarks only run explicitly.
+- Added issue `#120` regression coverage for left shift with array shift amounts: element-wise values, signed arrays, result word sizing from the largest shift, the in-place form, and unchanged scalar behavior.
 - Removed `tests/test_performace.py` (print-only timing checks run on every test suite), superseded by the benchmark suite.
 - Added saturation regression tests for exact overflow flags at word boundaries, NaN/inf handling, and scalar, int, uint, raw and extended inputs.
 
