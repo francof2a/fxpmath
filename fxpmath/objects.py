@@ -1890,7 +1890,10 @@ class Fxp():
         Fxp
             New fixed-point object containing the operation result."""
         if self.config.shifting == 'expand':
-            n_word = max(self.n_word, int(np.max(np.ceil(np.log2(np.abs(self.val)+0.5)))) + self.signed + n)
+            # `n` may be an array of per-element shifts; `n_word` describes the
+            # whole object, so size the result for the largest shift amount.
+            n_max = int(np.max(n))
+            n_word = max(self.n_word, int(np.max(np.ceil(np.log2(np.abs(self.val)+0.5)))) + self.signed + n_max)
             new_value = self.val << np.array(n, dtype=self.val.dtype)
         elif self.config.shifting == 'keep':
             n_word = self.n_word

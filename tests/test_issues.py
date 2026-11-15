@@ -773,3 +773,29 @@ def test_issue_115_v0_5_0():
     # wrap path
     w = Fxp(np.array([2**64 + 5, 1], dtype=object), signed=False, n_word=64, n_frac=0, raw=True, overflow='wrap')
     assert w.val.tolist() == [5, 1]
+
+
+def test_issue_120_v0_5_0():
+    """Regression for issue #120: an array of shift amounts must shift element-wise instead of raising."""
+    a = Fxp(np.array([1, 2, 3]), signed=False, n_word=8, n_frac=0, overflow='wrap')
+    shifts = np.array([1, 2, 3])
+
+    b = a << shifts
+    assert np.all(b() == [2, 8, 24])
+    assert b.dtype == a.dtype
+
+    # in-place form uses the same path
+    c = a.deepcopy()
+    c <<= shifts
+    assert np.all(c() == [2, 8, 24])
+
+    # signed values are shifted element-wise too
+    s = Fxp(np.array([-1, 2, 3]), signed=True, n_word=8, n_frac=0)
+    assert np.all((s << shifts)() == [-2, 8, 24])
+
+    # the largest shift amount sizes the result word
+    w = Fxp(np.array([1]), signed=False, n_word=4, n_frac=0)
+    assert (w << np.array([9])).n_word == 10
+
+    # scalar shift amounts keep working as before
+    assert np.all((a << 2)() == [4, 8, 12])
